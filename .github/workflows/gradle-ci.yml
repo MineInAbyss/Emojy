@@ -1,0 +1,31 @@
+name: Gradle CI
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Build
+        run: gradle build
+
+      - name: Upload build
+        uses: actions/upload-artifact@v1
+        with:
+          name: build
+          path: build/libs
