@@ -1,0 +1,5 @@
+#[versions]
+#guiy = "0.7.26"
+#
+#[libraries]
+#guiy = { module = "com.mineinabyss:guiy-compose", version.ref = "guiy" }

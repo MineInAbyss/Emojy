@@ -1,14 +1,11 @@
-# TODO fill in this file
-name: TODO
+name: emojy
 version: ${plugin_version}
-author: TODO
-main: com.mineinabyss.example.ExamplePlugin
+author: boy0000
+main: com.mineinabyss.emojy.EmojyPlugin
 api-version: 1.18
 #depend:
 #softdepend:
 description: TODO
 
 commands:
-  example:
-    aliases: [ example, ex ]
-    description: An example command
+  emojy:

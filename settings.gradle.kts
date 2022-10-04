@@ -6,7 +6,7 @@ pluginManagement {
     repositories {
         gradlePluginPortal()
         maven("https://repo.mineinabyss.com/releases")
-        maven("https://papermc.io/repo/repository/maven-public/")
+        maven("https://repo.papermc.io/repository/maven-public/")
         google()
     }
 
@@ -22,7 +22,7 @@ pluginManagement {
     }
 }
 
-rootProject.name = "plugin-template"
+rootProject.name = "emojy"
 
 dependencyResolutionManagement {
     val idofrontVersion: String by settings
@@ -33,6 +33,6 @@ dependencyResolutionManagement {
 
     versionCatalogs {
         create("libs").from("com.mineinabyss:catalog:$idofrontVersion")
-        create("pluginLibs").from(files("gradle/pluginLibs.versions.toml"))
+        create("emojyLibs").from(files("gradle/emojyLibs.toml"))
     }
 }

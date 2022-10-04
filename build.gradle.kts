@@ -1,13 +1,13 @@
 plugins {
     id("com.mineinabyss.conventions.kotlin")
     id("com.mineinabyss.conventions.papermc")
-//    id("com.mineinabyss.conventions.nms")
     id("com.mineinabyss.conventions.copyjar")
     id("com.mineinabyss.conventions.publication")
-    id("com.mineinabyss.conventions.testing")
     kotlin("plugin.serialization")
-    id("org.jetbrains.compose")
-    id("org.jetbrains.dokka")
+}
+
+repositories {
+    maven("https://repo.dmulloy2.net/repository/public/")
 }
 
 dependencies {
@@ -17,12 +17,8 @@ dependencies {
     compileOnly(libs.kotlinx.coroutines)
     compileOnly(libs.minecraft.mccoroutine)
     compileOnly(libs.koin.core)
-
-    // Other plugins
-    compileOnly(pluginLibs.geary.papermc.core)
-    compileOnly(pluginLibs.guiy)
+    compileOnly(libs.minecraft.plugin.protocollib)
 
     // Shaded
     implementation(libs.idofront.core)
-//    compileOnly(libs.idofront.nms)
 }
