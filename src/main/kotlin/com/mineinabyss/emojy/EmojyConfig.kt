@@ -15,6 +15,8 @@ import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
 var emojyConfig = EmojyConfig.data
 
 object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.serializer()) {
+    const val PRIVATE_USE_FIRST = 57344
+
     @Serializable
     data class EmojyConfig(
         val defaultNamespace: String = "emotes",
@@ -39,10 +41,13 @@ object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.
     ) {
         // Beginning of Private Use Area \uE000 -> uF8FF
         // Option: (Character.toCodePoint('\uE000', '\uFF8F')/37 + getIndex())
-        fun getUnicode(): Char = Character.toChars(57344 + emojyConfig.emotes.indexOf(this)).first()
-        fun getFont() = Key.key(emojyConfig.defaultNamespace, font)
+        fun getUnicode(): Char =
+            Character.toChars(PRIVATE_USE_FIRST + emojyConfig.emotes.filter { it.font == font }.indexOf(this)).first()
+
+        fun getFont() = Key.key(getNamespace(), font)
         fun getNamespace() = texture.substringBefore(":")
         fun getImage() = texture.substringAfterLast("/")
+        fun getImagePath() = texture.substringAfter(":")
         fun toJson(): JsonObject {
             val output = JsonObject()
             val chars = JsonArray()
@@ -56,20 +61,28 @@ object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.
         }
 
         // TODO Change this to miniMsg(TagResolver) when Idofront is updated
-        fun getFormattedUnicode(): Component {
-            return getUnicode().toString().miniMsg().font(getFont()).color(NamedTextColor.WHITE).insertion(":$id:")
-                .hoverEvent(HoverEvent.hoverEvent(HoverEvent.Action.SHOW_TEXT,
-                        ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg())
-                )
+        fun getFormattedUnicode(splitter: String = ""): Component {
+            val component = getUnicode().toString().miniMsg().mergeStyle(
+                "".miniMsg().font(getFont()).color(NamedTextColor.WHITE).insertion(":$id:")
+                    .hoverEvent(
+                        HoverEvent.hoverEvent(
+                            HoverEvent.Action.SHOW_TEXT,
+                            ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg()
+                        )
+                    )
+            )
+            return if (emojyConfig.emotes.indexOf(this) == emojyConfig.emotes.size - 1) component
+            else component.append("<font:default><white>$splitter</white></font>".miniMsg())
         }
-        
-        private val emojyTagResolver: TagResolver get() {
-            val tagResolver = TagResolver.builder()
-            emojyConfig.emotes.forEach { emote ->  
-                Placeholder.component("emojy_${emote.id}", emote.getFormattedUnicode())
+
+        private val emojyTagResolver: TagResolver
+            get() {
+                val tagResolver = TagResolver.builder()
+                emojyConfig.emotes.forEach { emote ->
+                    Placeholder.component("emojy_${emote.id}", emote.getFormattedUnicode())
+                }
+                return tagResolver.build()
             }
-            return tagResolver.build()
-        }
     }
 
 

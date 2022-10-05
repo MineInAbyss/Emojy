@@ -9,16 +9,15 @@ import java.io.File
 object EmojyGenerator {
 
     fun generateResourcePack() {
+        File(emojy.dataFolder, "/assets").deleteRecursively()
         emojyConfig.emotes.forEach { emote ->
             val font = File(emojy.dataFolder, "/fonts/${emote.font}.json")
-            val texture = File(emojy.dataFolder.path, "/textures/${emote.getImage()}")
-            val assetDir = File(emojy.dataFolder.path, "/assets")
-            texture.parentFile.mkdirs()
-            assetDir.mkdirs()
+            val texture = File(emojy.dataFolder.path, "/textures/${emote.getImage()}").run { parentFile.mkdirs(); this }
+            val assetDir = File(emojy.dataFolder.path, "/assets").run { mkdirs(); this }
 
             try {
                 font.copyTo(assetDir.resolve(emote.getNamespace() + "/font/${emote.font}.json"), true)
-                texture.copyTo(assetDir.resolve(emote.getNamespace() + "/textures/${emote.getImage()}"), true)
+                texture.copyTo(assetDir.resolve(emote.getNamespace() + "/textures/${emote.getImagePath()}"), true)
             } catch (e: NoSuchFileException) {
                 logWarn("Could not find ${e.file} for emote ${emote.id}")
             }
@@ -27,11 +26,9 @@ object EmojyGenerator {
 
     fun generateFontFiles() {
         val fontFiles = mutableMapOf<String, JsonArray>()
-
         emojyConfig.emotes.forEach { emote ->
-            val array = JsonArray()
-            array.add(emote.toJson())
-            fontFiles[emote.font]?.add(array) ?: fontFiles.putIfAbsent(emote.font, array)
+            fontFiles[emote.font]?.add(emote.toJson())
+                ?: fontFiles.putIfAbsent(emote.font, JsonArray().apply { add(emote.toJson()) })
         }
 
         fontFiles.forEach { (font, array) ->
