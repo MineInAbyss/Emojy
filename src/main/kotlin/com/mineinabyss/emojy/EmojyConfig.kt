@@ -11,9 +11,9 @@ import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
+import org.bukkit.entity.Player
 
 var emojyConfig = EmojyConfig.data
-
 object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.serializer()) {
     const val PRIVATE_USE_FIRST = 57344
 
@@ -59,6 +59,8 @@ object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.
             output.add("chars", chars)
             return output
         }
+        fun checkPermission(player: Player?) =
+            !emojyConfig.requirePermissions || player == null || player.hasPermission(permission) || player.hasPermission("emojy.font.${font}")
 
         // TODO Change this to miniMsg(TagResolver) when Idofront is updated
         fun getFormattedUnicode(splitter: String = ""): Component {
