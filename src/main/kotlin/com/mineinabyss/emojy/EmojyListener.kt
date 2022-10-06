@@ -54,11 +54,11 @@ class EmojyListener : Listener {
 
 fun Component.replaceEmoteIds(player: Player? = null): Component {
     var msg = this
-    emojyConfig.emotes.entries.forEach { (id, emote) ->
+    emojyConfig.emotes.forEach { emote ->
         if (emote.checkPermission(player)) {
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
-                    .match(":$id:")
+                    .match(":${emote.id}:")
                     .replacement(emote.getFormattedUnicode())
                     .build()
             )

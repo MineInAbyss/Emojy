@@ -11,7 +11,7 @@ object EmojyGenerator {
 
     fun generateResourcePack() {
         File(emojy.dataFolder, "/assets").deleteRecursively()
-        emojyConfig.emotes.entries.forEach { (id, emote) ->
+        emojyConfig.emotes.forEach { emote ->
             val assetDir = File(emojy.dataFolder.path, "/assets").run { mkdirs(); this }
             try {
                 val font = File(emojy.dataFolder, "/fonts/${emote.font}.json")
@@ -19,7 +19,7 @@ object EmojyGenerator {
             } catch (e: Exception) {
                 if (emojyConfig.debug) when (e) {
                     is NoSuchFileException, is NullPointerException ->
-                        logWarn("Could not find font ${emote.font} for emote $id in plugins/emojy/fonts")
+                        logWarn("Could not find font ${emote.font} for emote ${emote.id} in plugins/emojy/fonts")
                 }
             }
 
@@ -30,7 +30,7 @@ object EmojyGenerator {
             } catch (e: Exception) {
                 if (emojyConfig.debug) when (e) {
                     is NoSuchFileException, is NullPointerException -> {
-                        logError("Could not find texture ${emote.getImage()} for emote $id in plugins/emojy/textures")
+                        logError("Could not find texture ${emote.getImage()} for emote ${emote.id} in plugins/emojy/textures")
                         logWarn("Will not be copied to final resourcepack folder")
                         logWarn("If you have it through another resourcepack, ignore this")
                     }
@@ -41,7 +41,7 @@ object EmojyGenerator {
 
     fun generateFontFiles() {
         val fontFiles = mutableMapOf<String, JsonArray>()
-        emojyConfig.emotes.values.forEach { emote ->
+        emojyConfig.emotes.forEach { emote ->
             fontFiles[emote.font]?.add(emote.toJson())
                 ?: fontFiles.putIfAbsent(emote.font, JsonArray().apply { add(emote.toJson()) })
         }
