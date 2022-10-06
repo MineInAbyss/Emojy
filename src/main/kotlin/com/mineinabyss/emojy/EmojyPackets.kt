@@ -5,18 +5,14 @@ import com.comphenix.protocol.events.PacketAdapter
 import com.comphenix.protocol.events.PacketEvent
 import com.comphenix.protocol.reflect.FieldAccessException
 import com.comphenix.protocol.wrappers.WrappedChatComponent
-import com.mineinabyss.idofront.messaging.broadcastVal
 import com.mineinabyss.idofront.messaging.miniMsg
 import com.mineinabyss.idofront.messaging.serialize
 import net.kyori.adventure.text.Component
 
 class EmojyPackets : PacketAdapter(
     emojy,
-    //PacketType.Play.Server.OPEN_WINDOW,
-    PacketType.Play.Server.PLAYER_LIST_HEADER_FOOTER,
     PacketType.Play.Server.SET_TITLE_TEXT,
     PacketType.Play.Server.SET_SUBTITLE_TEXT,
-    PacketType.Play.Server.SET_ACTION_BAR_TEXT
 ) {
 
     override fun onPacketSending(event: PacketEvent) {
@@ -24,33 +20,22 @@ class EmojyPackets : PacketAdapter(
         try {
             val title =
                 (if (chat.read(0) == null) (event.packet.modifier.read(1) as Component)
-                else chat.read(0).toString().miniMsg()).replaceEmoteIds().removeUnwanted()
-            chat.write(0, WrappedChatComponent.fromText(title.serialize().broadcastVal()))
+                else chat.read(0).json.readJson()).replaceEmoteIds().removeUnwanted()
+
+            chat.write(0, WrappedChatComponent.fromText(title.serialize()))
+//            when (event.packetType) {
+//                PacketType.Play.Server.SET_TITLE_TEXT -> event.player.sendTitlePart(TitlePart.TITLE, title)
+//                PacketType.Play.Server.SET_SUBTITLE_TEXT -> event.player.sendTitlePart(TitlePart.SUBTITLE, title)
+//                else -> {
+//                }
+//            }
         } catch (e: Exception) {
             when (e) {
-                is NullPointerException, is FieldAccessException -> {
+                is NullPointerException, is FieldAccessException ->
                     event.player.sendMessage("fail")
-                }
-
-                else -> e.printStackTrace()
+                else -> {}
             }
-        }
-
-//        try {
-//            (event.packet.modifier.read(1) == null).broadcastVal()
-//            val subtitle = if (chat.read(1) == null) {
-//                (event.packet.modifier.read(1) as Component).replaceEmoteIds().removeUnwanted()
-//            } else chat.read(1).json.readJson()
-//            chat.write(1, WrappedChatComponent.fromText(subtitle.serialize()))
-//        } catch (e: Exception) {
-//            when (e) {
-//                is FieldAccessException, is NullPointerException -> {
-//                    event.player.sendMessage("ccc")
-//                }
-//
-//                else -> e.printStackTrace()
-//            }
-//        }
+        } catch (_: StackOverflowError) {}
     }
 
     // Ugly but works :)
