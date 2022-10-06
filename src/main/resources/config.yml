@@ -8,8 +8,15 @@ generateResourcePack: true
 debug: true # Prints out error msg for resourcepack generation
 
 emotes:
-  pog:
+  - id: pog
     texture: "emotes:emotes/pog.png"
     font: "emotes"
     height: 7
     ascent: 7
+
+gifs:
+  - id: test
+    frameCount: 0
+    framePath: "emotes:emotes/gifs/"
+    ascent: 8
+    height: 8

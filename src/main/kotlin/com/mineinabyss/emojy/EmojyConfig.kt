@@ -27,8 +27,8 @@ object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.
         val requirePermissions: Boolean = true,
         val generateResourcePack: Boolean = true,
         val debug: Boolean = true,
-        val emotes: MutableList<Emote> = mutableListOf(Emote())
-        //val gifs: Set<Gif>
+        val emotes: MutableSet<Emote> = mutableSetOf(Emote()),
+        val gifs: Set<Gif> = mutableSetOf(Gif())
     )
 
     @Serializable
@@ -88,10 +88,33 @@ object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.
     }
 
 
-    /*@Serializable
+    @Serializable
     data class Gif(
-        val id: String,
-        val frameCount: Int,
+        val id: String = "example",
+        val frameCount: Int = 0,
+        val framePath: String = "${emojyConfig.defaultNamespace}:textures/${emojyConfig.defaultFolder}/$id/",
+        val ascent: Int = 8,
+        val height: Int = 8,
 
-    )*/
+    ) {
+        fun getFont() = Key.key(getNamespace(), id)
+        fun getNamespace() = framePath.substringBefore(":")
+        fun getImagePath() = framePath.substringAfter(":")
+        fun getPermission() = "emojy.emote.$id"
+        fun getUnicode(i: Int): Char = Character.toChars(PRIVATE_USE_FIRST + i).first()
+        fun toJson(): JsonObject {
+            val output = JsonObject()
+            val chars = JsonArray()
+            (1..frameCount).forEach { i ->
+
+                output.addProperty("type", "bitmap")
+                output.addProperty("file", framePath)
+                output.addProperty("ascent", ascent)
+                output.addProperty("height", height)
+                chars.add(getUnicode(i))
+                output.add("chars", chars)
+            }
+            return output
+        }
+    }
 }
