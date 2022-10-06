@@ -47,7 +47,7 @@ object EmojyGenerator {
             val assetDir = File(emojy.dataFolder.path, "/assets")
             try {
                 val font = File(emojy.dataFolder, "/fonts/gifs/${gif.id}.json").run { parentFile.mkdirs(); this }
-                font.copyTo(assetDir.resolve(gif.getNamespace() + "/font/gifs/${gif.id}.json"), true)
+                font.copyTo(assetDir.resolve(gif.getNamespace() + "/font/${gif.id}.json"), true)
             } catch (e: Exception) {
                 if (emojyConfig.debug) when (e) {
                     is NoSuchFileException, is NullPointerException ->
@@ -78,14 +78,13 @@ object EmojyGenerator {
 
         emojyConfig.gifs.forEach { gif ->
             gif.toJson().forEach { json ->
-                fontFiles[gif.getFont().toString()]?.add(json)
+                fontFiles[gif.id]?.add(json)
                     ?: fontFiles.putIfAbsent(gif.id, JsonArray().apply { add(json) })
             }
         }
         fontFiles.forEach { (font, array) ->
             val output = JsonObject()
             val fontFile = File("${emojy.dataFolder.absolutePath}/fonts/gifs/${font}.json")
-
             output.add("providers", array)
             fontFile.parentFile.mkdirs()
             fontFile.writeText(output.toString())

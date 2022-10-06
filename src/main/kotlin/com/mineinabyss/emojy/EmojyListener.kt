@@ -12,7 +12,6 @@ import org.bukkit.event.Listener
 import org.bukkit.event.block.SignChangeEvent
 import org.bukkit.event.inventory.InventoryOpenEvent
 import org.bukkit.event.player.PlayerEditBookEvent
-import org.bukkit.event.player.PlayerJoinEvent
 
 @Suppress("UnstableApiUsage")
 class EmojyListener : Listener {
@@ -37,14 +36,6 @@ class EmojyListener : Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun SignChangeEvent.onSignChange() = lines().forEachIndexed { i, l -> line(i, l.replaceEmoteIds(player)) }
-
-    @EventHandler(priority = EventPriority.HIGHEST)
-    fun PlayerJoinEvent.onJoin() {
-        player.sendPlayerListHeaderAndFooter(
-            player.playerListHeader()?.replaceEmoteIds() ?: "".miniMsg(),
-            player.playerListFooter()?.replaceEmoteIds() ?: "".miniMsg()
-        )
-    }
 
     // TODO Please change this when https://github.com/PaperMC/Paper/pull/7979 is merged
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)

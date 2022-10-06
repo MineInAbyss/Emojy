@@ -113,6 +113,7 @@ object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.
         fun getImagePath() = framePath.substringAfter(":")
         fun getPermission() = "emojy.gif.$id"
         fun getUnicode(i: Int): Char = Character.toChars(PRIVATE_USE_FIRST + i).first()
+
         @JvmName("getFrameCount1")
         fun getFrameCount(): Int {
             val reader: ImageReader = ImageIO.getImageReadersByFormatName("gif").next() as ImageReader
@@ -148,9 +149,8 @@ object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.
 
         fun getFormattedUnicode(splitter: String = ""): Component {
             val component = getUnicode(1).toString().miniMsg().mergeStyle(
-                "".miniMsg().font(getFont()).color(NamedTextColor.WHITE).insertion(":${id}:")
-                    .decorate(TextDecoration.OBFUSCATED)
-                    .hoverEvent(
+                Component.empty().font(getFont()).color(NamedTextColor.WHITE).insertion(":${id}:")
+                    .decorate(TextDecoration.OBFUSCATED).hoverEvent(
                         HoverEvent.hoverEvent(
                             HoverEvent.Action.SHOW_TEXT,
                             ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg()
