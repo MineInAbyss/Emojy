@@ -26,28 +26,28 @@ object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.
         val defaultAscent: Int = 7,
         val requirePermissions: Boolean = true,
         val generateResourcePack: Boolean = true,
-        val emotes: Set<Emote> = emptySet()
+        val debug: Boolean = true,
+        val emotes: MutableMap<String, Emote> = mutableMapOf("example" to Emote())
         //val gifs: Set<Gif>
     )
 
     @Serializable
     data class Emote(
-        val id: String,
         val font: String = emojyConfig.defaultFont,
-        val texture: String = "${emojyConfig.defaultNamespace}:textures/${emojyConfig.defaultFolder}/${id}.png",
+        val texture: String = "${emojyConfig.defaultNamespace}:textures/${emojyConfig.defaultFolder}/example.png", //TODO getID()?
         val height: Int = emojyConfig.defaultHeight,
         val ascent: Int = emojyConfig.defaultAscent,
-        val permission: String = "emojy.emote.$id"
     ) {
         // Beginning of Private Use Area \uE000 -> uF8FF
         // Option: (Character.toCodePoint('\uE000', '\uFF8F')/37 + getIndex())
         fun getUnicode(): Char =
-            Character.toChars(PRIVATE_USE_FIRST + emojyConfig.emotes.filter { it.font == font }.indexOf(this)).first()
-
+            Character.toChars(PRIVATE_USE_FIRST + emojyConfig.emotes.entries.filter { it.value.font == font }.map { it.value }.indexOf(this)).first()
+        fun getId() = emojyConfig.emotes.entries.firstOrNull { it.value == this }?.key ?: "default"
         fun getFont() = Key.key(getNamespace(), font)
         fun getNamespace() = texture.substringBefore(":")
         fun getImage() = texture.substringAfterLast("/")
         fun getImagePath() = texture.substringAfter(":")
+        fun getPermission() = "emojy.emote.${getId()}"
         fun toJson(): JsonObject {
             val output = JsonObject()
             val chars = JsonArray()
@@ -60,20 +60,20 @@ object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.
             return output
         }
         fun checkPermission(player: Player?) =
-            !emojyConfig.requirePermissions || player == null || player.hasPermission(permission) || player.hasPermission("emojy.font.${font}")
+            !emojyConfig.requirePermissions || player == null || player.hasPermission(getPermission()) || player.hasPermission("emojy.font.${font}")
 
         // TODO Change this to miniMsg(TagResolver) when Idofront is updated
         fun getFormattedUnicode(splitter: String = ""): Component {
             val component = getUnicode().toString().miniMsg().mergeStyle(
-                "".miniMsg().font(getFont()).color(NamedTextColor.WHITE).insertion(":$id:")
+                "".miniMsg().font(getFont()).color(NamedTextColor.WHITE).insertion(":${getId()}:")
                     .hoverEvent(
                         HoverEvent.hoverEvent(
                             HoverEvent.Action.SHOW_TEXT,
-                            ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg()
+                            ("<red>Type <i>:${getId()}:</i> or <i>Shift + Click</i> this to use this emote").miniMsg()
                         )
                     )
             )
-            return if (emojyConfig.emotes.indexOf(this) == emojyConfig.emotes.size - 1) component
+            return if (emojyConfig.emotes.values.indexOf(this) == emojyConfig.emotes.values.size - 1) component
             else component.append("<font:default><white>$splitter</white></font>".miniMsg())
         }
 
@@ -81,7 +81,7 @@ object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.
             get() {
                 val tagResolver = TagResolver.builder()
                 emojyConfig.emotes.forEach { emote ->
-                    Placeholder.component("emojy_${emote.id}", emote.getFormattedUnicode())
+                    Placeholder.component("emojy_${getId()}", emote.value.getFormattedUnicode())
                 }
                 return tagResolver.build()
             }

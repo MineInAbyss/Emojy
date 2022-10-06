@@ -21,9 +21,11 @@ class EmojyPlugin : JavaPlugin() {
         EmojyGenerator.generateFontFiles()
         if (emojyConfig.generateResourcePack)
             EmojyGenerator.generateResourcePack()
+
         registerEvents(EmojyListener())
         if (protlib.isEnabled)
             protManager.addPacketListener(EmojyPackets())
+
         EmojyCommands()
 
     }

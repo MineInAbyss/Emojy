@@ -2,10 +2,10 @@ name: emojy
 version: ${plugin_version}
 author: boy0000
 main: com.mineinabyss.emojy.EmojyPlugin
-api-version: 1.18
+api-version: 1.19
 #depend:
-#softdepend:
-description: TODO
+softdepend: [ ProtocolLib ]
+description: Emote plugin
 
 commands:
-  emojy:
+  emojy: {}

@@ -5,9 +5,10 @@ defaultHeight: 7
 defaultAscent: 7
 requirePermission: true
 generateResourcePack: true
+debug: true # Prints out error msg for resourcepack generation
 
 emotes:
-  - id: "emotes"
+  pog:
     texture: "emotes:emotes/pog.png"
     font: "emotes"
     height: 7

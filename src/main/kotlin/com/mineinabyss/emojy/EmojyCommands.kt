@@ -13,9 +13,9 @@ class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
         "emojy" {
             "list" {
                 action {
-                    val msg = if (sender is Player) emojyConfig.emotes.joinToString("") { emote ->
+                    val msg = if (sender is Player) emojyConfig.emotes.values.joinToString("") { emote ->
                         emote.getFormattedUnicode(", ").serialize()
-                    } else emojyConfig.emotes.joinToString(", ") { it.id }
+                    } else emojyConfig.emotes.keys.joinToString(", ") { it }
 
                     sender.sendRichMessage("<green>List of emojis:")
                     sender.sendRichMessage(msg)
