@@ -64,5 +64,15 @@ fun Component.replaceEmoteIds(player: Player? = null): Component {
             )
         }
     }
+    emojyConfig.gifs.forEach { gif ->
+        if (gif.checkPermission(player)) {
+            msg = msg.replaceText(
+                TextReplacementConfig.builder()
+                    .match(":${gif.id}:")
+                    .replacement(gif.getFormattedUnicode())
+                    .build()
+            )
+        }
+    }
     return msg
 }

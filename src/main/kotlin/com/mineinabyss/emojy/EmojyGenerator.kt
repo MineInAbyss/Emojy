@@ -3,16 +3,14 @@ package com.mineinabyss.emojy
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.mineinabyss.idofront.messaging.logError
+import com.mineinabyss.idofront.messaging.logVal
 import com.mineinabyss.idofront.messaging.logWarn
-import org.w3c.dom.NamedNodeMap
 import org.w3c.dom.Node
-import org.w3c.dom.NodeList
 import java.awt.image.BufferedImage
 import java.io.File
 import java.io.IOException
 import javax.imageio.ImageIO
 import javax.imageio.ImageReader
-import javax.imageio.metadata.IIOMetadata
 
 
 //TODO Make font generation sort by namespace to avoid duplicate fonts
@@ -50,59 +48,16 @@ object EmojyGenerator {
         emojyConfig.gifs.forEach { gif ->
             val assetDir = File(emojy.dataFolder.path, "/assets")
             try {
-                val font = File(emojy.dataFolder, "/fonts/gifs/${gif.id}.json")
-                font.copyTo(assetDir.resolve(gif.getNamespace() + "/font/${gif.id}.json"), true)
+                val font = File(emojy.dataFolder, "/fonts/gifs/${gif.id}.json").run { parentFile.mkdirs(); this }
+                font.copyTo(assetDir.resolve(gif.getNamespace() + "/font/gif/${gif.id}.json"), true)
             } catch (e: Exception) {
                 if (emojyConfig.debug) when (e) {
                     is NoSuchFileException, is NullPointerException ->
                         logWarn("Could not find font ${gif.id} for emote ${gif.id} in plugins/emojy/fonts")
                 }
             }
-
-            try {
-                val imageatt = arrayOf(
-                    "imageLeftPosition",
-                    "imageTopPosition",
-                    "imageWidth",
-                    "imageHeight"
-                )
-                val gifFolder = File(emojy.dataFolder,"gifs/").run { mkdirs(); this }
-                val reader: ImageReader = ImageIO.getImageReadersByFormatName("gif").next() as ImageReader
-                val ciis = ImageIO.createImageInputStream(gifFolder.resolve("${gif.id}.gif"))
-                reader.setInput(ciis, false)
-                val noi: Int = if (gif.frameCount <= 0) reader.getNumImages(true) else gif.frameCount
-                var master: BufferedImage? = null
-                for (i in 0 until noi) {
-                    val image: BufferedImage = reader.read(i)
-                    val metadata: IIOMetadata = reader.getImageMetadata(i)
-                    val tree: Node = metadata.getAsTree("javax_imageio_gif_image_1.0")
-                    val children: NodeList = tree.childNodes
-                    for (j in 0 until children.length) {
-                        val nodeItem: Node = children.item(j)
-                        if (nodeItem.nodeName.equals("ImageDescriptor")) {
-                            val imageAttr: MutableMap<String, Int> = HashMap()
-                            for (k in imageatt.indices) {
-                                val attr: NamedNodeMap = nodeItem.attributes
-                                val attnode: Node = attr.getNamedItem(imageatt[k])
-                                imageAttr[imageatt[k]] = Integer.valueOf(attnode.nodeValue)
-                            }
-                            if (i == 0) {
-                                master = BufferedImage(
-                                    imageAttr["imageWidth"]!!,
-                                    imageAttr["imageHeight"]!!, BufferedImage.TYPE_INT_ARGB
-                                )
-                            }
-                            master!!.graphics.drawImage(
-                                image,
-                                imageAttr["imageLeftPosition"]!!, imageAttr["imageTopPosition"]!!, null
-                            )
-                        }
-                    }
-                    ImageIO.write(master, "GIF", File("$i.gif"))
-                }
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
+            //TODO Copy all the split images into resourcepack
+            gif.generateSplitGif()
         }
     }
 
@@ -112,7 +67,6 @@ object EmojyGenerator {
             fontFiles[emote.font]?.add(emote.toJson())
                 ?: fontFiles.putIfAbsent(emote.font, JsonArray().apply { add(emote.toJson()) })
         }
-
         fontFiles.forEach { (font, array) ->
             val output = JsonObject()
             val fontFile = File("${emojy.dataFolder.absolutePath}/fonts/${font}.json")
@@ -121,7 +75,69 @@ object EmojyGenerator {
             fontFile.parentFile.mkdirs()
             fontFile.writeText(output.toString())
         }
+
+        fontFiles.clear()
+
+        emojyConfig.gifs.forEach { gif ->
+            gif.toJson().size.logVal()
+            gif.toJson().forEach { json ->
+                fontFiles[gif.id]?.add(json)
+                    ?: fontFiles.putIfAbsent(gif.id, JsonArray().apply { add(json) })
+            }
+        }
+        fontFiles.forEach { (font, array) ->
+            val output = JsonObject()
+            val fontFile = File("${emojy.dataFolder.absolutePath}/fonts/gifs/${font.logVal()}.json")
+
+            output.add("providers", array)
+            fontFile.parentFile.mkdirs()
+            fontFile.writeText(output.toString())
+        }
+
     }
 
     fun reloadFontFiles() = generateFontFiles()
+
+    private fun EmojyConfig.Gif.generateSplitGif() {
+        try {
+            val gifFolder = File(emojy.dataFolder,"gifs").run { mkdirs(); this }
+            val reader: ImageReader = ImageIO.getImageReadersByFormatName("gif").next() as ImageReader
+            val imageInput = ImageIO.createImageInputStream(gifFolder.resolve("${id}.gif"))
+            gifFolder.resolve(id).deleteRecursively() // Clear files for regenerating
+            reader.setInput(imageInput, false)
+            val noi: Int = try {
+                if (frameCount <= 0) reader.getNumImages(true) else frameCount
+            } catch (e: IllegalStateException) {
+                logError("Could not get frame count for ${id}.gif")
+                return
+            }
+
+            val imageatt = arrayOf("imageLeftPosition", "imageTopPosition", "imageWidth", "imageHeight")
+            var master: BufferedImage? = null
+            for (i in 0 until noi) {
+                val tree: Node = reader.getImageMetadata(i).getAsTree("javax_imageio_gif_image_1.0")
+
+                for (j in 0 until tree.childNodes.length) {
+                    val nodeItem: Node = tree.childNodes.item(j)
+                    if (nodeItem.nodeName.equals("ImageDescriptor")) {
+                        val imageAttr: MutableMap<String, Int> = mutableMapOf()
+                        imageatt.indices.forEach {
+                            val attnode: Node = nodeItem.attributes.getNamedItem(imageatt[it])
+                            imageAttr[imageatt[it]] = Integer.valueOf(attnode.nodeValue) ?: return
+                        }
+                        if (i == 0) {
+                            master = BufferedImage(imageAttr["imageWidth"]!!, imageAttr["imageHeight"]!!, BufferedImage.TYPE_INT_ARGB)
+                        }
+                        master?.graphics?.drawImage(reader.read(i), imageAttr["imageLeftPosition"]!!, imageAttr["imageTopPosition"]!!, null)
+                    }
+                }
+                val dest = gifFolder.resolve("${id}/${i + 1}.png").run { parentFile.mkdirs(); this }
+                val assetDest = File(emojy.dataFolder.path, "/assets/${getNamespace()}/textures/${getImagePath()}/${i + 1}.png").run { parentFile.mkdirs(); this }
+                ImageIO.write(master, "PNG", dest)
+                ImageIO.write(master, "PNG", assetDest)
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+    }
 }

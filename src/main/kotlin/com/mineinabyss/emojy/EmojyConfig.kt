@@ -9,6 +9,7 @@ import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
 import org.bukkit.entity.Player
@@ -100,21 +101,38 @@ object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.
         fun getFont() = Key.key(getNamespace(), id)
         fun getNamespace() = framePath.substringBefore(":")
         fun getImagePath() = framePath.substringAfter(":")
-        fun getPermission() = "emojy.emote.$id"
+        fun getPermission() = "emojy.gif.$id"
         fun getUnicode(i: Int): Char = Character.toChars(PRIVATE_USE_FIRST + i).first()
-        fun toJson(): JsonObject {
-            val output = JsonObject()
-            val chars = JsonArray()
+        fun toJson(): MutableList<JsonObject> {
+            val jsonList = mutableListOf<JsonObject>()
             (1..frameCount).forEach { i ->
-
+                val output = JsonObject()
+                val chars = JsonArray()
                 output.addProperty("type", "bitmap")
-                output.addProperty("file", framePath)
+                output.addProperty("file", "$framePath$i.png")
                 output.addProperty("ascent", ascent)
                 output.addProperty("height", height)
                 chars.add(getUnicode(i))
                 output.add("chars", chars)
+                jsonList.add(output)
             }
-            return output
+            return jsonList
+        }
+        fun checkPermission(player: Player?) =
+            !emojyConfig.requirePermissions || player == null || player.hasPermission(getPermission())
+
+        fun getFormattedUnicode(splitter: String = ""): Component {
+            val component = getUnicode(1).toString().miniMsg().mergeStyle(
+                "".miniMsg().font(getFont()).color(NamedTextColor.WHITE).insertion(":${id}:").decorate(TextDecoration.OBFUSCATED)
+                    .hoverEvent(
+                        HoverEvent.hoverEvent(
+                            HoverEvent.Action.SHOW_TEXT,
+                            ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg()
+                        )
+                    )
+            )
+            return if (emojyConfig.gifs.indexOf(this) == emojyConfig.gifs.size - 1) component
+            else component.append("<font:default><white>$splitter</white></font>".miniMsg())
         }
     }
 }

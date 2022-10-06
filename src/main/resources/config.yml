@@ -17,6 +17,6 @@ emotes:
 gifs:
   - id: test
     frameCount: 0
-    framePath: "emotes:emotes/gifs/"
+    framePath: "emotes:gifs/"
     ascent: 8
     height: 8
