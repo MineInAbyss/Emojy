@@ -2,7 +2,9 @@ package com.mineinabyss.emojy
 
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
+import com.mineinabyss.emojy.EmojyGenerator.gifFolder
 import com.mineinabyss.idofront.config.IdofrontConfig
+import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.messaging.miniMsg
 import kotlinx.serialization.Serializable
 import net.kyori.adventure.key.Key
@@ -13,8 +15,11 @@ import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
 import org.bukkit.entity.Player
+import javax.imageio.ImageIO
+import javax.imageio.ImageReader
 
 var emojyConfig = EmojyConfig.data
+
 object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.serializer()) {
     const val PRIVATE_USE_FIRST = 57344
 
@@ -43,7 +48,9 @@ object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.
         // Beginning of Private Use Area \uE000 -> uF8FF
         // Option: (Character.toCodePoint('\uE000', '\uFF8F')/37 + getIndex())
         fun getUnicode(): Char =
-            Character.toChars(PRIVATE_USE_FIRST + emojyConfig.emotes.filter { it.font == font }.map { it }.indexOf(this)).first()
+            Character.toChars(PRIVATE_USE_FIRST + emojyConfig.emotes.filter { it.font == font }.map { it }
+                .indexOf(this)).first()
+
         fun getFont() = Key.key(getNamespace(), font)
         fun getNamespace() = texture.substringBefore(":")
         fun getImage() = texture.substringAfterLast("/")
@@ -60,8 +67,11 @@ object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.
             output.add("chars", chars)
             return output
         }
+
         fun checkPermission(player: Player?) =
-            !emojyConfig.requirePermissions || player == null || player.hasPermission(getPermission()) || player.hasPermission("emojy.font.${font}")
+            !emojyConfig.requirePermissions || player == null || player.hasPermission(getPermission()) || player.hasPermission(
+                "emojy.font.${font}"
+            )
 
         // TODO Change this to miniMsg(TagResolver) when Idofront is updated
         fun getFormattedUnicode(splitter: String = ""): Component {
@@ -97,15 +107,29 @@ object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.
         val ascent: Int = 8,
         val height: Int = 8,
 
-    ) {
+        ) {
         fun getFont() = Key.key(getNamespace(), id)
         fun getNamespace() = framePath.substringBefore(":")
         fun getImagePath() = framePath.substringAfter(":")
         fun getPermission() = "emojy.gif.$id"
         fun getUnicode(i: Int): Char = Character.toChars(PRIVATE_USE_FIRST + i).first()
+        @JvmName("getFrameCount1")
+        fun getFrameCount(): Int {
+            val reader: ImageReader = ImageIO.getImageReadersByFormatName("gif").next() as ImageReader
+            val imageInput = ImageIO.createImageInputStream(gifFolder.resolve("${id}.gif"))
+
+            reader.setInput(imageInput, false)
+            return try {
+                if (frameCount <= 0) reader.getNumImages(true) else frameCount
+            } catch (e: IllegalStateException) {
+                logError("Could not get frame count for ${id}.gif")
+                return 0
+            }
+        }
+
         fun toJson(): MutableList<JsonObject> {
             val jsonList = mutableListOf<JsonObject>()
-            (1..frameCount).forEach { i ->
+            (1..getFrameCount()).forEach { i ->
                 val output = JsonObject()
                 val chars = JsonArray()
                 output.addProperty("type", "bitmap")
@@ -118,12 +142,14 @@ object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.
             }
             return jsonList
         }
+
         fun checkPermission(player: Player?) =
             !emojyConfig.requirePermissions || player == null || player.hasPermission(getPermission())
 
         fun getFormattedUnicode(splitter: String = ""): Component {
             val component = getUnicode(1).toString().miniMsg().mergeStyle(
-                "".miniMsg().font(getFont()).color(NamedTextColor.WHITE).insertion(":${id}:").decorate(TextDecoration.OBFUSCATED)
+                "".miniMsg().font(getFont()).color(NamedTextColor.WHITE).insertion(":${id}:")
+                    .decorate(TextDecoration.OBFUSCATED)
                     .hoverEvent(
                         HoverEvent.hoverEvent(
                             HoverEvent.Action.SHOW_TEXT,

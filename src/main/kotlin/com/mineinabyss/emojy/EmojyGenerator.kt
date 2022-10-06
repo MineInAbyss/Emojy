@@ -3,7 +3,6 @@ package com.mineinabyss.emojy
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.mineinabyss.idofront.messaging.logError
-import com.mineinabyss.idofront.messaging.logVal
 import com.mineinabyss.idofront.messaging.logWarn
 import org.w3c.dom.Node
 import java.awt.image.BufferedImage
@@ -15,7 +14,6 @@ import javax.imageio.ImageReader
 
 //TODO Make font generation sort by namespace to avoid duplicate fonts
 object EmojyGenerator {
-
     fun generateResourcePack() {
         File(emojy.dataFolder, "/assets").deleteRecursively()
         emojyConfig.emotes.forEach { emote ->
@@ -49,7 +47,7 @@ object EmojyGenerator {
             val assetDir = File(emojy.dataFolder.path, "/assets")
             try {
                 val font = File(emojy.dataFolder, "/fonts/gifs/${gif.id}.json").run { parentFile.mkdirs(); this }
-                font.copyTo(assetDir.resolve(gif.getNamespace() + "/font/gif/${gif.id}.json"), true)
+                font.copyTo(assetDir.resolve(gif.getNamespace() + "/font/gifs/${gif.id}.json"), true)
             } catch (e: Exception) {
                 if (emojyConfig.debug) when (e) {
                     is NoSuchFileException, is NullPointerException ->
@@ -79,15 +77,14 @@ object EmojyGenerator {
         fontFiles.clear()
 
         emojyConfig.gifs.forEach { gif ->
-            gif.toJson().size.logVal()
             gif.toJson().forEach { json ->
-                fontFiles[gif.id]?.add(json)
+                fontFiles[gif.getFont().toString()]?.add(json)
                     ?: fontFiles.putIfAbsent(gif.id, JsonArray().apply { add(json) })
             }
         }
         fontFiles.forEach { (font, array) ->
             val output = JsonObject()
-            val fontFile = File("${emojy.dataFolder.absolutePath}/fonts/gifs/${font.logVal()}.json")
+            val fontFile = File("${emojy.dataFolder.absolutePath}/fonts/gifs/${font}.json")
 
             output.add("providers", array)
             fontFile.parentFile.mkdirs()
@@ -98,20 +95,15 @@ object EmojyGenerator {
 
     fun reloadFontFiles() = generateFontFiles()
 
+    val gifFolder = File(emojy.dataFolder,"gifs").run { mkdirs(); this }
     private fun EmojyConfig.Gif.generateSplitGif() {
         try {
-            val gifFolder = File(emojy.dataFolder,"gifs").run { mkdirs(); this }
             val reader: ImageReader = ImageIO.getImageReadersByFormatName("gif").next() as ImageReader
             val imageInput = ImageIO.createImageInputStream(gifFolder.resolve("${id}.gif"))
+
             gifFolder.resolve(id).deleteRecursively() // Clear files for regenerating
             reader.setInput(imageInput, false)
-            val noi: Int = try {
-                if (frameCount <= 0) reader.getNumImages(true) else frameCount
-            } catch (e: IllegalStateException) {
-                logError("Could not get frame count for ${id}.gif")
-                return
-            }
-
+            val noi: Int = getFrameCount()
             val imageatt = arrayOf("imageLeftPosition", "imageTopPosition", "imageWidth", "imageHeight")
             var master: BufferedImage? = null
             for (i in 0 until noi) {
