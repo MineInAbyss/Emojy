@@ -5,6 +5,7 @@ import com.mineinabyss.idofront.commands.extensions.actions.playerAction
 import com.mineinabyss.idofront.messaging.miniMsg
 import com.mineinabyss.idofront.messaging.serialize
 import com.mineinabyss.idofront.messaging.success
+import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.command.TabCompleter
@@ -15,7 +16,7 @@ class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
         "emojy" {
             "test" {
                 playerAction {
-                    player.sendPlayerListHeaderAndFooter("<red>:pog:Hello World!".miniMsg(), "<red>:pog:Hello World!".miniMsg())
+                    player.openInventory(Bukkit.createInventory(null, 9, "<red>test:pog:".miniMsg()))
                 }
             }
             "list" {

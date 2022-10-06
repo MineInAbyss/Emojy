@@ -10,7 +10,6 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.block.SignChangeEvent
-import org.bukkit.event.inventory.InventoryOpenEvent
 import org.bukkit.event.player.PlayerEditBookEvent
 
 @Suppress("UnstableApiUsage")
@@ -27,6 +26,7 @@ class EmojyListener : Listener {
         result(result().replaceEmoteIds(player()))
     }
 
+    //TODO Discard this for packet based later
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun PlayerEditBookEvent.onPlayerWriteBook() {
         newBookMeta = newBookMeta.apply {
@@ -34,23 +34,19 @@ class EmojyListener : Listener {
         }
     }
 
+    //TODO Discard this for packet based later
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun SignChangeEvent.onSignChange() = lines().forEachIndexed { i, l -> line(i, l.replaceEmoteIds(player)) }
-
-    // TODO Please change this when https://github.com/PaperMC/Paper/pull/7979 is merged
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    fun InventoryOpenEvent.onInvOpen() {
-    }
 }
 
-fun Component.replaceEmoteIds(player: Player? = null): Component {
+fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): Component {
     var msg = this
     emojyConfig.emotes.forEach { emote ->
         if (emote.checkPermission(player)) {
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
                     .match(":${emote.id}:")
-                    .replacement(emote.getFormattedUnicode())
+                    .replacement(emote.getFormattedUnicode(insert = insert))
                     .build()
             )
         }

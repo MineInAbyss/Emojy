@@ -3,6 +3,8 @@ package com.mineinabyss.emojy
 import com.comphenix.protocol.ProtocolLib
 import com.comphenix.protocol.ProtocolLibrary
 import com.comphenix.protocol.ProtocolManager
+import com.mineinabyss.emojy.packets.EmojyInventoryPacket
+import com.mineinabyss.emojy.packets.EmojyTitlePacket
 import com.mineinabyss.idofront.platforms.IdofrontPlatforms
 import com.mineinabyss.idofront.plugin.registerEvents
 import org.bukkit.Bukkit
@@ -24,8 +26,12 @@ class EmojyPlugin : JavaPlugin() {
             EmojyGenerator.generateResourcePack()
 
         registerEvents(EmojyListener())
-        if (protlib.isEnabled)
-            protManager.addPacketListener(EmojyPackets())
+        if (protlib.isEnabled) {
+            protManager.addPacketListener(EmojyTitlePacket())
+            protManager.addPacketListener(EmojyInventoryPacket())
+            //protManager.addPacketListener(EmojyBookPacket())
+            //protManager.addPacketListener(EmojySignPacket())
+        }
 
         EmojyCommands()
 

@@ -74,15 +74,18 @@ object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.
             )
 
         // TODO Change this to miniMsg(TagResolver) when Idofront is updated
-        fun getFormattedUnicode(splitter: String = ""): Component {
+        fun getFormattedUnicode(splitter: String = "", insert: Boolean = true): Component {
             val component = getUnicode().toString().miniMsg().mergeStyle(
-                "".miniMsg().font(getFont()).color(NamedTextColor.WHITE).insertion(":${id}:")
-                    .hoverEvent(
-                        HoverEvent.hoverEvent(
-                            HoverEvent.Action.SHOW_TEXT,
-                            ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg()
+                "".miniMsg().font(getFont()).color(NamedTextColor.WHITE).apply {
+                    if (insert)
+                        insertion(":${id}:")
+                        .hoverEvent(
+                            HoverEvent.hoverEvent(
+                                HoverEvent.Action.SHOW_TEXT,
+                                ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg()
+                            )
                         )
-                    )
+                }
             )
             return if (emojyConfig.emotes.indexOf(this) == emojyConfig.emotes.size - 1) component
             else component.append("<font:default><white>$splitter</white></font>".miniMsg())
