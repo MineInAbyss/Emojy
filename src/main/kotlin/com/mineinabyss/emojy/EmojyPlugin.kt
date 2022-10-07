@@ -5,8 +5,10 @@ import com.comphenix.protocol.ProtocolLibrary
 import com.comphenix.protocol.ProtocolManager
 import com.mineinabyss.emojy.packets.EmojyInventoryPacket
 import com.mineinabyss.emojy.packets.EmojyTitlePacket
-import com.mineinabyss.idofront.platforms.IdofrontPlatforms
-import com.mineinabyss.idofront.plugin.registerEvents
+import com.mineinabyss.idofront.config.IdofrontConfig
+import com.mineinabyss.idofront.config.config
+import com.mineinabyss.idofront.platforms.Platforms
+import com.mineinabyss.idofront.plugin.listeners
 import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 
@@ -14,18 +16,19 @@ val protlib: ProtocolLib by lazy { Bukkit.getPluginManager().getPlugin("Protocol
 val protManager: ProtocolManager = ProtocolLibrary.getProtocolManager()
 val emojy: EmojyPlugin by lazy { Bukkit.getPluginManager().getPlugin("emojy") as EmojyPlugin }
 class EmojyPlugin : JavaPlugin() {
-
+    lateinit var config: IdofrontConfig<EmojyConfig>
     override fun onLoad() {
-        IdofrontPlatforms.load(this, "mineinabyss")
+        Platforms.load(this, "mineinabyss")
     }
 
     override fun onEnable() {
-        saveDefaultConfig()
+        config = config("config") { fromPluginPath(loadDefault = true) }
+
         EmojyGenerator.generateFontFiles()
         if (emojyConfig.generateResourcePack)
             EmojyGenerator.generateResourcePack()
 
-        registerEvents(EmojyListener())
+        listeners(EmojyListener())
         if (protlib.isEnabled) {
             protManager.addPacketListener(EmojyTitlePacket())
             protManager.addPacketListener(EmojyInventoryPacket())

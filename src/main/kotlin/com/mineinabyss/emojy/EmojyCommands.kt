@@ -2,9 +2,10 @@ package com.mineinabyss.emojy
 
 import com.mineinabyss.idofront.commands.execution.IdofrontCommandExecutor
 import com.mineinabyss.idofront.commands.extensions.actions.playerAction
-import com.mineinabyss.idofront.messaging.miniMsg
-import com.mineinabyss.idofront.messaging.serialize
+import com.mineinabyss.idofront.config.config
 import com.mineinabyss.idofront.messaging.success
+import com.mineinabyss.idofront.textcomponents.miniMsg
+import com.mineinabyss.idofront.textcomponents.serialize
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
@@ -37,7 +38,7 @@ class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
             }
             "reload" {
                 action {
-                    emojyConfig = EmojyConfig.data
+                    emojy.config = config("config") { emojy.fromPluginPath(loadDefault = true) }
                     EmojyGenerator.reloadFontFiles()
                     if (emojyConfig.generateResourcePack)
                         EmojyGenerator.generateResourcePack()
