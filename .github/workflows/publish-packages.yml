@@ -19,7 +19,6 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-          cache: gradle
 
       - name: Set env variable from latest maven version
         run: >
@@ -29,15 +28,13 @@ jobs:
           )" >> $GITHUB_ENV
 
       - name: Run gradle build and publish
-        run: >
-          gradle build publish dokkaHtmlMultiModule
-          -PmineinabyssMavenUsername=${{ secrets.MAVEN_PUBLISH_USERNAME }} -PmineinabyssMavenPassword=${{ secrets.MAVEN_PUBLISH_PASSWORD }}
+        run: gradle build publish -PmineinabyssMavenUsername=${{ secrets.MAVEN_PUBLISH_USERNAME }} -PmineinabyssMavenPassword=${{ secrets.MAVEN_PUBLISH_PASSWORD }}
 
       - name: Get version from gradle
         shell: bash
         id: extract_version
         run: |
-          version=`gradle properties --console=plain -q | grep "^version:" | awk '{printf $2}'`
+          version=`gradle properties --no-daemon --console=plain -q | grep "^version:" | awk '{printf $2}'`
           echo "::set-output name=version::$version"
 
       - name: Create GitHub Release
