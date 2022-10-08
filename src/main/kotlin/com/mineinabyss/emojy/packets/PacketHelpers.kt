@@ -1,7 +1,7 @@
 package com.mineinabyss.emojy.packets
 
-import com.mineinabyss.idofront.messaging.miniMsg
-import com.mineinabyss.idofront.messaging.serialize
+import com.mineinabyss.idofront.textcomponents.miniMsg
+import com.mineinabyss.idofront.textcomponents.serialize
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 

@@ -3,9 +3,8 @@ package com.mineinabyss.emojy
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.mineinabyss.emojy.EmojyGenerator.gifFolder
-import com.mineinabyss.idofront.config.IdofrontConfig
 import com.mineinabyss.idofront.messaging.logError
-import com.mineinabyss.idofront.messaging.miniMsg
+import com.mineinabyss.idofront.textcomponents.miniMsg
 import kotlinx.serialization.Serializable
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
@@ -14,36 +13,44 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
+import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
+import java.io.File
 import javax.imageio.ImageIO
 import javax.imageio.ImageReader
 
-var emojyConfig = EmojyConfig.data
+val emojyConfig get() = emojy.config.data
+const val PRIVATE_USE_FIRST = 57344
 
-object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.serializer()) {
-    const val PRIVATE_USE_FIRST = 57344
-
-    @Serializable
-    data class EmojyConfig(
-        val defaultNamespace: String = "emotes",
-        val defaultFolder: String = "emotes",
-        val defaultFont: String = "emotes",
-        val defaultHeight: Int = 7,
-        val defaultAscent: Int = 7,
-        val requirePermissions: Boolean = true,
-        val generateResourcePack: Boolean = true,
-        val debug: Boolean = true,
-        val emotes: MutableSet<Emote> = mutableSetOf(Emote()),
-        val gifs: Set<Gif> = mutableSetOf(Gif())
-    )
-
+// TODO Temporary way of getting default values, should be replaced with a better system
+private val configFile = File(emojy.dataFolder, "config.yml")
+private val configuration = YamlConfiguration.loadConfiguration(configFile)
+private val defaultNamespace: String = configuration.getString("defaultNamespace", "emotes").toString()
+private val defaultFolder: String = configuration.getString("defaultFolder", "emotes").toString()
+private val defaultFont: String = configuration.getString("defaultFont", "emotes").toString()
+private val defaultHeight: Int = configuration.getInt("defaultHeight", 8)
+private val defaultAscent: Int = configuration.getInt("defaultHeight", 8)
+@Serializable
+data class EmojyConfig(
+    //TODO Figure out a way for these default values to be serialized and used in subclasses correctly
+    /*val defaultNamespace: String = "emotes",
+    val defaultFolder: String = "emotes",
+    val defaultFont: String = "emotes",
+    val defaultHeight: Int = 8,
+    val defaultAscent: Int = 8,*/
+    val requirePermissions: Boolean = true,
+    val generateResourcePack: Boolean = true,
+    val debug: Boolean = true,
+    val emotes: MutableSet<Emote> = mutableSetOf(Emote()),
+    val gifs: Set<Gif> = mutableSetOf(Gif())
+) {
     @Serializable
     data class Emote(
         val id: String = "example",
-        val font: String = emojyConfig.defaultFont,
-        val texture: String = "${emojyConfig.defaultNamespace}:textures/${emojyConfig.defaultFolder}/$id.png",
-        val height: Int = emojyConfig.defaultHeight,
-        val ascent: Int = emojyConfig.defaultAscent,
+        val font: String = defaultFont,
+        val texture: String = "${defaultNamespace}:textures/${defaultFolder}/$id.png",
+        val height: Int = defaultHeight,
+        val ascent: Int = defaultAscent,
     ) {
         // Beginning of Private Use Area \uE000 -> uF8FF
         // Option: (Character.toCodePoint('\uE000', '\uFF8F')/37 + getIndex())
@@ -79,12 +86,12 @@ object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.
                 "".miniMsg().font(getFont()).color(NamedTextColor.WHITE).apply {
                     if (insert)
                         insertion(":${id}:")
-                        .hoverEvent(
-                            HoverEvent.hoverEvent(
-                                HoverEvent.Action.SHOW_TEXT,
-                                ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg()
+                            .hoverEvent(
+                                HoverEvent.hoverEvent(
+                                    HoverEvent.Action.SHOW_TEXT,
+                                    ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg()
+                                )
                             )
-                        )
                 }
             )
             return if (emojyConfig.emotes.indexOf(this) == emojyConfig.emotes.size - 1) component
@@ -106,7 +113,7 @@ object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.
     data class Gif(
         val id: String = "example",
         val frameCount: Int = 0,
-        val framePath: String = "${emojyConfig.defaultNamespace}:textures/${emojyConfig.defaultFolder}/$id/",
+        val framePath: String = "${defaultNamespace}:textures/${defaultFolder}/$id/",
         val ascent: Int = 8,
         val height: Int = 8,
 
@@ -164,4 +171,5 @@ object EmojyConfig : IdofrontConfig<EmojyConfig.EmojyConfig>(emojy, EmojyConfig.
             else component.append("<font:default><white>$splitter</white></font>".miniMsg())
         }
     }
+
 }
