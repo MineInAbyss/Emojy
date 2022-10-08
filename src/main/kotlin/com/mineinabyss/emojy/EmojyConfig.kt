@@ -19,14 +19,19 @@ import javax.imageio.ImageReader
 
 val emojyConfig get() = emojy.config.data
 const val PRIVATE_USE_FIRST = 57344
-
+const val defaultNamespace: String = "emotes"
+const val defaultFolder: String = "emotes"
+const val defaultFont: String = "emotes"
+const val defaultHeight: Int = 8
+const val defaultAscent: Int = 8
 @Serializable
 data class EmojyConfig(
-    val defaultNamespace: String = "emotes",
+    //TODO Figure out a way for these default values to be serialized and used in subclasses correctly
+    /*val defaultNamespace: String = "emotes",
     val defaultFolder: String = "emotes",
     val defaultFont: String = "emotes",
-    val defaultHeight: Int = 7,
-    val defaultAscent: Int = 7,
+    val defaultHeight: Int = 8,
+    val defaultAscent: Int = 8,*/
     val requirePermissions: Boolean = true,
     val generateResourcePack: Boolean = true,
     val debug: Boolean = true,
@@ -36,10 +41,10 @@ data class EmojyConfig(
     @Serializable
     data class Emote(
         val id: String = "example",
-        val font: String = emojyConfig.defaultFont,
-        val texture: String = "${emojyConfig.defaultNamespace}:textures/${emojyConfig.defaultFolder}/$id.png",
-        val height: Int = emojyConfig.defaultHeight,
-        val ascent: Int = emojyConfig.defaultAscent,
+        val font: String = defaultFont,
+        val texture: String = "${defaultNamespace}:textures/${defaultFolder}/$id.png",
+        val height: Int = defaultHeight,
+        val ascent: Int = defaultAscent,
     ) {
         // Beginning of Private Use Area \uE000 -> uF8FF
         // Option: (Character.toCodePoint('\uE000', '\uFF8F')/37 + getIndex())
@@ -102,7 +107,7 @@ data class EmojyConfig(
     data class Gif(
         val id: String = "example",
         val frameCount: Int = 0,
-        val framePath: String = "${emojyConfig.defaultNamespace}:textures/${emojyConfig.defaultFolder}/$id/",
+        val framePath: String = "${defaultNamespace}:textures/${defaultFolder}/$id/",
         val ascent: Int = 8,
         val height: Int = 8,
 

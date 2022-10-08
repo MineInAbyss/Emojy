@@ -1,4 +1,4 @@
-name: emojy
+name: Emojy
 version: ${plugin_version}
 author: boy0000
 main: com.mineinabyss.emojy.EmojyPlugin

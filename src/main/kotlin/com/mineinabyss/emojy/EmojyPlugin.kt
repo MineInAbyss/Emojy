@@ -14,7 +14,7 @@ import org.bukkit.plugin.java.JavaPlugin
 
 val protlib: ProtocolLib by lazy { Bukkit.getPluginManager().getPlugin("ProtocolLib") as ProtocolLib }
 val protManager: ProtocolManager = ProtocolLibrary.getProtocolManager()
-val emojy: EmojyPlugin by lazy { Bukkit.getPluginManager().getPlugin("emojy") as EmojyPlugin }
+val emojy: EmojyPlugin by lazy { Bukkit.getPluginManager().getPlugin("Emojy") as EmojyPlugin }
 class EmojyPlugin : JavaPlugin() {
     lateinit var config: IdofrontConfig<EmojyConfig>
     override fun onLoad() {
