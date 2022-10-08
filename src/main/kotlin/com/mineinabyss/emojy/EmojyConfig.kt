@@ -13,17 +13,23 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
+import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
+import java.io.File
 import javax.imageio.ImageIO
 import javax.imageio.ImageReader
 
 val emojyConfig get() = emojy.config.data
 const val PRIVATE_USE_FIRST = 57344
-const val defaultNamespace: String = "emotes"
-const val defaultFolder: String = "emotes"
-const val defaultFont: String = "emotes"
-const val defaultHeight: Int = 8
-const val defaultAscent: Int = 8
+
+// TODO Temporary way of getting default values, should be replaced with a better system
+private val configFile = File(emojy.dataFolder, "config.yml")
+private val configuration = YamlConfiguration.loadConfiguration(configFile)
+private val defaultNamespace: String = configuration.getString("defaultNamespace", "emotes").toString()
+private val defaultFolder: String = configuration.getString("defaultFolder", "emotes").toString()
+private val defaultFont: String = configuration.getString("defaultFont", "emotes").toString()
+private val defaultHeight: Int = configuration.getInt("defaultHeight", 8)
+private val defaultAscent: Int = configuration.getInt("defaultHeight", 8)
 @Serializable
 data class EmojyConfig(
     //TODO Figure out a way for these default values to be serialized and used in subclasses correctly
