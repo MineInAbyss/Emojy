@@ -9,7 +9,9 @@ import kotlinx.serialization.Serializable
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
+import net.kyori.adventure.text.event.HoverEvent.hoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.Style.Merge
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
@@ -30,6 +32,7 @@ private val defaultFolder: String = configuration.getString("defaultFolder", "em
 private val defaultFont: String = configuration.getString("defaultFont", "emotes").toString()
 private val defaultHeight: Int = configuration.getInt("defaultHeight", 8)
 private val defaultAscent: Int = configuration.getInt("defaultHeight", 8)
+
 @Serializable
 data class EmojyConfig(
     //TODO Figure out a way for these default values to be serialized and used in subclasses correctly
@@ -41,12 +44,12 @@ data class EmojyConfig(
     val requirePermissions: Boolean = true,
     val generateResourcePack: Boolean = true,
     val debug: Boolean = true,
-    val emotes: MutableSet<Emote> = mutableSetOf(Emote()),
-    val gifs: Set<Gif> = mutableSetOf(Gif())
+    val emotes: Set<Emote> = mutableSetOf(Emote("")),
+    val gifs: Set<Gif> = mutableSetOf(Gif(""))
 ) {
     @Serializable
     data class Emote(
-        val id: String = "example",
+        val id: String,
         val font: String = defaultFont,
         val texture: String = "${defaultNamespace}:textures/${defaultFolder}/$id.png",
         val height: Int = defaultHeight,
@@ -82,17 +85,13 @@ data class EmojyConfig(
 
         // TODO Change this to miniMsg(TagResolver) when Idofront is updated
         fun getFormattedUnicode(splitter: String = "", insert: Boolean = true): Component {
+            val merges = mutableSetOf(Merge.FONT, Merge.DECORATIONS, Merge.COLOR)
+            if (insert) merges.addAll(listOf(Merge.EVENTS, Merge.INSERTION))
+
             val component = getUnicode().toString().miniMsg().mergeStyle(
-                "".miniMsg().font(getFont()).color(NamedTextColor.WHITE).apply {
-                    if (insert)
-                        insertion(":${id}:")
-                            .hoverEvent(
-                                HoverEvent.hoverEvent(
-                                    HoverEvent.Action.SHOW_TEXT,
-                                    ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg()
-                                )
-                            )
-                }
+                Component.empty().font(getFont()).color(NamedTextColor.WHITE).insertion(":${id}:")
+                    .hoverEvent(hoverEvent(HoverEvent.Action.SHOW_TEXT,
+                            ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg())), merges
             )
             return if (emojyConfig.emotes.indexOf(this) == emojyConfig.emotes.size - 1) component
             else component.append("<font:default><white>$splitter</white></font>".miniMsg())
@@ -111,7 +110,7 @@ data class EmojyConfig(
 
     @Serializable
     data class Gif(
-        val id: String = "example",
+        val id: String,
         val frameCount: Int = 0,
         val framePath: String = "${defaultNamespace}:textures/${defaultFolder}/$id/",
         val ascent: Int = 8,
@@ -161,7 +160,7 @@ data class EmojyConfig(
             val component = getUnicode(1).toString().miniMsg().mergeStyle(
                 Component.empty().font(getFont()).color(NamedTextColor.WHITE).insertion(":${id}:")
                     .decorate(TextDecoration.OBFUSCATED).hoverEvent(
-                        HoverEvent.hoverEvent(
+                        hoverEvent(
                             HoverEvent.Action.SHOW_TEXT,
                             ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg()
                         )

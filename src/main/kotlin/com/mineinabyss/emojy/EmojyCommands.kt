@@ -23,17 +23,17 @@ class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
             "list" {
                 action {
                     val emoteList = if (sender is Player) emojyConfig.emotes.joinToString("") { emote ->
-                        emote.getFormattedUnicode(", ").serialize()
-                    } else emojyConfig.emotes.joinToString(", ") { it.id }
+                        emote.getFormattedUnicode(" ", true).serialize()
+                    }.miniMsg() else emojyConfig.emotes.joinToString(", ") { it.id }.miniMsg()
 
                     val gifList = if (sender is Player) emojyConfig.gifs.joinToString("") { gif ->
                         gif.getFormattedUnicode(", ").serialize()
-                    } else emojyConfig.gifs.joinToString(", ") { it.id }
+                    }.miniMsg() else emojyConfig.gifs.joinToString(", ") { it.id }.miniMsg()
 
                     sender.sendRichMessage("<green>List of emojis:")
-                    sender.sendRichMessage(emoteList)
+                    sender.sendMessage(emoteList)
                     sender.sendRichMessage("<#f35444>List of GIFs")
-                    sender.sendRichMessage(gifList)
+                    sender.sendMessage(gifList)
                 }
             }
             "reload" {
