@@ -45,12 +45,13 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
         if (emote.checkPermission(player)) {
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
-                    .match(":${emote.id}:")
+                    .matchLiteral(":${emote.id}:")
                     .replacement(emote.getFormattedUnicode(insert = insert))
                     .build()
             )
         }
     }
+
     emojyConfig.gifs.forEach { gif ->
         if (gif.checkPermission(player)) {
             msg = msg.replaceText(

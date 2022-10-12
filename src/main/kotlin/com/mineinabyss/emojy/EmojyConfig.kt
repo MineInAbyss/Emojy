@@ -51,15 +51,32 @@ data class EmojyConfig(
     data class Emote(
         val id: String,
         val font: String = defaultFont,
-        val texture: String = "${defaultNamespace}:textures/${defaultFolder}/$id.png",
+        val texture: String = "${defaultNamespace}:${defaultFolder}/$id.png",
         val height: Int = defaultHeight,
         val ascent: Int = defaultAscent,
+        val bitmapWidth: Int = 1,
+        val bitmapHeight: Int = 1,
     ) {
         // Beginning of Private Use Area \uE000 -> uF8FF
         // Option: (Character.toCodePoint('\uE000', '\uFF8F')/37 + getIndex())
-        fun getUnicode(): Char =
-            Character.toChars(PRIVATE_USE_FIRST + emojyConfig.emotes.filter { it.font == font }.map { it }
-                .indexOf(this)).first()
+        private val lastUsedUnicode: MutableMap<String, Int> = mutableMapOf()
+        fun getUnicodes(): MutableList<String> {
+            return mutableListOf("").apply {
+                for (i in 0 until bitmapHeight) {
+                    for (j in 0 until bitmapWidth) {
+                        val lastUnicode = lastUsedUnicode[font] ?: 0
+                        val row = ((getOrNull(i) ?: "") + Character.toChars(
+                            PRIVATE_USE_FIRST + lastUnicode + emojyConfig.emotes
+                                .filter { it.font == font }.map { it }.indexOf(this@Emote)
+                        ).firstOrNull().toString())
+                        if (getOrNull(i) == null)
+                            add(i, row) else set(i, row)
+                        lastUsedUnicode.put(font, lastUnicode + 1) ?: lastUsedUnicode.putIfAbsent(font, 1)
+                    }
+                }
+            }
+        }
+
 
         fun getFont() = Key.key(getNamespace(), font)
         fun getNamespace() = texture.substringBefore(":")
@@ -73,7 +90,7 @@ data class EmojyConfig(
             output.addProperty("file", texture)
             output.addProperty("ascent", ascent)
             output.addProperty("height", height)
-            chars.add(getUnicode())
+            for (char in getUnicodes()) chars.add(char)
             output.add("chars", chars)
             return output
         }
@@ -88,23 +105,28 @@ data class EmojyConfig(
             val merges = mutableSetOf(Merge.FONT, Merge.DECORATIONS, Merge.COLOR)
             if (insert) merges.addAll(listOf(Merge.EVENTS, Merge.INSERTION))
 
-            val component = getUnicode().toString().miniMsg().mergeStyle(
+            val bitmap = if (getUnicodes().size > 1) {
+                getUnicodes().joinToString(splitter) { "<newline>$it" }
+            } else getUnicodes().first()
+            val component = bitmap.miniMsg().mergeStyle(
                 Component.empty().font(getFont()).color(NamedTextColor.WHITE).insertion(":${id}:")
-                    .hoverEvent(hoverEvent(HoverEvent.Action.SHOW_TEXT,
-                            ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg())), merges
+                    .hoverEvent(
+                        hoverEvent(
+                            HoverEvent.Action.SHOW_TEXT,
+                            ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg()
+                        )
+                    ), merges
             )
-            return if (emojyConfig.emotes.indexOf(this) == emojyConfig.emotes.size - 1) component
+            return if (splitter.isEmpty() || emojyConfig.emotes.indexOf(this) == emojyConfig.emotes.size - 1) component
             else component.append("<font:default><white>$splitter</white></font>".miniMsg())
         }
 
         private val emojyTagResolver: TagResolver
-            get() {
-                val tagResolver = TagResolver.builder()
+            get() = TagResolver.builder().apply {
                 emojyConfig.emotes.forEach { emote ->
                     Placeholder.component("emojy_$id", emote.getFormattedUnicode())
                 }
-                return tagResolver.build()
-            }
+            }.build()
     }
 
 
@@ -112,7 +134,7 @@ data class EmojyConfig(
     data class Gif(
         val id: String,
         val frameCount: Int = 0,
-        val framePath: String = "${defaultNamespace}:textures/${defaultFolder}/$id/",
+        val framePath: String = "${defaultNamespace}:${defaultFolder}/$id/",
         val ascent: Int = 8,
         val height: Int = 8,
 
