@@ -3,16 +3,19 @@ package com.mineinabyss.emojy
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.mineinabyss.emojy.EmojyGenerator.gifFolder
+import com.mineinabyss.idofront.messaging.broadcastVal
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.textcomponents.miniMsg
+import com.mineinabyss.idofront.textcomponents.serialize
 import kotlinx.serialization.Serializable
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
+import net.kyori.adventure.text.event.HoverEvent.hoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
+import net.kyori.adventure.text.minimessage.tag.standard.StandardTags
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import java.io.File
@@ -30,6 +33,7 @@ private val defaultFolder: String = configuration.getString("defaultFolder", "em
 private val defaultFont: String = configuration.getString("defaultFont", "emotes").toString()
 private val defaultHeight: Int = configuration.getInt("defaultHeight", 8)
 private val defaultAscent: Int = configuration.getInt("defaultHeight", 8)
+
 @Serializable
 data class EmojyConfig(
     //TODO Figure out a way for these default values to be serialized and used in subclasses correctly
@@ -41,22 +45,40 @@ data class EmojyConfig(
     val requirePermissions: Boolean = true,
     val generateResourcePack: Boolean = true,
     val debug: Boolean = true,
-    val emotes: MutableSet<Emote> = mutableSetOf(Emote()),
-    val gifs: Set<Gif> = mutableSetOf(Gif())
+    val emotes: Set<Emote> = mutableSetOf(Emote("")),
+    val gifs: Set<Gif> = mutableSetOf(Gif(""))
 ) {
     @Serializable
     data class Emote(
-        val id: String = "example",
+        val id: String,
         val font: String = defaultFont,
-        val texture: String = "${defaultNamespace}:textures/${defaultFolder}/$id.png",
+        val texture: String = "${defaultNamespace}:${defaultFolder}/$id.png",
         val height: Int = defaultHeight,
         val ascent: Int = defaultAscent,
+        val bitmapWidth: Int = 1,
+        val bitmapHeight: Int = 1,
     ) {
         // Beginning of Private Use Area \uE000 -> uF8FF
         // Option: (Character.toCodePoint('\uE000', '\uFF8F')/37 + getIndex())
-        fun getUnicode(): Char =
-            Character.toChars(PRIVATE_USE_FIRST + emojyConfig.emotes.filter { it.font == font }.map { it }
-                .indexOf(this)).first()
+        private val lastUsedUnicode: MutableMap<String, Int> = mutableMapOf()
+        fun getUnicodes(): MutableList<String> {
+            return mutableListOf("").apply {
+                for (i in 0 until bitmapHeight) {
+                    for (j in 0 until bitmapWidth) {
+                        val lastUnicode = lastUsedUnicode[font] ?: 0
+                        val row = ((getOrNull(i) ?: "") + Character.toChars(
+                            PRIVATE_USE_FIRST + lastUnicode + emojyConfig.emotes
+                                .filter { it.font == font }.map { it }.indexOf(this@Emote)
+                        ).firstOrNull().toString())
+                        if (getOrNull(i) == null)
+                            add(i, row) else set(i, row)
+                        lastUsedUnicode.put(font, lastUnicode + 1) ?: lastUsedUnicode.putIfAbsent(font, 1)
+                    }
+                }
+                lastUsedUnicode.clear()
+            }
+        }
+
 
         fun getFont() = Key.key(getNamespace(), font)
         fun getNamespace() = texture.substringBefore(":")
@@ -70,7 +92,7 @@ data class EmojyConfig(
             output.addProperty("file", texture)
             output.addProperty("ascent", ascent)
             output.addProperty("height", height)
-            chars.add(getUnicode())
+            for (char in getUnicodes()) chars.add(char)
             output.add("chars", chars)
             return output
         }
@@ -82,38 +104,29 @@ data class EmojyConfig(
 
         // TODO Change this to miniMsg(TagResolver) when Idofront is updated
         fun getFormattedUnicode(splitter: String = "", insert: Boolean = true): Component {
-            val component = getUnicode().toString().miniMsg().mergeStyle(
-                "".miniMsg().font(getFont()).color(NamedTextColor.WHITE).apply {
-                    if (insert)
-                        insertion(":${id}:")
-                            .hoverEvent(
-                                HoverEvent.hoverEvent(
-                                    HoverEvent.Action.SHOW_TEXT,
-                                    ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg()
-                                )
-                            )
-                }
-            )
-            return if (emojyConfig.emotes.indexOf(this) == emojyConfig.emotes.size - 1) component
-            else component.append("<font:default><white>$splitter</white></font>".miniMsg())
-        }
+            val resolvers = mutableSetOf(StandardTags.font(), StandardTags.color(), StandardTags.decorations())
+            if (insert) resolvers.addAll(listOf(StandardTags.hoverEvent(), StandardTags.insertion()))
+            val tagResolver = TagResolver.builder().apply { TagResolver.resolver(resolvers.run { this.map { it.toString() }.broadcastVal(); this }) }.build()
 
-        private val emojyTagResolver: TagResolver
-            get() {
-                val tagResolver = TagResolver.builder()
-                emojyConfig.emotes.forEach { emote ->
-                    Placeholder.component("emojy_$id", emote.getFormattedUnicode())
-                }
-                return tagResolver.build()
-            }
+            val bitmap = (if (getUnicodes().size > 1) {
+                getUnicodes().joinToString(splitter) { "<newline>$it" }
+            } else getUnicodes().first())
+
+            val component = bitmap.miniMsg().font(getFont()).color(NamedTextColor.WHITE).insertion(":${id}:")
+                .hoverEvent(hoverEvent(HoverEvent.Action.SHOW_TEXT,
+                    ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg())
+                ).serialize().miniMsg(tagResolver)
+            return if (splitter.isEmpty() || emojyConfig.emotes.indexOf(this) == emojyConfig.emotes.size - 1) component
+            else component.append("<font:default><white>$splitter</white></font>".miniMsg(tagResolver))
+        }
     }
 
 
     @Serializable
     data class Gif(
-        val id: String = "example",
+        val id: String,
         val frameCount: Int = 0,
-        val framePath: String = "${defaultNamespace}:textures/${defaultFolder}/$id/",
+        val framePath: String = "${defaultNamespace}:${defaultFolder}/$id/",
         val ascent: Int = 8,
         val height: Int = 8,
 
@@ -161,7 +174,7 @@ data class EmojyConfig(
             val component = getUnicode(1).toString().miniMsg().mergeStyle(
                 Component.empty().font(getFont()).color(NamedTextColor.WHITE).insertion(":${id}:")
                     .decorate(TextDecoration.OBFUSCATED).hoverEvent(
-                        HoverEvent.hoverEvent(
+                        hoverEvent(
                             HoverEvent.Action.SHOW_TEXT,
                             ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg()
                         )

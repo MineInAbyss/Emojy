@@ -6,9 +6,7 @@ import com.comphenix.protocol.events.PacketEvent
 import com.comphenix.protocol.reflect.FieldAccessException
 import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.packets.PacketHelpers.readJson
-import com.mineinabyss.emojy.packets.PacketHelpers.removeUnwanted
 import com.mineinabyss.emojy.replaceEmoteIds
-import com.mineinabyss.idofront.messaging.broadcastVal
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 
@@ -29,8 +27,7 @@ class EmojyTitlePacket : PacketAdapter(
                 try {
                     val title =
                         (if (chat.read(0) == null) (event.packet.modifier.read(1) as Component)
-                        else chat.read(0).json.readJson()).replaceEmoteIds(insert = false).removeUnwanted()
-
+                        else chat.read(0).json.readJson()).replaceEmoteIds(insert = false)
                     event.packet.modifier.write(1, title)
                 } catch (e: Exception) {
                     when (e) {
@@ -41,11 +38,11 @@ class EmojyTitlePacket : PacketAdapter(
             PLAYER_LIST_HEADER_FOOTER -> {
                 try {
                     val header =
-                        (if (chat.read(0) == null) (event.packet.modifier.read(2) as Component).broadcastVal()
-                        else chat.read(1).json.readJson()).replaceEmoteIds(insert = false).removeUnwanted()
+                        (if (chat.read(0) == null) (event.packet.modifier.read(2) as Component)
+                        else chat.read(1).json.readJson()).replaceEmoteIds(insert = false)
                     val footer =
-                        (if (chat.read(1) == null) (event.packet.modifier.read(3) as Component).broadcastVal()
-                        else chat.read(1).json.readJson()).replaceEmoteIds(insert = false).removeUnwanted()
+                        (if (chat.read(1) == null) (event.packet.modifier.read(3) as Component)
+                        else chat.read(1).json.readJson()).replaceEmoteIds(insert = false)
 
                     event.packet.modifier.write(2, header)
                     event.packet.modifier.write(3, footer)
