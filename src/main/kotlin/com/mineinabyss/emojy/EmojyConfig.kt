@@ -3,7 +3,6 @@ package com.mineinabyss.emojy
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.mineinabyss.emojy.EmojyGenerator.gifFolder
-import com.mineinabyss.idofront.messaging.broadcastVal
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
@@ -106,7 +105,7 @@ data class EmojyConfig(
         fun getFormattedUnicode(splitter: String = "", insert: Boolean = true): Component {
             val resolvers = mutableSetOf(StandardTags.font(), StandardTags.color(), StandardTags.decorations())
             if (insert) resolvers.addAll(listOf(StandardTags.hoverEvent(), StandardTags.insertion()))
-            val tagResolver = TagResolver.builder().apply { TagResolver.resolver(resolvers.run { this.map { it.toString() }.broadcastVal(); this }) }.build()
+            val tagResolver = TagResolver.builder().apply { TagResolver.resolver(resolvers.run { this.map { it.toString() }; this }) }.build()
 
             val bitmap = (if (getUnicodes().size > 1) {
                 getUnicodes().joinToString(splitter) { "<newline>$it" }
