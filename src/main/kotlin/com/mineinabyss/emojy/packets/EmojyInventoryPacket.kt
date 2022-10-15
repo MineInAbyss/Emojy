@@ -1,6 +1,7 @@
 package com.mineinabyss.emojy.packets
 
 import com.comphenix.protocol.PacketType
+import com.comphenix.protocol.events.ListenerPriority
 import com.comphenix.protocol.events.PacketAdapter
 import com.comphenix.protocol.events.PacketEvent
 import com.comphenix.protocol.reflect.FieldAccessException
@@ -9,7 +10,9 @@ import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.packets.PacketHelpers.readJson
 import com.mineinabyss.emojy.replaceEmoteIds
 
-class EmojyInventoryPacket : PacketAdapter(emojy, PacketType.Play.Server.OPEN_WINDOW) {
+class EmojyInventoryPacket : PacketAdapter(
+    emojy, ListenerPriority.MONITOR, PacketType.Play.Server.OPEN_WINDOW
+) {
 
     override fun onPacketReceiving(event: PacketEvent) {
         val chat = event.packet.chatComponents

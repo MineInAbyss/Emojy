@@ -1,6 +1,7 @@
 package com.mineinabyss.emojy.packets
 
 import com.comphenix.protocol.PacketType.Play.Server.*
+import com.comphenix.protocol.events.ListenerPriority
 import com.comphenix.protocol.events.PacketAdapter
 import com.comphenix.protocol.events.PacketEvent
 import com.comphenix.protocol.reflect.FieldAccessException
@@ -13,6 +14,7 @@ import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 val gson = GsonComponentSerializer.gson()
 class EmojyTitlePacket : PacketAdapter(
     emojy,
+    ListenerPriority.MONITOR,
     SET_TITLE_TEXT,
     SET_SUBTITLE_TEXT,
     SET_ACTION_BAR_TEXT,

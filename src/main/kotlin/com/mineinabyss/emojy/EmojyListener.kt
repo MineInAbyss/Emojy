@@ -10,7 +10,6 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
-import org.bukkit.event.block.SignChangeEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.inventory.meta.BookMeta
 
@@ -37,8 +36,8 @@ class EmojyListener : Listener {
     }
 
     //TODO Discard this for packet based later
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    fun SignChangeEvent.onSignChange() = lines().forEachIndexed { i, l -> line(i, l.replaceEmoteIds(player)) }
+//    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+//    fun SignChangeEvent.onSignChange() = lines().forEachIndexed { i, l -> line(i, l.replaceEmoteIds(player)) }
 }
 
 fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): Component {

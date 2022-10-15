@@ -4,6 +4,7 @@ import com.comphenix.protocol.ProtocolLib
 import com.comphenix.protocol.ProtocolLibrary
 import com.comphenix.protocol.ProtocolManager
 import com.mineinabyss.emojy.packets.EmojyInventoryPacket
+import com.mineinabyss.emojy.packets.EmojySignPacket
 import com.mineinabyss.emojy.packets.EmojyTitlePacket
 import com.mineinabyss.idofront.config.IdofrontConfig
 import com.mineinabyss.idofront.config.config
@@ -32,7 +33,7 @@ class EmojyPlugin : JavaPlugin() {
         if (protlib.isEnabled) {
             protManager.addPacketListener(EmojyTitlePacket())
             protManager.addPacketListener(EmojyInventoryPacket())
-            //protManager.addPacketListener(EmojySignPacket())
+            protManager.addPacketListener(EmojySignPacket())
         }
 
         EmojyCommands()
