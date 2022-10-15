@@ -1,6 +1,6 @@
 <div style="text-align: center">
 
-# Chatty
+# Emojy
 [![Java CI with Gradle](https://github.com/MineInAbyss/Emojy/actions/workflows/gradle-ci.yml/badge.svg)](https://github.com/MineInAbyss/Chatty/actions/workflows/gradle-ci.yml)
 [![Maven](https://img.shields.io/maven-metadata/v?metadataUrl=https://repo.mineinabyss.com/releases/com/mineinabyss/emojy/maven-metadata.xml)](https://repo.mineinabyss.com/#/releases/com/mineinabyss/chatty)
 [![Wiki](https://img.shields.io/badge/-Project%20Wiki-blueviolet?logo=Wikipedia&labelColor=gray)](https://github.com/MineInAbyss/Emojy/wiki)
