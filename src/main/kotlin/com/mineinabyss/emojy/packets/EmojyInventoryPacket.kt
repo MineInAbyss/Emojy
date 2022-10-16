@@ -11,7 +11,7 @@ import com.mineinabyss.emojy.packets.PacketHelpers.readJson
 import com.mineinabyss.emojy.replaceEmoteIds
 
 class EmojyInventoryPacket : PacketAdapter(
-    emojy, ListenerPriority.MONITOR, PacketType.Play.Server.OPEN_WINDOW
+    emojy, ListenerPriority.HIGHEST, PacketType.Play.Server.OPEN_WINDOW
 ) {
 
     override fun onPacketReceiving(event: PacketEvent) {

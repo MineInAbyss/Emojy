@@ -34,10 +34,6 @@ class EmojyListener : Listener {
         player.openBook(bookMeta.pages(bookMeta.pages().map { it.replaceEmoteIds(player, true) }))
         isCancelled = true
     }
-
-    //TODO Discard this for packet based later
-//    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-//    fun SignChangeEvent.onSignChange() = lines().forEachIndexed { i, l -> line(i, l.replaceEmoteIds(player)) }
 }
 
 fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): Component {

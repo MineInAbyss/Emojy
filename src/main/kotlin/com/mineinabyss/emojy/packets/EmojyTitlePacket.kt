@@ -14,7 +14,7 @@ import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 val gson = GsonComponentSerializer.gson()
 class EmojyTitlePacket : PacketAdapter(
     emojy,
-    ListenerPriority.MONITOR,
+    ListenerPriority.HIGHEST,
     SET_TITLE_TEXT,
     SET_SUBTITLE_TEXT,
     SET_ACTION_BAR_TEXT,

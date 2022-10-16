@@ -12,8 +12,7 @@ import com.comphenix.protocol.wrappers.nbt.NbtFactory
 import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.packets.EmojySignPacket.TileEntityInfo.nbt
 import com.mineinabyss.emojy.replaceEmoteIds
-import com.mineinabyss.idofront.textcomponents.miniMsg
-import com.mineinabyss.idofront.textcomponents.serialize
+import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 import java.lang.reflect.Constructor
 import java.lang.reflect.Field
 
@@ -21,6 +20,7 @@ import java.lang.reflect.Field
 class EmojySignPacket : PacketAdapter(
     emojy, ListenerPriority.LOWEST, TILE_ENTITY_DATA, MAP_CHUNK
 ) {
+    private val gson = GsonComponentSerializer.gson()
     override fun onPacketSending(event: PacketEvent) {
         when (event.packetType) {
             TILE_ENTITY_DATA -> event.onSendTileEntity()
@@ -31,24 +31,16 @@ class EmojySignPacket : PacketAdapter(
     private fun PacketEvent.onSendTileEntity() {
         val signData = packet.nbtModifier.read(0) as? NbtCompound ?: return
         if (!signData.isSignData) return
-
-        val newLines = signData.getText().map { it.miniMsg().replaceEmoteIds(null, false).serialize() }.toTypedArray()
-        val outgoingSignData = replaceSignData(signData, newLines)
-        packet.nbtModifier.write(0, outgoingSignData)
+        packet.nbtModifier.write(0, replaceSignData(signData))
     }
 
     private fun PacketEvent.onSendChunk() {
         val tileEntitiesInfo = packet.structures.read(0).getLists(TileEntityInfo.CONVERTER).read(0)
 
         tileEntitiesInfo.forEachIndexed { index, structure ->
-            val tileEntityData = structure.nbt ?: return@forEachIndexed
-            if (!tileEntityData.isSignData) return@forEachIndexed
-
-            val newLines =
-                tileEntityData.getText().map { it.miniMsg().replaceEmoteIds(null, false).serialize() }.toTypedArray()
-            val outgoingSignData = replaceSignData(tileEntityData, newLines)
-
-            tileEntitiesInfo[index] = TileEntityInfo.cloneWithNewNbt(structure, outgoingSignData)
+            val signData = structure.nbt ?: return@forEachIndexed
+            if (!signData.isSignData) return@forEachIndexed
+            tileEntitiesInfo[index] = TileEntityInfo.cloneWithNewNbt(structure, replaceSignData(signData))
         }
 
         packet.structures.read(0).getLists(TileEntityInfo.CONVERTER).write(0, tileEntitiesInfo)
@@ -66,20 +58,21 @@ class EmojySignPacket : PacketAdapter(
         }
     }
 
-    private fun replaceSignData(previousSignData: NbtCompound, newSignText: Array<String>): NbtCompound {
-        val newSignData = NbtFactory.ofCompound(previousSignData.name)
-        for (key in previousSignData.keys)
-            newSignData.put(key, previousSignData.getValue<Any>(key))
+    private fun replaceSignData(prevSignData: NbtCompound): NbtCompound {
+        val newSignData = NbtFactory.ofCompound(prevSignData.name)
+        for (key in prevSignData.keys)
+            newSignData.put(key, prevSignData.getValue<Any>(key))
 
-        setText(newSignData, newSignText)
+        newSignData.setText(newSignData.getText().map { gson.serialize(gson.deserialize(it).replaceEmoteIds(null, false)) }.toTypedArray())
         return newSignData
     }
 
-    private fun setText(tileEntitySignData: NbtCompound, lines: Array<String>) {
+    private fun NbtCompound.setText(lines: Array<String>) {
         for (i in 0..3)
-            tileEntitySignData.put("Text" + (i + 1), lines[i])
+            put("Text" + (i + 1), lines[i])
     }
 
+    // This is more or less entirely copied from first-mentioned source as I am too dumb to understand it
     @Suppress("UNCHECKED_CAST", "DEPRECATED_IDENTITY_EQUALS")
     object TileEntityInfo {
         var CONVERTER: EquivalentConverter<InternalStructure>
@@ -88,23 +81,23 @@ class EmojySignPacket : PacketAdapter(
             try {
                 val converterField: Field = InternalStructure::class.java.getDeclaredField("CONVERTER")
                 converterField.isAccessible = true
-                CONVERTER = converterField.get(null) as EquivalentConverter<InternalStructure>? ?: throw Exception("Failed to get converter")
+                CONVERTER = converterField.get(null) as EquivalentConverter<InternalStructure>?
+                    ?: throw Exception("Failed to get converter")
             } catch (e: ReflectiveOperationException) {
                 throw RuntimeException("Could not get the tile entity info converter!", e)
             }
         }
 
-        private var CONSTRUCTOR : Constructor<*>? = null
+        private var CONSTRUCTOR: Constructor<*>? = null
 
         private val InternalStructure.packedXZ get() = integers.read(0)
-        val InternalStructure.localX get() = packedXZ shr 4
-        val InternalStructure.localZ get() = packedXZ and 0xf
         private val InternalStructure.y: Int get() = integers.read(1)
         private val InternalStructure.tileEntityType get() = modifier.read(2)
 
-        val InternalStructure.nbt: NbtCompound? get() {
-            return NbtFactory.asCompound(nbtModifier.read(0) ?: null)
-        }
+        val InternalStructure.nbt: NbtCompound?
+            get() {
+                return NbtFactory.asCompound(nbtModifier.read(0) ?: return null) ?: null
+            }
 
         fun cloneWithNewNbt(tileEntityInfo: InternalStructure, nbt: NbtCompound): InternalStructure {
             if (CONSTRUCTOR == null) {
