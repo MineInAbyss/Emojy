@@ -1,5 +1,6 @@
 package com.mineinabyss.emojy
 
+import com.mineinabyss.idofront.entities.rightClicked
 import com.mineinabyss.idofront.messaging.*
 import io.papermc.paper.event.player.AsyncChatCommandDecorateEvent
 import io.papermc.paper.event.player.AsyncChatDecorateEvent
@@ -9,8 +10,8 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
-import org.bukkit.event.block.SignChangeEvent
-import org.bukkit.event.player.PlayerEditBookEvent
+import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.inventory.meta.BookMeta
 
 @Suppress("UnstableApiUsage")
 class EmojyListener : Listener {
@@ -26,17 +27,13 @@ class EmojyListener : Listener {
         result(result().replaceEmoteIds(player()))
     }
 
-    //TODO Discard this for packet based later
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    fun PlayerEditBookEvent.onPlayerWriteBook() {
-        newBookMeta = newBookMeta.apply {
-            pages(pages().map { page -> page.replaceEmoteIds(player) })
-        }
+    @EventHandler(priority = EventPriority.HIGHEST)
+    fun PlayerInteractEvent.onPlayerOpenBook() {
+        if (!rightClicked) return
+        val bookMeta = item?.itemMeta as? BookMeta ?: return
+        player.openBook(bookMeta.pages(bookMeta.pages().map { it.replaceEmoteIds(player, true) }))
+        isCancelled = true
     }
-
-    //TODO Discard this for packet based later
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    fun SignChangeEvent.onSignChange() = lines().forEachIndexed { i, l -> line(i, l.replaceEmoteIds(player)) }
 }
 
 fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): Component {

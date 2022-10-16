@@ -27,7 +27,7 @@ class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
                     }.miniMsg() else emojyConfig.emotes.joinToString(", ") { it.id }.miniMsg()
 
                     val gifList = if (sender is Player) emojyConfig.gifs.joinToString("") { gif ->
-                        gif.getFormattedUnicode(", ").serialize()
+                        gif.getFormattedUnicode(" ").serialize()
                     }.miniMsg() else emojyConfig.gifs.joinToString(", ") { it.id }.miniMsg()
 
                     sender.sendRichMessage("<green>List of emojis:")

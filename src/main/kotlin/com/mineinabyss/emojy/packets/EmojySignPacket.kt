@@ -1,91 +1,129 @@
 package com.mineinabyss.emojy.packets
 
-import com.comphenix.protocol.PacketType
+import com.comphenix.protocol.PacketType.Play.Server.MAP_CHUNK
+import com.comphenix.protocol.PacketType.Play.Server.TILE_ENTITY_DATA
+import com.comphenix.protocol.events.InternalStructure
+import com.comphenix.protocol.events.ListenerPriority
 import com.comphenix.protocol.events.PacketAdapter
 import com.comphenix.protocol.events.PacketEvent
+import com.comphenix.protocol.reflect.EquivalentConverter
+import com.comphenix.protocol.wrappers.nbt.NbtCompound
+import com.comphenix.protocol.wrappers.nbt.NbtFactory
 import com.mineinabyss.emojy.emojy
+import com.mineinabyss.emojy.packets.EmojySignPacket.TileEntityInfo.nbt
+import com.mineinabyss.emojy.replaceEmoteIds
+import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
+import java.lang.reflect.Constructor
+import java.lang.reflect.Field
 
-
+// This entire class is HEAVILY inspired by https://github.com/blablubbabc/IndividualSigns
 class EmojySignPacket : PacketAdapter(
-    emojy, PacketType.Play.Server.TILE_ENTITY_DATA
+    emojy, ListenerPriority.LOWEST, TILE_ENTITY_DATA, MAP_CHUNK
 ) {
-    // TODO Make this work
+    private val gson = GsonComponentSerializer.gson()
     override fun onPacketSending(event: PacketEvent) {
-        //event.onTileEntityDataSending()
+        when (event.packetType) {
+            TILE_ENTITY_DATA -> event.onSendTileEntity()
+            MAP_CHUNK -> event.onSendChunk()
+        }
     }
 
+    private fun PacketEvent.onSendTileEntity() {
+        val signData = packet.nbtModifier.read(0) as? NbtCompound ?: return
+        if (!signData.isSignData) return
+        packet.nbtModifier.write(0, replaceSignData(signData))
+    }
+
+    private fun PacketEvent.onSendChunk() {
+        val tileEntitiesInfo = packet.structures.read(0).getLists(TileEntityInfo.CONVERTER).read(0)
+
+        tileEntitiesInfo.forEachIndexed { index, structure ->
+            val signData = structure.nbt ?: return@forEachIndexed
+            if (!signData.isSignData) return@forEachIndexed
+            tileEntitiesInfo[index] = TileEntityInfo.cloneWithNewNbt(structure, replaceSignData(signData))
+        }
+
+        packet.structures.read(0).getLists(TileEntityInfo.CONVERTER).write(0, tileEntitiesInfo)
+    }
+
+    private val NbtCompound.isSignData: Boolean
+        get() = "GlowingText" in this.keys
+
+    private fun NbtCompound.getText(): Array<String> {
+        return Array(4) { "" }.apply {
+            for (i in 0..3) {
+                val line = getString("Text${i + 1}")
+                this[i] = line ?: ""
+            }
+        }
+    }
+
+    private fun replaceSignData(prevSignData: NbtCompound): NbtCompound {
+        val newSignData = NbtFactory.ofCompound(prevSignData.name)
+        for (key in prevSignData.keys)
+            newSignData.put(key, prevSignData.getValue<Any>(key))
+
+        newSignData.setText(newSignData.getText().map { gson.serialize(gson.deserialize(it).replaceEmoteIds(null, false)) }.toTypedArray())
+        return newSignData
+    }
+
+    private fun NbtCompound.setText(lines: Array<String>) {
+        for (i in 0..3)
+            put("Text" + (i + 1), lines[i])
+    }
+
+    // This is more or less entirely copied from first-mentioned source as I am too dumb to understand it
+    @Suppress("UNCHECKED_CAST", "DEPRECATED_IDENTITY_EQUALS")
+    object TileEntityInfo {
+        var CONVERTER: EquivalentConverter<InternalStructure>
+
+        init {
+            try {
+                val converterField: Field = InternalStructure::class.java.getDeclaredField("CONVERTER")
+                converterField.isAccessible = true
+                CONVERTER = converterField.get(null) as EquivalentConverter<InternalStructure>?
+                    ?: throw Exception("Failed to get converter")
+            } catch (e: ReflectiveOperationException) {
+                throw RuntimeException("Could not get the tile entity info converter!", e)
+            }
+        }
+
+        private var CONSTRUCTOR: Constructor<*>? = null
+
+        private val InternalStructure.packedXZ get() = integers.read(0)
+        private val InternalStructure.y: Int get() = integers.read(1)
+        private val InternalStructure.tileEntityType get() = modifier.read(2)
+
+        val InternalStructure.nbt: NbtCompound?
+            get() {
+                return NbtFactory.asCompound(nbtModifier.read(0) ?: return null) ?: null
+            }
+
+        fun cloneWithNewNbt(tileEntityInfo: InternalStructure, nbt: NbtCompound): InternalStructure {
+            if (CONSTRUCTOR == null) {
+                for (constructor in tileEntityInfo.handle.javaClass.declaredConstructors) {
+                    // We are looking for the only constructor with 4 parameters:
+                    if (constructor.parameterCount === 4) {
+                        constructor.isAccessible = true
+                        CONSTRUCTOR = constructor
+                        break
+                    }
+                }
+                CONSTRUCTOR ?: throw RuntimeException("Could not find the tile entity info constructor!")
+            }
+            return try {
+                val instance = CONSTRUCTOR!!.newInstance(
+                    tileEntityInfo.packedXZ,
+                    tileEntityInfo.y,
+                    tileEntityInfo.tileEntityType,
+                    nbt.handle
+                )
+                CONVERTER.getSpecific(instance)
+            } catch (e: ReflectiveOperationException) {
+                throw RuntimeException("Could not invoke the tile entity info constructor!", e)
+            }
+        }
+    }
 }
 
-//private fun PacketEvent.onTileEntityDataSending() {
-//    try {
-//        val blockPos = packet.blockPositionModifier.read(0)
-//        val location = Location(player.world, blockPos.x.toDouble(), blockPos.y.toDouble(), blockPos.z.toDouble())
-//        val block = location.block
-//        if (!MaterialTags.SIGNS.isTagged(block)) return
-//        val outPacket = packet.shallowClone()
-//        val signData: NbtCompound = getTileEntityData(outPacket)
-//        val outgoingSignData = replaceSignData(signData, getText(signData))
-//        setTileEntityData(outPacket, outgoingSignData)
-//        packet = outPacket
-//
-//        //player.sendSignChange(location, lines)
-//    } catch (e: Exception) {
-//        when (e) {
-//            is NullPointerException, is FieldAccessException -> {}
-//        }
-//    }
-//}
-//
-//fun getText(tileEntitySignData: NbtCompound?): Array<String?> {
-//    assert(tileEntitySignData != null)
-//    val lines = arrayOfNulls<String>(4)
-//    for (i in 0..3) {
-//        val rawLine = tileEntitySignData!!.getString("Text" + (i + 1)).miniMsg().replaceEmoteIds().serialize()
-//        lines[i] = rawLine
-//    }
-//    return lines
-//}
-//
-//fun getTileEntityData(packet: PacketContainer): NbtCompound {
-//    return packet.nbtModifier.read(0) as NbtCompound
-//}
-//
-//fun setTileEntityData(packet: PacketContainer, tileEntityData: NbtCompound?) {
-//    packet.nbtModifier.write(0, tileEntityData)
-//}
-//
-//private fun replaceSignData(previousSignData: NbtCompound, newSignText: Array<String?>): NbtCompound? {
-//    val newSignData = NbtFactory.ofCompound(previousSignData.name)
-//
-//    // Copy the previous tile entity data (shallow copy):
-//    for (key in previousSignData.keys) {
-//        newSignData.put(key, previousSignData.getValue<Any>(key))
-//    }
-//
-//    // Replace the sign text:
-//    setText(newSignData, newSignText)
-//    return newSignData
-//}
-//
-//fun setText(tileEntitySignData: NbtCompound?, lines: Array<String?>) {
-//    assert(tileEntitySignData != null)
-//    assert(lines.size == 4)
-//    for (i in 0..3) {
-//        tileEntitySignData!!.put("Text" + (i + 1), lines[i])
-//    }
-//}
-//
-////private fun List<String>.getSignLines(player: Player?, lineNumber: Int) : List<String> {
-////    var line1 = this.substringAfter("Text$lineNumber:\'").substringBefore("\',Text2")
-////    var line2 = this.substringAfter("Text2:\'").substringBefore("\',Text3")
-////    var line3 = this.substringAfter("Text3:\'").substringBefore("\',Text4")
-////    var line4 = this.substringAfter("Text4:\'").substringBefore("\'}")
-////
-////    line1 = line1.replace(line1, line1.miniMsg().replaceEmoteIds(player).serialize())
-////    line2 = line2.replace(line2, line2.miniMsg().replaceEmoteIds(player).serialize())
-////    line3 = line3.replace(line3, line3.miniMsg().replaceEmoteIds(player).serialize())
-////    line4 = line4.replace(line4, line4.miniMsg().replaceEmoteIds(player).serialize())
-////
-////    return listOf(line1, line2, line3, line4)
-////    //return lines.toTypedArray()
-////}
+

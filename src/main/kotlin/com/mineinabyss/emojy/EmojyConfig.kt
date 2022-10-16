@@ -3,7 +3,6 @@ package com.mineinabyss.emojy
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.mineinabyss.emojy.EmojyGenerator.gifFolder
-import com.mineinabyss.idofront.messaging.broadcastVal
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
@@ -14,6 +13,7 @@ import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.event.HoverEvent.hoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
+import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
 import net.kyori.adventure.text.minimessage.tag.standard.StandardTags
 import org.bukkit.configuration.file.YamlConfiguration
@@ -104,20 +104,20 @@ data class EmojyConfig(
 
         // TODO Change this to miniMsg(TagResolver) when Idofront is updated
         fun getFormattedUnicode(splitter: String = "", insert: Boolean = true): Component {
-            val resolvers = mutableSetOf(StandardTags.font(), StandardTags.color(), StandardTags.decorations())
-            if (insert) resolvers.addAll(listOf(StandardTags.hoverEvent(), StandardTags.insertion()))
-            val tagResolver = TagResolver.builder().apply { TagResolver.resolver(resolvers.run { this.map { it.toString() }.broadcastVal(); this }) }.build()
+            val stripResolver = mutableSetOf<TagResolver>()
+                .apply { if (insert) addAll(listOf(StandardTags.hoverEvent(), StandardTags.insertion())) }
+            val tagResolver = TagResolver.builder().resolvers(stripResolver).build()
+            val mm = MiniMessage.builder().tags(tagResolver).build()
 
             val bitmap = (if (getUnicodes().size > 1) {
                 getUnicodes().joinToString(splitter) { "<newline>$it" }
-            } else getUnicodes().first())
+            } else getUnicodes().first()).miniMsg()
 
-            val component = bitmap.miniMsg().font(getFont()).color(NamedTextColor.WHITE).insertion(":${id}:")
-                .hoverEvent(hoverEvent(HoverEvent.Action.SHOW_TEXT,
-                    ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg())
-                ).serialize().miniMsg(tagResolver)
+            val component = mm.stripTags(bitmap.font(getFont()).color(NamedTextColor.WHITE).insertion(":${id}:").hoverEvent(hoverEvent(HoverEvent.Action.SHOW_TEXT,
+                    ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg())).serialize()).miniMsg()
+
             return if (splitter.isEmpty() || emojyConfig.emotes.indexOf(this) == emojyConfig.emotes.size - 1) component
-            else component.append("<font:default><white>$splitter</white></font>".miniMsg(tagResolver))
+            else component.append("<font:default><white>$splitter</white></font>".miniMsg())
         }
     }
 
