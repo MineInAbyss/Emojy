@@ -7,6 +7,7 @@
 # [requirePermission]: Should emotes and gifs require permissions? Permission can be per emote, or font (emojy.emote/font/gif)
 # [generateResourcePack]: Should an assets style folder generate with needed fonts and images?
 # [debug]: Prints out error msg for resourcepack generation
+# [filterListByPermission]: If /emojy list only shows emotes the player has permission to use
 defaultNamespace: "emotes"
 defaultFolder: "emotes"
 defaultFont: "emotes"
@@ -15,6 +16,7 @@ defaultAscent: 8
 requirePermission: true
 generateResourcePack: true
 debug: true
+listType: BOOK
 
 # [id]: The id of your emote, used for replacing :id:
 # [texture]: The path to your textures image (defaultNamespace:defaultFolder/id.png)

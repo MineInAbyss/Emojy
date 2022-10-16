@@ -19,23 +19,23 @@ object EmojyGenerator {
         emojyConfig.emotes.forEach { emote ->
             val assetDir = File(emojy.dataFolder.path, "/assets").run { mkdirs(); this }
             try {
-                val font = File(emojy.dataFolder, "/fonts/${emote.font}.json")
-                font.copyTo(assetDir.resolve(emote.getNamespace() + "/font/${emote.font}.json"), true)
+                val font = File(emojy.dataFolder, "/fonts/${emote.font.value()}.json")
+                font.copyTo(assetDir.resolve(emote.namespace + "/font/${emote.font.value()}.json"), true)
             } catch (e: Exception) {
                 if (emojyConfig.debug) when (e) {
                     is NoSuchFileException, is NullPointerException ->
-                        logWarn("Could not find font ${emote.font} for emote ${emote.id} in plugins/emojy/fonts")
+                        logWarn("Could not find font ${emote.font.value()} for emote ${emote.id} in plugins/emojy/fonts")
                 }
             }
 
             try {
                 val texture =
-                    File(emojy.dataFolder.path, "/textures/${emote.getImage()}").run { parentFile.mkdirs(); this }
-                texture.copyTo(assetDir.resolve(emote.getNamespace() + "/textures/${emote.getImagePath()}"), true)
+                    File(emojy.dataFolder.path, "/textures/${emote.image}").run { parentFile.mkdirs(); this }
+                texture.copyTo(assetDir.resolve(emote.namespace + "/textures/${emote.imagePath}"), true)
             } catch (e: Exception) {
                 if (emojyConfig.debug) when (e) {
                     is NoSuchFileException, is NullPointerException -> {
-                        logError("Could not find texture ${emote.getImage()} for emote ${emote.id} in plugins/emojy/textures")
+                        logError("Could not find texture ${emote.image} for emote ${emote.id} in plugins/emojy/textures")
                         logWarn("Will not be copied to final resourcepack folder")
                         logWarn("If you have it through another resourcepack, ignore this")
                     }
@@ -47,7 +47,7 @@ object EmojyGenerator {
             val assetDir = File(emojy.dataFolder.path, "/assets")
             try {
                 val font = File(emojy.dataFolder, "/fonts/gifs/${gif.id}.json").run { parentFile.mkdirs(); this }
-                font.copyTo(assetDir.resolve(gif.getNamespace() + "/font/${gif.id}.json"), true)
+                font.copyTo(assetDir.resolve(gif.namespace + "/font/${gif.id}.json"), true)
             } catch (e: Exception) {
                 if (emojyConfig.debug) when (e) {
                     is NoSuchFileException, is NullPointerException ->
@@ -62,8 +62,8 @@ object EmojyGenerator {
     fun generateFontFiles() {
         val fontFiles = mutableMapOf<String, JsonArray>()
         emojyConfig.emotes.forEach { emote ->
-            fontFiles[emote.font]?.add(emote.toJson())
-                ?: fontFiles.putIfAbsent(emote.font, JsonArray().apply { add(emote.toJson()) })
+            fontFiles[emote.font.value()]?.add(emote.toJson())
+                ?: fontFiles.putIfAbsent(emote.font.value(), JsonArray().apply { add(emote.toJson()) })
         }
         fontFiles.forEach { (font, array) ->
             val output = JsonObject()
@@ -123,7 +123,7 @@ object EmojyGenerator {
                     }
                 }
                 val dest = gifFolder.resolve("${id}/${i + 1}.png").run { parentFile.mkdirs(); this }
-                val assetDest = File(emojy.dataFolder.path, "/assets/${getNamespace()}/textures/${getImagePath()}/${i + 1}.png").run { parentFile.mkdirs(); this }
+                val assetDest = File(emojy.dataFolder.path, "/assets/${namespace}/textures/${imagePath}/${i + 1}.png").run { parentFile.mkdirs(); this }
                 ImageIO.write(master, "PNG", dest)
                 ImageIO.write(master, "PNG", assetDest)
             }

@@ -3,17 +3,11 @@ package com.mineinabyss.emojy.packets
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 
 object PacketHelpers {
-    // Ugly but works :)
+    val gson = GsonComponentSerializer.gson()
     fun String.readJson(): Component {
-        val color = substringAfter("color\":\"").substringBefore("\",")
-        val msg = this.substringBeforeLast("\"}").substringAfter("\"text\":\"")
-        return Component.text(msg).color(NamedTextColor.NAMES.value(color))
-    }
-
-    fun Component.removeUnwanted(): Component {
-        return this.serialize().replace("\\<", "<").miniMsg().mergeStyle("".miniMsg().clickEvent(null).hoverEvent(null).insertion(null))
+        return gson.deserialize(this).serialize().replace("\\", "").miniMsg()
     }
 }

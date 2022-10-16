@@ -9,9 +9,7 @@ import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.packets.PacketHelpers.readJson
 import com.mineinabyss.emojy.replaceEmoteIds
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 
-val gson = GsonComponentSerializer.gson()
 class EmojyTitlePacket : PacketAdapter(
     emojy,
     ListenerPriority.HIGHEST,

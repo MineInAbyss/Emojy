@@ -6,6 +6,7 @@ import io.papermc.paper.event.player.AsyncChatCommandDecorateEvent
 import io.papermc.paper.event.player.AsyncChatDecorateEvent
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
+import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -31,11 +32,13 @@ class EmojyListener : Listener {
     fun PlayerInteractEvent.onPlayerOpenBook() {
         if (!rightClicked) return
         val bookMeta = item?.itemMeta as? BookMeta ?: return
-        player.openBook(bookMeta.pages(bookMeta.pages().map { it.replaceEmoteIds(player, true) }))
+        val author = if (bookMeta.hasAuthor()) Bukkit.getPlayer(bookMeta.author().toString()) else null
+        player.openBook(bookMeta.pages(bookMeta.pages().map { it.replaceEmoteIds(author, true) }))
         isCancelled = true
     }
 }
 
+//TODO Tags like rainbow and gradient, which split the text into multiple children, will break replacement below
 fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): Component {
     var msg = this
     emojyConfig.emotes.forEach { emote ->
@@ -54,7 +57,7 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
                     .match(":${gif.id}:")
-                    .replacement(gif.getFormattedUnicode())
+                    .replacement(gif.getFormattedUnicode(insert = insert))
                     .build()
             )
         }

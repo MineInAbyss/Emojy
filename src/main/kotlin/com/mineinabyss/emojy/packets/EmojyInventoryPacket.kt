@@ -7,6 +7,7 @@ import com.comphenix.protocol.events.PacketEvent
 import com.comphenix.protocol.reflect.FieldAccessException
 import com.comphenix.protocol.wrappers.WrappedChatComponent
 import com.mineinabyss.emojy.emojy
+import com.mineinabyss.emojy.packets.PacketHelpers.gson
 import com.mineinabyss.emojy.packets.PacketHelpers.readJson
 import com.mineinabyss.emojy.replaceEmoteIds
 
@@ -14,7 +15,7 @@ class EmojyInventoryPacket : PacketAdapter(
     emojy, ListenerPriority.HIGHEST, PacketType.Play.Server.OPEN_WINDOW
 ) {
 
-    override fun onPacketReceiving(event: PacketEvent) {
+    override fun onPacketSending(event: PacketEvent) {
         val chat = event.packet.chatComponents
         try {
             val title = chat.read(0).json.readJson().replaceEmoteIds(insert = false)

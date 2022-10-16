@@ -3,9 +3,11 @@ package com.mineinabyss.emojy
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.mineinabyss.emojy.EmojyGenerator.gifFolder
+import com.mineinabyss.idofront.config.config
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
@@ -32,7 +34,11 @@ private val defaultNamespace: String = configuration.getString("defaultNamespace
 private val defaultFolder: String = configuration.getString("defaultFolder", "emotes").toString()
 private val defaultFont: String = configuration.getString("defaultFont", "emotes").toString()
 private val defaultHeight: Int = configuration.getInt("defaultHeight", 8)
-private val defaultAscent: Int = configuration.getInt("defaultHeight", 8)
+private val defaultAscent: Int = configuration.getInt("defaultAscent", 8)
+
+enum class ListType {
+    BOOK, CHAT
+}
 
 @Serializable
 data class EmojyConfig(
@@ -45,13 +51,15 @@ data class EmojyConfig(
     val requirePermissions: Boolean = true,
     val generateResourcePack: Boolean = true,
     val debug: Boolean = true,
+    val listType: ListType = ListType.BOOK,
     val emotes: Set<Emote> = mutableSetOf(Emote("")),
     val gifs: Set<Gif> = mutableSetOf(Gif(""))
 ) {
     @Serializable
     data class Emote(
         val id: String,
-        val font: String = defaultFont,
+        @SerialName("font")
+        val _font: String = defaultFont,
         val texture: String = "${defaultNamespace}:${defaultFolder}/$id.png",
         val height: Int = defaultHeight,
         val ascent: Int = defaultAscent,
@@ -65,14 +73,14 @@ data class EmojyConfig(
             return mutableListOf("").apply {
                 for (i in 0 until bitmapHeight) {
                     for (j in 0 until bitmapWidth) {
-                        val lastUnicode = lastUsedUnicode[font] ?: 0
+                        val lastUnicode = lastUsedUnicode[_font] ?: 0
                         val row = ((getOrNull(i) ?: "") + Character.toChars(
                             PRIVATE_USE_FIRST + lastUnicode + emojyConfig.emotes
-                                .filter { it.font == font }.map { it }.indexOf(this@Emote)
+                                .filter { it._font == _font }.map { it }.indexOf(this@Emote)
                         ).firstOrNull().toString())
                         if (getOrNull(i) == null)
                             add(i, row) else set(i, row)
-                        lastUsedUnicode.put(font, lastUnicode + 1) ?: lastUsedUnicode.putIfAbsent(font, 1)
+                        lastUsedUnicode.put(_font, lastUnicode + 1) ?: lastUsedUnicode.putIfAbsent(_font, 1)
                     }
                 }
                 lastUsedUnicode.clear()
@@ -80,11 +88,12 @@ data class EmojyConfig(
         }
 
 
-        fun getFont() = Key.key(getNamespace(), font)
-        fun getNamespace() = texture.substringBefore(":")
-        fun getImage() = texture.substringAfterLast("/")
-        fun getImagePath() = texture.substringAfter(":")
-        fun getPermission() = "emojy.emote.$id"
+        val font get() = Key.key(namespace, _font)
+        val namespace get() = texture.substringBefore(":")
+        val image get() = texture.substringAfterLast("/")
+        val imagePath get() = texture.substringAfter(":")
+        val permission get() = "emojy.emote.$id"
+        val fontPermission get() = "emojy.font.$font"
         fun toJson(): JsonObject {
             val output = JsonObject()
             val chars = JsonArray()
@@ -98,14 +107,11 @@ data class EmojyConfig(
         }
 
         fun checkPermission(player: Player?) =
-            !emojyConfig.requirePermissions || player == null || player.hasPermission(getPermission()) || player.hasPermission(
-                "emojy.font.${font}"
-            )
+            !emojyConfig.requirePermissions || player == null || player.hasPermission(permission) || player.hasPermission(fontPermission)
 
-        // TODO Change this to miniMsg(TagResolver) when Idofront is updated
         fun getFormattedUnicode(splitter: String = "", insert: Boolean = true): Component {
             val stripResolver = mutableSetOf<TagResolver>()
-                .apply { if (insert) addAll(listOf(StandardTags.hoverEvent(), StandardTags.insertion())) }
+                .apply { if (!insert) addAll(listOf(StandardTags.hoverEvent(), StandardTags.insertion())) }
             val tagResolver = TagResolver.builder().resolvers(stripResolver).build()
             val mm = MiniMessage.builder().tags(tagResolver).build()
 
@@ -113,8 +119,12 @@ data class EmojyConfig(
                 getUnicodes().joinToString(splitter) { "<newline>$it" }
             } else getUnicodes().first()).miniMsg()
 
-            val component = mm.stripTags(bitmap.font(getFont()).color(NamedTextColor.WHITE).insertion(":${id}:").hoverEvent(hoverEvent(HoverEvent.Action.SHOW_TEXT,
-                    ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg())).serialize()).miniMsg()
+            val component = mm.stripTags(
+                bitmap.font(font).color(NamedTextColor.WHITE).insertion(":${id}:")
+                    .hoverEvent(hoverEvent(HoverEvent.Action.SHOW_TEXT,
+                        ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg())
+                    ).serialize()
+            ).miniMsg()
 
             return if (splitter.isEmpty() || emojyConfig.emotes.indexOf(this) == emojyConfig.emotes.size - 1) component
             else component.append("<font:default><white>$splitter</white></font>".miniMsg())
@@ -131,11 +141,12 @@ data class EmojyConfig(
         val height: Int = 8,
 
         ) {
-        fun getFont() = Key.key(getNamespace(), id)
-        fun getNamespace() = framePath.substringBefore(":")
-        fun getImagePath() = framePath.substringAfter(":")
-        fun getPermission() = "emojy.gif.$id"
-        fun getUnicode(i: Int): Char = Character.toChars(PRIVATE_USE_FIRST + i).first()
+        val font get() = Key.key(namespace, id)
+        val namespace get() = framePath.substringBefore(":")
+        val image get() = framePath.substringAfterLast("/")
+        val imagePath get() = framePath.substringAfter(":")
+        val permission get() = "emojy.gif.$id"
+        fun getUnicode(i: Int = 1): Char = Character.toChars(PRIVATE_USE_FIRST + i).first()
 
         @JvmName("getFrameCount1")
         fun getFrameCount(): Int {
@@ -168,21 +179,30 @@ data class EmojyConfig(
         }
 
         fun checkPermission(player: Player?) =
-            !emojyConfig.requirePermissions || player == null || player.hasPermission(getPermission())
+            !emojyConfig.requirePermissions || player == null || player.hasPermission(permission)
 
-        fun getFormattedUnicode(splitter: String = ""): Component {
-            val component = getUnicode(1).toString().miniMsg().mergeStyle(
-                Component.empty().font(getFont()).color(NamedTextColor.WHITE).insertion(":${id}:")
-                    .decorate(TextDecoration.OBFUSCATED).hoverEvent(
-                        hoverEvent(
-                            HoverEvent.Action.SHOW_TEXT,
-                            ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg()
-                        )
-                    )
-            )
+        fun getFormattedUnicode(splitter: String = "", insert: Boolean = true): Component {
+            val stripResolver = mutableSetOf<TagResolver>()
+                .apply { if (!insert) addAll(listOf(StandardTags.hoverEvent(), StandardTags.insertion())) }
+            val tagResolver = TagResolver.builder().resolvers(stripResolver).build()
+            val mm = MiniMessage.builder().tags(tagResolver).build()
+
+            val component = mm.stripTags(getUnicode().toString().miniMsg()
+                .font(font).color(NamedTextColor.WHITE).insertion(":${id}:").decorate(TextDecoration.OBFUSCATED)
+                .hoverEvent(hoverEvent(HoverEvent.Action.SHOW_TEXT,
+                    ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this gif").miniMsg())
+                ).serialize()
+            ).miniMsg()
+
             return if (emojyConfig.gifs.indexOf(this) == emojyConfig.gifs.size - 1) component
             else component.append("<font:default><white>$splitter</white></font>".miniMsg())
         }
     }
 
+    fun reload() {
+        emojy.config = config("config") { emojy.fromPluginPath(loadDefault = true) }
+        EmojyGenerator.reloadFontFiles()
+        if (emojyConfig.generateResourcePack)
+            EmojyGenerator.generateResourcePack()
+    }
 }
