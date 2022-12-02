@@ -48,7 +48,7 @@ data class EmojyConfig(
     val defaultFont: String = "emotes",
     val defaultHeight: Int = 8,
     val defaultAscent: Int = 8,*/
-    val signPacketListener: Boolean = true,
+    val enableSignPacketTranslation: Boolean = true,
     val requirePermissions: Boolean = true,
     val generateResourcePack: Boolean = true,
     val debug: Boolean = true,
