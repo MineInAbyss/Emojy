@@ -33,7 +33,7 @@ class EmojyPlugin : JavaPlugin() {
         if (protlib.isEnabled) {
             protManager.addPacketListener(EmojyTitlePacket())
             protManager.addPacketListener(EmojyInventoryPacket())
-            protManager.addPacketListener(EmojySignPacket())
+            if (emojyConfig.signPacketListener) protManager.addPacketListener(EmojySignPacket())
         }
 
         EmojyCommands()
