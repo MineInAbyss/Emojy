@@ -10,6 +10,7 @@ import kotlinx.coroutines.*
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
 import org.bukkit.Bukkit
+import org.bukkit.Chunk
 import org.bukkit.block.Sign
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -17,6 +18,7 @@ import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.block.SignChangeEvent
 import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.inventory.meta.BookMeta
 
 @Suppress("UnstableApiUsage")
@@ -44,6 +46,7 @@ class EmojyListener : Listener {
 }
 
 class EmojySignTranslator : Listener {
+    val playerSentChunkMap = mutableMapOf<Player, MutableSet<Chunk>>()
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     fun SignChangeEvent.onSignPlace() {
@@ -55,20 +58,35 @@ class EmojySignTranslator : Listener {
         }
     }
 
+    @EventHandler(priority = EventPriority.LOWEST)
+    fun PlayerJoinEvent.onPlayerJoin() {
+        emojy.launch {
+            delay(10)
+            player.asyncCheckChunkForSigns()
+        }
+    }
+
+
     @EventHandler(priority = EventPriority.HIGHEST)
     fun PlayerChunkLoadEvent.onChunkSent() {
-        val signsToUpdate = mutableSetOf<Sign>()
+        player.addChunkToTask(chunk)
+    }
+
+    private fun Player.addChunkToTask(chunk: Chunk) {
+        playerSentChunkMap.getOrPut(this) { mutableSetOf() }.add(chunk)
+    }
+
+    private fun Player.asyncCheckChunkForSigns() {
         emojy.launch {
-            async {
-                chunk.getTileEntities(true).filterIsInstance<Sign>().forEach { sign ->
-                    signsToUpdate += sign
+            playerSentChunkMap[player]?.sortedBy { it.x.compareTo(chunk.x) }
+                ?.forEach { chunk ->
+                    chunk.getTileEntities(true).forEach {
+                        if (it is Sign && this@asyncCheckChunkForSigns.isOnline)
+                            sendSignChange(it.location, it.lines().map { it.replaceEmoteIds(player) })
+                        delay(10)
+                    }
+                    delay(10)
                 }
-            }.invokeOnCompletion {
-                signsToUpdate.forEach { sign ->
-                    if (sign.block.state is Sign) // Make sure the sign is still at this location
-                        player.sendSignChange(sign.location, sign.lines().map { it.replaceEmoteIds(player) })
-                }
-            }
         }
     }
 
