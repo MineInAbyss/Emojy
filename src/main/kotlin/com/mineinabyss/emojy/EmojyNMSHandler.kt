@@ -1,46 +1,207 @@
 package com.mineinabyss.emojy
 
-import com.google.gson.JsonParser
-import io.netty.channel.Channel
-import io.netty.channel.ChannelFuture
-import io.netty.channel.ChannelHandler
-import io.papermc.paper.network.ChannelInitializeListener
+import com.github.shynixn.mccoroutine.bukkit.launch
+import com.mineinabyss.idofront.textcomponents.miniMsg
+import com.mineinabyss.idofront.textcomponents.serialize
+import io.netty.buffer.ByteBuf
+import io.netty.channel.*
+import io.netty.handler.codec.ByteToMessageDecoder
+import io.netty.handler.codec.MessageToByteEncoder
 import net.minecraft.network.Connection
+import net.minecraft.network.FriendlyByteBuf
+import net.minecraft.network.PacketEncoder
+import net.minecraft.network.SkipPacketException
+import net.minecraft.network.protocol.Packet
+import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.server.MinecraftServer
-import net.minecraft.server.network.ServerConnectionListener
+import org.bukkit.Bukkit
+import org.bukkit.craftbukkit.v1_19_R1.entity.CraftPlayer
+import org.bukkit.entity.Player
+import java.io.IOException
 import java.util.*
 
-class EmojyNMSHandler {
+object EmojyNMSHandler {
     private val encoder = Collections.synchronizedMap(WeakHashMap<Channel, ChannelHandler>())
     private val decoder = Collections.synchronizedMap(WeakHashMap<Channel, ChannelHandler>())
-    private val transformer: ComponentTransformer? = null
-    private val parser = JsonParser()
 
-    fun d() {
-        val networkManagers : List<Connection> = MinecraftServer.getServer().connection?.connections ?: emptyList()
-        var channelFutures: List<ChannelFuture> = emptyList()
+    fun EmojyNMSHandler() {
+        val networkManagers: List<Connection> = MinecraftServer.getServer().connection?.connections ?: emptyList()
+        val futureField = Connection::class.java.getDeclaredField("channels").apply { this.isAccessible = true; }
+        val channelFutures: List<ChannelFuture> =
+            futureField.runCatching { this.get(MinecraftServer.getServer().connection) as List<ChannelFuture> }
+                .getOrNull() ?: emptyList()
 
-        try {
-            val channelFutureField = ServerConnectionListener::class.java.getDeclaredField("channelFuture").apply {
-                isAccessible = true
+
+        // Handle connected channels
+        val endInitProtocol: ChannelInitializer<Channel> = object : ChannelInitializer<Channel>() {
+            override fun initChannel(channel: Channel) {
+                try {
+                    // This can take a while, so we need to stop the main thread from interfering
+                    synchronized(networkManagers) {
+                        // Stop injecting channels
+                        channel.eventLoop().submit { channel.inject() }
+                    }
+                } catch (e: java.lang.Exception) {
+                    e.printStackTrace()
+                }
             }
-
-            //TODO Is this even needed?
-            //networkManagers = networkManagerField.get(MinecraftServer.getServer().connection) as List<Connection>
-            channelFutures = channelFutureField.get(MinecraftServer.getServer().connection) as List<ChannelFuture>
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
 
-        val managers = networkManagers
-        val futures = channelFutures
+        // Handle channels that are connecting
+        val beginInitProtocol = object : ChannelInitializer<Channel>() {
+            override fun initChannel(channel: Channel) {
+                var handler: ChannelHandler? = null
 
-        ChannelInitializeListener {
-            it.eventLoop().submit()
+                channel.pipeline().forEach {
+                    if (it.value.javaClass.name == "com.viaversion.viaversion.bukkit.handlers.BukkitChannelInitializer") {
+                        handler = it.value
+                    }
+                }
+                handler?.let {
+                    val initChannel =
+                        ChannelInitializer::class.java.getDeclaredMethod("initChannel", Channel::class.java)
+                            .apply { isAccessible = true }
+                    val original = handler!!.javaClass.getDeclaredField("original").apply { this.isAccessible = true }
+                    val initializer = original.get(handler) as ChannelInitializer<*>
+                    val miniInit = object : ChannelInitializer<Channel>() {
+                        override fun initChannel(channel: Channel) {
+                            initChannel.invoke(initializer, channel)
+                            channel.inject()
+                        }
+                    }
+                    original.set(handler, miniInit)
+                } ?: channel.pipeline().addLast(endInitProtocol)
+            }
+        }
+
+        val serverChannelHandler = object : ChannelInboundHandlerAdapter() {
+            override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
+                (msg as Channel).pipeline().addFirst(beginInitProtocol)
+                ctx.fireChannelRead(msg)
+            }
+        }
+
+        try {
+            bind(channelFutures, serverChannelHandler)
+        } catch (e: IllegalArgumentException) {
+            emojy.launch {
+                bind(channelFutures, serverChannelHandler)
+            }
+        }
+    }
+
+    private fun bind(channelFutures: List<ChannelFuture>, serverChannelHandler: ChannelInboundHandlerAdapter) {
+        channelFutures.forEach { future ->
+            future.channel().pipeline().addFirst(serverChannelHandler)
+        }
+
+        Bukkit.getOnlinePlayers().forEach { player ->
+            inject(player)
         }
     }
 
     private fun Channel.inject() {
-        if (!encode)
+        if (this !in encoder.keys && this.pipeline().get("encoder") !is CustomPacketEncoder)
+            encoder[this] = this.pipeline().replace("encoder", "encoder", CustomPacketEncoder())
+
+        if (this !in decoder.keys && this.pipeline().get("decoder") !is CustomPacketDecoder)
+            decoder[this] = this.pipeline().replace("decoder", "decoder", CustomPacketDecoder())
+
+    }
+
+    fun inject(player: Player) {
+        val manager = (player as CraftPlayer).handle.connection.connection
+        val channel = manager.channel ?: return
+
+        channel.inject()
+        channel.pipeline().forEach {
+            when (val handler = it.value) {
+                is CustomPacketEncoder -> handler.player = player
+                is CustomPacketDecoder -> handler.player = player
+            }
+        }
+    }
+
+    fun uninject(player: Player) {
+        val connection = (player as CraftPlayer).handle.connection
+        connection.connection.channel.uninject()
+    }
+
+    private fun Channel.uninject() {
+        if (this in encoder.keys) {
+            val prevHandler = encoder.remove(this)
+            if (prevHandler is PacketEncoder)
+                this.pipeline().replace("encoder", "encoder", PacketEncoder(PacketFlow.CLIENTBOUND))
+            else this.pipeline().replace("encoder", "encoder", prevHandler)
+        }
+
+        if (this in decoder.keys) {
+            val prevHandler = decoder.remove(this)
+            if (prevHandler is PacketEncoder)
+                this.pipeline().replace("decoder", "decoder", PacketEncoder(PacketFlow.SERVERBOUND))
+            else this.pipeline().replace("decoder", "decoder", prevHandler)
+        }
+    }
+
+    private class CustomPacketEncoder : MessageToByteEncoder<Packet<*>>() {
+        private val protocolDirection = PacketFlow.CLIENTBOUND
+        var player: Player? = null
+
+        override fun encode(ctx: ChannelHandlerContext, msg: Packet<*>, out: ByteBuf) {
+            val enumProt = ctx.channel()?.attr(Connection.ATTRIBUTE_PROTOCOL)?.get()
+                ?: throw RuntimeException("ConnectionProtocol unknown: $out")
+            val int = msg.let { enumProt.getPacketId(this.protocolDirection, it) }
+                ?: throw IOException("Can't serialize unregistered packet")
+            val packetDataSerializer: FriendlyByteBuf = CustomDataSerializer(player, out)
+            packetDataSerializer.writeVarInt(int)
+
+            try {
+                val int2 = packetDataSerializer.writerIndex()
+                msg.write(packetDataSerializer)
+                val int3 = packetDataSerializer.writerIndex() - int2
+                if (int3 > 8388608) {
+                    throw IllegalArgumentException("Packet too big (is $int3, should be less than 8388608): $msg")
+                }
+            } catch (e: Exception) {
+                if (msg.isSkippable)
+                    throw SkipPacketException(e)
+                throw e
+            }
+        }
+    }
+
+    private class CustomPacketDecoder : ByteToMessageDecoder() {
+        private val protocolDirection = PacketFlow.SERVERBOUND
+        var player: Player? = null
+
+        override fun decode(ctx: ChannelHandlerContext, msg: ByteBuf, out: MutableList<Any>) {
+            if (msg.readableBytes() == 0) return
+
+            val dataSerializer: FriendlyByteBuf = CustomDataSerializer(player, msg)
+            val packetID = dataSerializer.readVarInt()
+            val packet = ctx.channel().attr(Connection.ATTRIBUTE_PROTOCOL).get().getPacketsByIds(this.protocolDirection).firstNotNullOfOrNull { it.key ==  packetID}
+                ?: throw IOException("Bad packet id $packetID")
+
+            if (dataSerializer.readableBytes() > 0) {
+                //throw IOException("Packet $packetID ($packet) was larger than I expected, found ${dataSerializer.readableBytes()} bytes extra whilst reading packet $packetID")
+            }
+            out.add(packet)
+        }
+    }
+
+    private class CustomDataSerializer(val player: Player?, bytebuf: ByteBuf) :
+        FriendlyByteBuf(bytebuf) {
+
+        override fun writeUtf(string: String, maxLength: Int): FriendlyByteBuf {
+            //return super.writeUtf(string, maxLength)
+            return super.writeUtf(string.miniMsg().replaceEmoteIds(player, false).serialize())
+        }
+
+        override fun readUtf(maxLength: Int): String {
+            return super.readUtf(maxLength).apply {
+                this.miniMsg().replaceEmoteIds(player, false)
+            }
+        }
+
     }
 }

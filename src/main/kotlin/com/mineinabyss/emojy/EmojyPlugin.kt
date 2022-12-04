@@ -29,7 +29,8 @@ class EmojyPlugin : JavaPlugin() {
             EmojyGenerator.generateResourcePack()
 
         listeners(EmojyListener())
-        if (emojyConfig.enableSignPacketTranslation) listeners(EmojySignTranslator())
+        //if (emojyConfig.enableSignPacketTranslation) listeners(EmojySignTranslator())
+
         if (protlib.isEnabled) {
             protManager.addPacketListener(EmojyTitlePacket())
             protManager.addPacketListener(EmojyInventoryPacket())
