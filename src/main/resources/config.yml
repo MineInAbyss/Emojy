@@ -17,7 +17,6 @@ requirePermission: true
 generateResourcePack: true
 debug: true
 listType: BOOK
-enableSignPacketTranslation: true
 
 # [id]: The id of your emote, used for replacing :id:
 # [texture]: The path to your textures image (defaultNamespace:defaultFolder/id.png)

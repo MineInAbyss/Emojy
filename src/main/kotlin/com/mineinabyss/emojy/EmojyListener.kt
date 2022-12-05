@@ -29,7 +29,8 @@ class EmojyListener : Listener {
     // Replace with result not original message to avoid borking other chat formatting
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun AsyncChatDecorateEvent.onPlayerChat() {
-        result(result().replaceEmoteIds(player()))
+        if (isPreview)
+            result(result().replaceEmoteIds(player()))
     }
 }
 
