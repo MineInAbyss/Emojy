@@ -8,10 +8,6 @@ plugins {
     kotlin("plugin.serialization")
 }
 
-repositories {
-    maven("https://repo.dmulloy2.net/repository/public/")
-}
-
 dependencies {
     // MineInAbyss platform
     compileOnly(libs.kotlinx.serialization.json)
@@ -19,7 +15,6 @@ dependencies {
     compileOnly(libs.kotlinx.coroutines)
     compileOnly(libs.minecraft.mccoroutine)
     compileOnly(libs.koin.core)
-    compileOnly(libs.minecraft.plugin.protocollib)
 
     // Shaded
     implementation(libs.bundles.idofront.core)
