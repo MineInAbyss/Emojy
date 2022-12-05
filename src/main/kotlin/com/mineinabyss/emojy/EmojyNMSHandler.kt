@@ -3,7 +3,6 @@ package com.mineinabyss.emojy
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
-import com.mineinabyss.emojy.packets.PacketHelpers
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import io.netty.buffer.ByteBuf
 import io.netty.channel.*
@@ -218,9 +217,7 @@ object EmojyNMSHandler {
 
         private fun JsonObject.returnFormattedString(): String {
             return if (this.has("args") || this.has("text") || this.has("extra") || this.has("translate")) {
-                PacketHelpers.gson.serialize(
-                    PacketHelpers.gson.deserialize(this.toString()).replaceEmoteIds(player, true)
-                )
+                gson.serialize(gson.deserialize(this.toString()).replaceEmoteIds(player, true))
             } else this.toString()
         }
 

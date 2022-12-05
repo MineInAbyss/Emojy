@@ -4,7 +4,6 @@ author: boy0000
 main: com.mineinabyss.emojy.EmojyPlugin
 api-version: 1.19
 #depend:
-softdepend: [ ProtocolLib ]
 description: Emote plugin
 
 commands:
