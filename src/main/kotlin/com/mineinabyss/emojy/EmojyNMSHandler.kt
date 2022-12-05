@@ -4,7 +4,6 @@ import com.github.shynixn.mccoroutine.bukkit.launch
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.mineinabyss.emojy.packets.PacketHelpers
-import com.mineinabyss.idofront.messaging.broadcastVal
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import io.netty.buffer.ByteBuf
 import io.netty.channel.*
@@ -241,7 +240,7 @@ object EmojyNMSHandler {
                     is CompoundTag -> transform(base, transformer)
                     is ListTag -> transform(base, transformer)
                     is StringTag -> {
-                        transformer.apply(base.asString).broadcastVal()
+                        transformer.apply(base.asString)
                         list -= base
                         list += StringTag.valueOf(transformer.apply(base.asString))
                     }

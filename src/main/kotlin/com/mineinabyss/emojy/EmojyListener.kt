@@ -1,6 +1,5 @@
 package com.mineinabyss.emojy
 
-import com.mineinabyss.idofront.entities.rightClicked
 import com.mineinabyss.idofront.messaging.*
 import com.mineinabyss.idofront.textcomponents.serialize
 import io.papermc.paper.event.player.AsyncChatCommandDecorateEvent
@@ -8,14 +7,11 @@ import io.papermc.paper.event.player.AsyncChatDecorateEvent
 import kotlinx.coroutines.*
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
-import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
-import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerJoinEvent
-import org.bukkit.inventory.meta.BookMeta
 
 @Suppress("UnstableApiUsage")
 class EmojyListener : Listener {
@@ -34,15 +30,6 @@ class EmojyListener : Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun AsyncChatDecorateEvent.onPlayerChat() {
         result(result().replaceEmoteIds(player()))
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST)
-    fun PlayerInteractEvent.onPlayerOpenBook() {
-        if (!rightClicked) return
-        val bookMeta = item?.itemMeta as? BookMeta ?: return
-        val author = if (bookMeta.hasAuthor()) Bukkit.getPlayer(bookMeta.author().toString()) else null
-        player.openBook(bookMeta.pages(bookMeta.pages().map { it.replaceEmoteIds(author, true) }))
-        isCancelled = true
     }
 }
 
