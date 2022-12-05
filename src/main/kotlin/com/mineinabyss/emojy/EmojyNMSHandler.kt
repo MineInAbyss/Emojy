@@ -2,7 +2,6 @@ package com.mineinabyss.emojy
 
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.mineinabyss.idofront.textcomponents.miniMsg
-import com.mineinabyss.idofront.textcomponents.serialize
 import io.netty.buffer.ByteBuf
 import io.netty.channel.*
 import io.netty.handler.codec.ByteToMessageDecoder
@@ -27,9 +26,7 @@ object EmojyNMSHandler {
     fun EmojyNMSHandler() {
         val networkManagers: List<Connection> = MinecraftServer.getServer().connection?.connections ?: emptyList()
         val futureField = Connection::class.java.getDeclaredField("channels").apply { this.isAccessible = true; }
-        val channelFutures: List<ChannelFuture> =
-            futureField.runCatching { this.get(MinecraftServer.getServer().connection) as List<ChannelFuture> }
-                .getOrNull() ?: emptyList()
+        val channelFutures: List<ChannelFuture> = futureField.get(MinecraftServer.getServer().connection) as List<ChannelFuture>
 
 
         // Handle connected channels
@@ -110,8 +107,7 @@ object EmojyNMSHandler {
     }
 
     fun inject(player: Player) {
-        val manager = (player as CraftPlayer).handle.connection.connection
-        val channel = manager.channel ?: return
+        val channel = (player as CraftPlayer).handle.connection.connection.channel ?: return
 
         channel.inject()
         channel.pipeline().forEach {
@@ -122,24 +118,19 @@ object EmojyNMSHandler {
         }
     }
 
-    fun uninject(player: Player) {
-        val connection = (player as CraftPlayer).handle.connection
-        connection.connection.channel.uninject()
-    }
+    fun uninject(player: Player) = (player as CraftPlayer).handle.connection.connection.channel.uninject()
 
     private fun Channel.uninject() {
         if (this in encoder.keys) {
             val prevHandler = encoder.remove(this)
-            if (prevHandler is PacketEncoder)
-                this.pipeline().replace("encoder", "encoder", PacketEncoder(PacketFlow.CLIENTBOUND))
-            else this.pipeline().replace("encoder", "encoder", prevHandler)
+            val handler = if (prevHandler is PacketEncoder) PacketEncoder(PacketFlow.CLIENTBOUND) else prevHandler
+            this.pipeline().replace("encoder", "encoder", handler)
         }
 
         if (this in decoder.keys) {
             val prevHandler = decoder.remove(this)
-            if (prevHandler is PacketEncoder)
-                this.pipeline().replace("decoder", "decoder", PacketEncoder(PacketFlow.SERVERBOUND))
-            else this.pipeline().replace("decoder", "decoder", prevHandler)
+            val handler = if (prevHandler is PacketEncoder) PacketEncoder(PacketFlow.SERVERBOUND) else prevHandler
+            this.pipeline().replace("decoder", "decoder", handler)
         }
     }
 
@@ -171,19 +162,19 @@ object EmojyNMSHandler {
     }
 
     private class CustomPacketDecoder : ByteToMessageDecoder() {
-        private val protocolDirection = PacketFlow.SERVERBOUND
         var player: Player? = null
 
         override fun decode(ctx: ChannelHandlerContext, msg: ByteBuf, out: MutableList<Any>) {
             if (msg.readableBytes() == 0) return
 
-            val dataSerializer: FriendlyByteBuf = CustomDataSerializer(player, msg)
+            val dataSerializer = CustomDataSerializer(player, msg)
             val packetID = dataSerializer.readVarInt()
-            val packet = ctx.channel().attr(Connection.ATTRIBUTE_PROTOCOL).get().getPacketsByIds(this.protocolDirection).firstNotNullOfOrNull { it.key ==  packetID}
+            val packet = ctx.channel().attr(Connection.ATTRIBUTE_PROTOCOL).get()
+                .createPacket(PacketFlow.SERVERBOUND, packetID, dataSerializer)
                 ?: throw IOException("Bad packet id $packetID")
 
             if (dataSerializer.readableBytes() > 0) {
-                //throw IOException("Packet $packetID ($packet) was larger than I expected, found ${dataSerializer.readableBytes()} bytes extra whilst reading packet $packetID")
+                throw IOException("Packet $packetID ($packet) was larger than I expected, found ${dataSerializer.readableBytes()} bytes extra whilst reading packet $packetID")
             }
             out.add(packet)
         }
@@ -193,8 +184,9 @@ object EmojyNMSHandler {
         FriendlyByteBuf(bytebuf) {
 
         override fun writeUtf(string: String, maxLength: Int): FriendlyByteBuf {
-            //return super.writeUtf(string, maxLength)
-            return super.writeUtf(string.miniMsg().replaceEmoteIds(player, false).serialize())
+            return super.writeUtf(string, maxLength)
+            //return super.writeComponent(string.miniMsg().replaceEmoteIds(player, true))
+            //return super.writeUtf(string.miniMsg().replaceEmoteIds(player, false).serialize(), maxLength)
         }
 
         override fun readUtf(maxLength: Int): String {

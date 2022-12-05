@@ -3,8 +3,6 @@ package com.mineinabyss.emojy
 import com.comphenix.protocol.ProtocolLib
 import com.comphenix.protocol.ProtocolLibrary
 import com.comphenix.protocol.ProtocolManager
-import com.mineinabyss.emojy.packets.EmojyInventoryPacket
-import com.mineinabyss.emojy.packets.EmojyTitlePacket
 import com.mineinabyss.idofront.config.IdofrontConfig
 import com.mineinabyss.idofront.config.config
 import com.mineinabyss.idofront.platforms.Platforms
@@ -15,6 +13,7 @@ import org.bukkit.plugin.java.JavaPlugin
 val protlib: ProtocolLib by lazy { Bukkit.getPluginManager().getPlugin("ProtocolLib") as ProtocolLib }
 val protManager: ProtocolManager = ProtocolLibrary.getProtocolManager()
 val emojy: EmojyPlugin by lazy { Bukkit.getPluginManager().getPlugin("Emojy") as EmojyPlugin }
+val handler = EmojyNMSHandler
 class EmojyPlugin : JavaPlugin() {
     lateinit var config: IdofrontConfig<EmojyConfig>
     override fun onLoad() {
@@ -32,11 +31,21 @@ class EmojyPlugin : JavaPlugin() {
         //if (emojyConfig.enableSignPacketTranslation) listeners(EmojySignTranslator())
 
         if (protlib.isEnabled) {
-            protManager.addPacketListener(EmojyTitlePacket())
-            protManager.addPacketListener(EmojyInventoryPacket())
+            //protManager.addPacketListener(EmojyTitlePacket())
+            //protManager.addPacketListener(EmojyInventoryPacket())
+        }
+
+        Bukkit.getOnlinePlayers().forEach {
+            handler.inject(it)
         }
 
         EmojyCommands()
 
+    }
+
+    override fun onDisable() {
+        Bukkit.getOnlinePlayers().forEach {
+            EmojyNMSHandler.uninject(it)
+        }
     }
 }

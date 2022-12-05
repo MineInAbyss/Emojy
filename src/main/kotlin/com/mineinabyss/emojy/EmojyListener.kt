@@ -19,7 +19,6 @@ import org.bukkit.event.Listener
 import org.bukkit.event.block.SignChangeEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerJoinEvent
-import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.meta.BookMeta
 
 @Suppress("UnstableApiUsage")
@@ -27,12 +26,7 @@ class EmojyListener : Listener {
 
     @EventHandler
     fun PlayerJoinEvent.injectPlayer() {
-        EmojyNMSHandler.inject(player)
-    }
-
-    @EventHandler
-    fun PlayerQuitEvent.uninjectPlayer() {
-        EmojyNMSHandler.uninject(player)
+        handler.inject(player)
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -43,7 +37,7 @@ class EmojyListener : Listener {
     // Replace with result not original message to avoid borking other chat formatting
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun AsyncChatDecorateEvent.onPlayerChat() {
-        result(result().replaceEmoteIds(player()))
+        //result(result().replaceEmoteIds(player()))
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
