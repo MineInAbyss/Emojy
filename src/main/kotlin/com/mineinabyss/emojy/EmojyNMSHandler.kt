@@ -1,11 +1,18 @@
 package com.mineinabyss.emojy
 
 import com.github.shynixn.mccoroutine.bukkit.launch
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
+import com.mineinabyss.emojy.packets.PacketHelpers
+import com.mineinabyss.idofront.messaging.broadcastVal
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import io.netty.buffer.ByteBuf
 import io.netty.channel.*
 import io.netty.handler.codec.ByteToMessageDecoder
 import io.netty.handler.codec.MessageToByteEncoder
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.nbt.ListTag
+import net.minecraft.nbt.StringTag
 import net.minecraft.network.Connection
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.PacketEncoder
@@ -18,6 +25,7 @@ import org.bukkit.craftbukkit.v1_19_R1.entity.CraftPlayer
 import org.bukkit.entity.Player
 import java.io.IOException
 import java.util.*
+import java.util.function.Function
 
 object EmojyNMSHandler {
     private val encoder = Collections.synchronizedMap(WeakHashMap<Channel, ChannelHandler>())
@@ -26,7 +34,8 @@ object EmojyNMSHandler {
     fun EmojyNMSHandler() {
         val networkManagers: List<Connection> = MinecraftServer.getServer().connection?.connections ?: emptyList()
         val futureField = Connection::class.java.getDeclaredField("channels").apply { this.isAccessible = true; }
-        val channelFutures: List<ChannelFuture> = futureField.get(MinecraftServer.getServer().connection) as List<ChannelFuture>
+        val channelFutures: List<ChannelFuture> =
+            futureField.get(MinecraftServer.getServer().connection) as List<ChannelFuture>
 
 
         // Handle connected channels
@@ -92,9 +101,7 @@ object EmojyNMSHandler {
             future.channel().pipeline().addFirst(serverChannelHandler)
         }
 
-        Bukkit.getOnlinePlayers().forEach { player ->
-            inject(player)
-        }
+        Bukkit.getOnlinePlayers().forEach(::inject)
     }
 
     private fun Channel.inject() {
@@ -184,9 +191,62 @@ object EmojyNMSHandler {
         FriendlyByteBuf(bytebuf) {
 
         override fun writeUtf(string: String, maxLength: Int): FriendlyByteBuf {
+            try {
+                val element = JsonParser.parseString(string)
+                if (element.isJsonObject)
+                    return super.writeUtf(element.asJsonObject.returnFormattedString(), maxLength)
+            } catch (_: Exception) {
+            }
+
             return super.writeUtf(string, maxLength)
-            //return super.writeComponent(string.miniMsg().replaceEmoteIds(player, true))
-            //return super.writeUtf(string.miniMsg().replaceEmoteIds(player, false).serialize(), maxLength)
+        }
+
+        override fun writeNbt(compound: CompoundTag?): FriendlyByteBuf {
+            compound?.let {
+                transform(it, Function { string: String ->
+                    try {
+                        val element = JsonParser.parseString(string)
+                        if (element.isJsonObject)
+                            return@Function element.asJsonObject.returnFormattedString()
+                    } catch (ignored: Exception) {
+                    }
+                    string
+                })
+            }
+
+            return super.writeNbt(compound)
+        }
+
+        private fun JsonObject.returnFormattedString(): String {
+            return if (this.has("args") || this.has("text") || this.has("extra") || this.has("translate")) {
+                PacketHelpers.gson.serialize(
+                    PacketHelpers.gson.deserialize(this.toString()).replaceEmoteIds(player, true)
+                )
+            } else this.toString()
+        }
+
+        private fun transform(compound: CompoundTag, transformer: Function<String, String>) {
+            for (key in compound.allKeys) {
+                when (val base = compound.get(key)) {
+                    is CompoundTag -> transform(base, transformer)
+                    is ListTag -> transform(base, transformer)
+                    is StringTag -> compound.put(key, StringTag.valueOf(transformer.apply(base.asString)))
+                }
+            }
+        }
+
+        private fun transform(list: ListTag, transformer: Function<String, String>) {
+            for (base in list) {
+                when (base) {
+                    is CompoundTag -> transform(base, transformer)
+                    is ListTag -> transform(base, transformer)
+                    is StringTag -> {
+                        transformer.apply(base.asString).broadcastVal()
+                        list -= base
+                        list += StringTag.valueOf(transformer.apply(base.asString))
+                    }
+                }
+            }
         }
 
         override fun readUtf(maxLength: Int): String {

@@ -13,7 +13,6 @@ import org.bukkit.plugin.java.JavaPlugin
 val protlib: ProtocolLib by lazy { Bukkit.getPluginManager().getPlugin("ProtocolLib") as ProtocolLib }
 val protManager: ProtocolManager = ProtocolLibrary.getProtocolManager()
 val emojy: EmojyPlugin by lazy { Bukkit.getPluginManager().getPlugin("Emojy") as EmojyPlugin }
-val handler = EmojyNMSHandler
 class EmojyPlugin : JavaPlugin() {
     lateinit var config: IdofrontConfig<EmojyConfig>
     override fun onLoad() {
@@ -28,24 +27,14 @@ class EmojyPlugin : JavaPlugin() {
             EmojyGenerator.generateResourcePack()
 
         listeners(EmojyListener())
-        //if (emojyConfig.enableSignPacketTranslation) listeners(EmojySignTranslator())
 
-        if (protlib.isEnabled) {
-            //protManager.addPacketListener(EmojyTitlePacket())
-            //protManager.addPacketListener(EmojyInventoryPacket())
-        }
-
-        Bukkit.getOnlinePlayers().forEach {
-            handler.inject(it)
-        }
+        Bukkit.getOnlinePlayers().forEach(EmojyNMSHandler::inject)
 
         EmojyCommands()
 
     }
 
     override fun onDisable() {
-        Bukkit.getOnlinePlayers().forEach {
-            EmojyNMSHandler.uninject(it)
-        }
+        Bukkit.getOnlinePlayers().forEach(EmojyNMSHandler::uninject)
     }
 }
