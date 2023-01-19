@@ -12,13 +12,19 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
+import org.bukkit.event.player.PlayerQuitEvent
 
 @Suppress("UnstableApiUsage")
 class EmojyListener : Listener {
 
     @EventHandler
     fun PlayerJoinEvent.injectPlayer() {
-        EmojyNMSHandler.inject(player)
+        emojy.inject(player)
+    }
+
+    @EventHandler
+    fun PlayerQuitEvent.uninjectPlayer() {
+        emojy.uninject(player)
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

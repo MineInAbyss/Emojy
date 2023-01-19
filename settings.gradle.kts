@@ -1,7 +1,8 @@
+rootProject.name = "emojy"
+
 pluginManagement {
     val kotlinVersion: String by settings
     val idofrontVersion: String by settings
-    val composeVersion: String by settings
 
     repositories {
         gradlePluginPortal()
@@ -20,8 +21,6 @@ pluginManagement {
     }
 }
 
-rootProject.name = "emojy"
-
 dependencyResolutionManagement {
     val idofrontVersion: String by settings
 
@@ -34,3 +33,5 @@ dependencyResolutionManagement {
         create("emojyLibs").from(files("gradle/emojyLibs.toml"))
     }
 }
+
+include("core","v1_19_R1", "v1_19_R2")
