@@ -12,7 +12,5 @@ interface IEmojyNMSHandler {
 
     }
 
-    fun getSupported(): Boolean {
-        return false
-    }
+    val supported get() = false
 }

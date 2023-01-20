@@ -14,14 +14,14 @@ object EmojyNMSHandlers {
         return handler
     }
 
-    fun setup() {
+    private fun setup() {
         if (handler != null) return
         SUPPORTED_VERSION.forEach { version ->
             try {
+                Class.forName("org.bukkit.craftbukkit.$version.block.CraftBlock").name
                 handler = Class.forName("com.mineinabyss.emojy.nms.${version}.EmojyNMSHandler").getConstructor()
                     .newInstance() as IEmojyNMSHandler
-            } catch (e: Exception) {
-                throw RuntimeException(e)
+            } catch (_: Exception) {
             }
         }
     }

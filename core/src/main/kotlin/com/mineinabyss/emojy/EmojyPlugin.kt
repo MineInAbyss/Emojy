@@ -1,6 +1,6 @@
 package com.mineinabyss.emojy
 
-import com.mineinabyss.emojy.nms.IEmojyNMSHandler
+import com.mineinabyss.emojy.nms.EmojyNMSHandlers
 import com.mineinabyss.idofront.config.IdofrontConfig
 import com.mineinabyss.idofront.config.config
 import com.mineinabyss.idofront.platforms.Platforms
@@ -9,7 +9,7 @@ import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 
 val emojy: EmojyPlugin by lazy { Bukkit.getPluginManager().getPlugin("Emojy") as EmojyPlugin }
-class EmojyPlugin : JavaPlugin(), IEmojyNMSHandler {
+class EmojyPlugin : JavaPlugin() {
     lateinit var config: IdofrontConfig<EmojyConfig>
     override fun onLoad() {
         Platforms.load(this, "mineinabyss")
@@ -19,7 +19,7 @@ class EmojyPlugin : JavaPlugin(), IEmojyNMSHandler {
         // NMS version check
 
         // NMS version check
-        if (com.mineinabyss.emojy.nms.EmojyNMSHandlers.getHandler()?.getSupported() != true) {
+        if (EmojyNMSHandlers.getHandler()?.supported != true) {
             logger.severe("This version is not supported! Consider switching versions?")
             server.pluginManager.disablePlugin(this)
             return
@@ -34,7 +34,7 @@ class EmojyPlugin : JavaPlugin(), IEmojyNMSHandler {
         listeners(EmojyListener())
 
         Bukkit.getOnlinePlayers().forEach {
-            inject(it)
+            EmojyNMSHandlers.getHandler()?.inject(it)
         }
 
         EmojyCommands()
@@ -43,7 +43,7 @@ class EmojyPlugin : JavaPlugin(), IEmojyNMSHandler {
 
     override fun onDisable() {
         Bukkit.getOnlinePlayers().forEach {
-            uninject(it)
+            EmojyNMSHandlers.getHandler()?.uninject(it)
         }
     }
 }
