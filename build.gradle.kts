@@ -45,12 +45,13 @@ tasks {
     }
 
     runServer {
-        minecraftVersion("1.19.3")
+        minecraftVersion("1.19.4")
     }
 
     shadowJar {
         dependsOn(":v1_19_R1:reobfJar")
         dependsOn(":v1_19_R2:reobfJar")
+        dependsOn(":v1_19_R3:reobfJar")
         archiveFileName.set("Emojy.jar")
         //archiveFile.get().asFile.copyTo(layout.projectDirectory.file("run/plugins/ModernLightApi.jar").asFile, true)
     }
