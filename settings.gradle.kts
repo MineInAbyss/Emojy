@@ -34,4 +34,4 @@ dependencyResolutionManagement {
     }
 }
 
-include("core","v1_19_R1", "v1_19_R2")
+include("core","v1_19_R1", "v1_19_R2", "v1_19_R3")

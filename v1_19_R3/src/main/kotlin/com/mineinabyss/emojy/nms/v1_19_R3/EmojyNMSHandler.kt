@@ -6,6 +6,7 @@ import com.google.gson.JsonParser
 import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
 import com.mineinabyss.emojy.replaceEmoteIds
+import com.mineinabyss.idofront.messaging.logVal
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import io.netty.buffer.ByteBuf
 import io.netty.channel.*
@@ -16,12 +17,13 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
 import net.minecraft.nbt.StringTag
 import net.minecraft.network.*
+import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.network.ServerConnectionListener
 import org.bukkit.Bukkit
-import org.bukkit.craftbukkit.v1_19_R2.entity.CraftPlayer
+import org.bukkit.craftbukkit.v1_19_R3.entity.CraftPlayer
 import org.bukkit.entity.Player
 import java.io.IOException
 import java.util.*
