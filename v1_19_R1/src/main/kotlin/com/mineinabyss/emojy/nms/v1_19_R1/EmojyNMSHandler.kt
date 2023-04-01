@@ -1,23 +1,25 @@
-package com.mineinabyss.emojy
+package com.mineinabyss.emojy.nms.v1_19_R1
 
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import com.mineinabyss.emojy.emojy
+import com.mineinabyss.emojy.nms.IEmojyNMSHandler
+import com.mineinabyss.emojy.replaceEmoteIds
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import io.netty.buffer.ByteBuf
 import io.netty.channel.*
 import io.netty.handler.codec.ByteToMessageDecoder
 import io.netty.handler.codec.MessageToByteEncoder
+import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
 import net.minecraft.nbt.StringTag
-import net.minecraft.network.Connection
-import net.minecraft.network.FriendlyByteBuf
-import net.minecraft.network.PacketEncoder
-import net.minecraft.network.SkipPacketException
+import net.minecraft.network.*
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.server.MinecraftServer
+import net.minecraft.server.network.ServerConnectionListener
 import org.bukkit.Bukkit
 import org.bukkit.craftbukkit.v1_19_R1.entity.CraftPlayer
 import org.bukkit.entity.Player
@@ -25,15 +27,14 @@ import java.io.IOException
 import java.util.*
 import java.util.function.Function
 
-object EmojyNMSHandler {
+class EmojyNMSHandler : IEmojyNMSHandler {
     private val encoder = Collections.synchronizedMap(WeakHashMap<Channel, ChannelHandler>())
     private val decoder = Collections.synchronizedMap(WeakHashMap<Channel, ChannelHandler>())
 
     fun EmojyNMSHandler() {
-        val networkManagers: List<Connection> = MinecraftServer.getServer().connection?.connections ?: emptyList()
-        val futureField = Connection::class.java.getDeclaredField("channels").apply { this.isAccessible = true; }
-        val channelFutures: List<ChannelFuture> =
-            futureField.get(MinecraftServer.getServer().connection) as List<ChannelFuture>
+        val networkManagers: List<ConnectionProtocol> =
+            ServerConnectionListener::class.java.getDeclaredField("g").apply { this.isAccessible = true; }.get(MinecraftServer.getServer().connection) as List<ConnectionProtocol>
+        val channelFutures = ServerConnectionListener::class.java.getDeclaredField("f").apply { this.isAccessible = true; }.get(MinecraftServer.getServer().connection) as List<ChannelFuture>
 
 
         // Handle connected channels
@@ -99,7 +100,7 @@ object EmojyNMSHandler {
             future.channel().pipeline().addFirst(serverChannelHandler)
         }
 
-        Bukkit.getOnlinePlayers().forEach(::inject)
+        Bukkit.getOnlinePlayers().forEach { inject(it) }
     }
 
     private fun Channel.inject() {
@@ -111,9 +112,8 @@ object EmojyNMSHandler {
 
     }
 
-    fun inject(player: Player) {
-        val channel = (player as CraftPlayer).handle.connection.connection.channel ?: return
-
+    override fun inject(player: Player) {
+        val channel = (player as CraftPlayer).handle.networkManager.channel ?: return
         channel.inject()
         channel.pipeline().forEach {
             when (val handler = it.value) {
@@ -123,19 +123,21 @@ object EmojyNMSHandler {
         }
     }
 
-    fun uninject(player: Player) = (player as CraftPlayer).handle.connection.connection.channel.uninject()
+    override fun uninject(player: Player) {
+        (player as CraftPlayer).handle.networkManager.channel.uninject()
+    }
 
     private fun Channel.uninject() {
         if (this in encoder.keys) {
-            val prevHandler = encoder.remove(this)
+            val prevHandler = encoder[this]
             val handler = if (prevHandler is PacketEncoder) PacketEncoder(PacketFlow.CLIENTBOUND) else prevHandler
-            this.pipeline().replace("encoder", "encoder", handler)
+            handler?.let { this.pipeline().replace("encoder", "encoder", handler) }
         }
 
         if (this in decoder.keys) {
-            val prevHandler = decoder.remove(this)
+            val prevHandler = decoder[this]
             val handler = if (prevHandler is PacketEncoder) PacketEncoder(PacketFlow.SERVERBOUND) else prevHandler
-            this.pipeline().replace("decoder", "decoder", handler)
+            handler?.let { this.pipeline().replace("decoder", "decoder", handler) }
         }
     }
 
@@ -200,24 +202,23 @@ object EmojyNMSHandler {
         }
 
         override fun writeNbt(compound: CompoundTag?): FriendlyByteBuf {
-            compound?.let {
-                transform(it, Function { string: String ->
+            return super.writeNbt(compound?.apply {
+                transform(this, Function { string: String ->
                     try {
                         val element = JsonParser.parseString(string)
                         if (element.isJsonObject)
-                            return@Function element.asJsonObject.returnFormattedString()
+                            return@Function element.asJsonObject.returnFormattedString(false)
                     } catch (ignored: Exception) {
                     }
                     string
                 })
-            }
-
-            return super.writeNbt(compound)
+            })
         }
 
-        private fun JsonObject.returnFormattedString(): String {
+        private fun JsonObject.returnFormattedString(insert: Boolean = true): String {
+            val gson = GsonComponentSerializer.gson()
             return if (this.has("args") || this.has("text") || this.has("extra") || this.has("translate")) {
-                gson.serialize(gson.deserialize(this.toString()).replaceEmoteIds(player, true))
+                gson.serialize(gson.deserialize(this.asString).replaceEmoteIds(player, insert))
             } else this.toString()
         }
 
@@ -252,4 +253,6 @@ object EmojyNMSHandler {
         }
 
     }
+
+    override val supported get() = true
 }

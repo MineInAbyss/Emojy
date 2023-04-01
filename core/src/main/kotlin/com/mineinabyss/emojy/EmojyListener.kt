@@ -1,5 +1,6 @@
 package com.mineinabyss.emojy
 
+import com.mineinabyss.emojy.nms.EmojyNMSHandlers
 import com.mineinabyss.idofront.messaging.*
 import com.mineinabyss.idofront.textcomponents.serialize
 import io.papermc.paper.event.player.AsyncChatCommandDecorateEvent
@@ -12,13 +13,19 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
+import org.bukkit.event.player.PlayerQuitEvent
 
 @Suppress("UnstableApiUsage")
 class EmojyListener : Listener {
 
     @EventHandler
     fun PlayerJoinEvent.injectPlayer() {
-        EmojyNMSHandler.inject(player)
+        EmojyNMSHandlers.getHandler()?.inject(player)
+    }
+
+    @EventHandler
+    fun PlayerQuitEvent.uninjectPlayer() {
+        EmojyNMSHandlers.getHandler()?.uninject(player)
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -29,17 +36,17 @@ class EmojyListener : Listener {
     // Replace with result not original message to avoid borking other chat formatting
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun AsyncChatDecorateEvent.onPlayerChat() {
-        if (isPreview)
-            result(result().replaceEmoteIds(player()))
+        result(result().replaceEmoteIds(player()))
     }
 }
 
 //TODO Tags like rainbow and gradient, which split the text into multiple children, will break replacement below
 fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): Component {
     var msg = this
+    val serialized = msg.serialize()
 
-    if (emojyConfig.emotes.none { ":${it.id}" in msg.serialize() } &&
-        emojyConfig.gifs.none { ":${it.id}" in msg.serialize() }) return msg
+    if (emojyConfig.emotes.none { ":${it.id}" in serialized } &&
+        emojyConfig.gifs.none { ":${it.id}" in serialized }) return msg
 
     emojyConfig.emotes.forEach { emote ->
         if (emote.checkPermission(player)) {
