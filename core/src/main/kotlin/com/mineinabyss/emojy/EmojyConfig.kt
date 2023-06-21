@@ -22,7 +22,6 @@ import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import java.io.File
 import javax.imageio.ImageIO
-import javax.imageio.ImageReader
 
 val emojyConfig get() = emojy.config.data
 const val PRIVATE_USE_FIRST = 57344
@@ -150,10 +149,9 @@ data class EmojyConfig(
 
         @JvmName("getFrameCount1")
         fun getFrameCount(): Int {
-            val reader: ImageReader = ImageIO.getImageReadersByFormatName("gif").next() as ImageReader
-            val imageInput = ImageIO.createImageInputStream(gifFolder.resolve("${id}.gif"))
+            val reader = ImageIO.getImageReadersByFormatName("gif").next()
+            reader.input = ImageIO.createImageInputStream(gifFolder.resolve("${id}.gif"))
 
-            reader.setInput(imageInput, false)
             return try {
                 if (frameCount <= 0) reader.getNumImages(true) else frameCount
             } catch (e: IllegalStateException) {

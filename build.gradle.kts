@@ -85,4 +85,5 @@ bukkit {
     apiVersion = "1.19"
     authors = listOf("boy0000")
     commands.register("emojy")
+    description = "Custom emote plugin"
 }
