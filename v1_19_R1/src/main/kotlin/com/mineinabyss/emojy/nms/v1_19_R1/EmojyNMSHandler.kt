@@ -1,6 +1,7 @@
-package com.mineinabyss.emojy.nms.v1_19_R1
+package com.mineinabyss.emojy.nms.v1_20_R1
 
 import com.github.shynixn.mccoroutine.bukkit.launch
+import com.github.shynixn.mccoroutine.bukkit.minecraftDispatcher
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.mineinabyss.emojy.emojy
@@ -15,7 +16,10 @@ import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
 import net.minecraft.nbt.StringTag
-import net.minecraft.network.*
+import net.minecraft.network.Connection
+import net.minecraft.network.FriendlyByteBuf
+import net.minecraft.network.PacketEncoder
+import net.minecraft.network.SkipPacketException
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.server.MinecraftServer
@@ -32,8 +36,8 @@ class EmojyNMSHandler : IEmojyNMSHandler {
     private val decoder = Collections.synchronizedMap(WeakHashMap<Channel, ChannelHandler>())
 
     fun EmojyNMSHandler() {
-        val networkManagers: List<ConnectionProtocol> =
-            ServerConnectionListener::class.java.getDeclaredField("g").apply { this.isAccessible = true; }.get(MinecraftServer.getServer().connection) as List<ConnectionProtocol>
+        val connections: List<Connection> = MinecraftServer.getServer().connection?.connections ?: emptyList()
+        // Have to set it accessible because unlike connections it is private
         val channelFutures = ServerConnectionListener::class.java.getDeclaredField("f").apply { this.isAccessible = true; }.get(MinecraftServer.getServer().connection) as List<ChannelFuture>
 
 
@@ -42,7 +46,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
             override fun initChannel(channel: Channel) {
                 try {
                     // This can take a while, so we need to stop the main thread from interfering
-                    synchronized(networkManagers) {
+                    synchronized(connections) {
                         // Stop injecting channels
                         channel.eventLoop().submit { channel.inject() }
                     }
@@ -59,15 +63,13 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
                 channel.pipeline().forEach {
                     if (it.value.javaClass.name == "com.viaversion.viaversion.bukkit.handlers.BukkitChannelInitializer") {
-                        handler = it.value
+                        handler = it.value as ChannelHandler
                     }
                 }
                 handler?.let {
-                    val initChannel =
-                        ChannelInitializer::class.java.getDeclaredMethod("initChannel", Channel::class.java)
-                            .apply { isAccessible = true }
-                    val original = handler!!.javaClass.getDeclaredField("original").apply { this.isAccessible = true }
-                    val initializer = original.get(handler) as ChannelInitializer<*>
+                    val initChannel = ChannelInitializer::class.java.getDeclaredMethod("initChannel", Channel::class.java).apply { isAccessible = true }
+                    val original = it.javaClass.getDeclaredField("original").apply { this.isAccessible = true }
+                    val initializer = original.get(it) as ChannelInitializer<*>
                     val miniInit = object : ChannelInitializer<Channel>() {
                         override fun initChannel(channel: Channel) {
                             initChannel.invoke(initializer, channel)
@@ -89,7 +91,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         try {
             bind(channelFutures, serverChannelHandler)
         } catch (e: IllegalArgumentException) {
-            emojy.plugin.launch {
+            emojy.plugin.launch(emojy.plugin.minecraftDispatcher) {
                 bind(channelFutures, serverChannelHandler)
             }
         }
@@ -100,7 +102,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
             future.channel().pipeline().addFirst(serverChannelHandler)
         }
 
-        Bukkit.getOnlinePlayers().forEach { inject(it) }
+        Bukkit.getOnlinePlayers().forEach(::inject)
     }
 
     private fun Channel.inject() {
@@ -113,7 +115,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
     }
 
     override fun inject(player: Player) {
-        val channel = (player as CraftPlayer).handle.networkManager.channel ?: return
+        val channel = (player as CraftPlayer).handle.connection.connection.channel ?: return
         channel.inject()
         channel.pipeline().forEach {
             when (val handler = it.value) {
@@ -124,20 +126,20 @@ class EmojyNMSHandler : IEmojyNMSHandler {
     }
 
     override fun uninject(player: Player) {
-        (player as CraftPlayer).handle.networkManager.channel.uninject()
+        (player as CraftPlayer).handle.connection.connection.channel.uninject()
     }
 
     private fun Channel.uninject() {
         if (this in encoder.keys) {
             val prevHandler = encoder[this]
             val handler = if (prevHandler is PacketEncoder) PacketEncoder(PacketFlow.CLIENTBOUND) else prevHandler
-            handler?.let { this.pipeline().replace("encoder", "encoder", handler) }
+            handler?.let { this.pipeline().replace(prevHandler, "encoder", handler) }
         }
 
         if (this in decoder.keys) {
             val prevHandler = decoder[this]
             val handler = if (prevHandler is PacketEncoder) PacketEncoder(PacketFlow.SERVERBOUND) else prevHandler
-            handler?.let { this.pipeline().replace("decoder", "decoder", handler) }
+            handler?.let { this.pipeline().replace(prevHandler, "decoder", handler) }
         }
     }
 
@@ -218,7 +220,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         private fun JsonObject.returnFormattedString(insert: Boolean = true): String {
             val gson = GsonComponentSerializer.gson()
             return if (this.has("args") || this.has("text") || this.has("extra") || this.has("translate")) {
-                gson.serialize(gson.deserialize(this.asString).replaceEmoteIds(player, insert))
+                gson.serialize(gson.deserialize(this.toString()).replaceEmoteIds(player, insert))
             } else this.toString()
         }
 
@@ -251,6 +253,8 @@ class EmojyNMSHandler : IEmojyNMSHandler {
                 this.miniMsg().replaceEmoteIds(player, false)
             }
         }
+
+
 
     }
 

@@ -6,10 +6,9 @@ object EmojyNMSHandlers {
     private var handler: IEmojyNMSHandler? = null
 
     fun getHandler(): IEmojyNMSHandler? {
-        if (handler != null) {
-            return handler
-        } else {
-            setup()
+        when {
+            handler != null -> return handler
+            else -> setup()
         }
         return handler
     }
