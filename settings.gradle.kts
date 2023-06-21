@@ -1,23 +1,19 @@
 rootProject.name = "emojy"
 
 pluginManagement {
-    val kotlinVersion: String by settings
     val idofrontVersion: String by settings
 
     repositories {
         gradlePluginPortal()
+        mavenCentral()
+        google()
         maven("https://repo.mineinabyss.com/releases")
         maven("https://repo.papermc.io/repository/maven-public/")
-        google()
-    }
-
-    plugins {
-        kotlin("jvm") version kotlinVersion
-        kotlin("plugin.serialization") version kotlinVersion
     }
 
     resolutionStrategy.eachPlugin {
-        if (requested.id.id.startsWith("com.mineinabyss.conventions")) useVersion(idofrontVersion)
+        if (requested.id.id.startsWith("com.mineinabyss.conventions"))
+            useVersion(idofrontVersion)
     }
 }
 
@@ -34,4 +30,4 @@ dependencyResolutionManagement {
     }
 }
 
-include("core","v1_19_R1", "v1_19_R2", "v1_19_R3")
+include("core", "v1_19_R1", "v1_19_R2", "v1_19_R3", "v1_20_R1")

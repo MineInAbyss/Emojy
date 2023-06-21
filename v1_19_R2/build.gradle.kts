@@ -1,10 +1,9 @@
 plugins {
-    id("com.mineinabyss.conventions.kotlin")
+    id("com.mineinabyss.conventions.kotlin.jvm")
     id("com.mineinabyss.conventions.papermc")
-    id("com.mineinabyss.conventions.nms")
     id("com.mineinabyss.conventions.publication")
     id("com.mineinabyss.conventions.autoversion")
-    kotlin("plugin.serialization")
+    id("io.papermc.paperweight.userdev") version "1.5.5"
 }
 
 repositories {
@@ -20,13 +19,11 @@ dependencies {
     compileOnly(libs.kotlinx.serialization.kaml)
     compileOnly(libs.kotlinx.coroutines)
     compileOnly(libs.minecraft.mccoroutine)
-    compileOnly(libs.koin.core)
 
     // Shaded
     implementation(libs.bundles.idofront.core)
     implementation(project(":core"))
-    paperDevBundle("1.19.3-R0.1-SNAPSHOT") //NMS
-    //implementation(libs.idofront.nms)
+    paperweight.paperDevBundle("1.19.3-R0.1-SNAPSHOT") //NMS
 }
 
 tasks {

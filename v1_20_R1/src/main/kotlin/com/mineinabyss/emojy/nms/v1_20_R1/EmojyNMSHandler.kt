@@ -1,4 +1,4 @@
-package com.mineinabyss.emojy.nms.v1_19_R2
+package com.mineinabyss.emojy.nms.v1_20_R1
 
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.google.gson.JsonObject
@@ -21,7 +21,7 @@ import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.network.ServerConnectionListener
 import org.bukkit.Bukkit
-import org.bukkit.craftbukkit.v1_19_R2.entity.CraftPlayer
+import org.bukkit.craftbukkit.v1_20_R1.entity.CraftPlayer
 import org.bukkit.entity.Player
 import java.io.IOException
 import java.util.*
@@ -149,7 +149,6 @@ class EmojyNMSHandler : IEmojyNMSHandler {
             val enumProt = ctx.channel()?.attr(Connection.ATTRIBUTE_PROTOCOL)?.get()
                 ?: throw RuntimeException("ConnectionProtocol unknown: $out")
             val int = msg.let { enumProt.getPacketId(this.protocolDirection, it) }
-                ?: throw IOException("Can't serialize unregistered packet")
             val packetDataSerializer: FriendlyByteBuf = CustomDataSerializer(player, out)
             packetDataSerializer.writeVarInt(int)
 

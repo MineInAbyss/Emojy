@@ -1,9 +1,9 @@
 plugins {
-    id("com.mineinabyss.conventions.kotlin")
+    id("com.mineinabyss.conventions.kotlin.jvm")
     id("com.mineinabyss.conventions.papermc")
     id("com.mineinabyss.conventions.publication")
     id("com.mineinabyss.conventions.autoversion")
-    kotlin("plugin.serialization")
+    alias(libs.plugins.kotlinx.serialization)
 }
 
 repositories {
@@ -19,7 +19,6 @@ dependencies {
     compileOnly(libs.kotlinx.serialization.kaml)
     compileOnly(libs.kotlinx.coroutines)
     compileOnly(libs.minecraft.mccoroutine)
-    compileOnly(libs.koin.core)
 
     // Shaded
     implementation(libs.bundles.idofront.core)

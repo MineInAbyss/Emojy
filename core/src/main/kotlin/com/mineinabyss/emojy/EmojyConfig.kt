@@ -122,7 +122,7 @@ data class EmojyConfig(
             val component = mm.stripTags(
                 bitmap.font(font).color(NamedTextColor.WHITE).insertion(":${id}:")
                     .hoverEvent(hoverEvent(HoverEvent.Action.SHOW_TEXT,
-                        ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this emote").miniMsg())
+                        ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this emote").miniMsg())
                     ).serialize()
             ).miniMsg()
 
@@ -190,7 +190,7 @@ data class EmojyConfig(
             val component = mm.stripTags(getUnicode().toString().miniMsg()
                 .font(font).color(NamedTextColor.WHITE).insertion(":${id}:").decorate(TextDecoration.OBFUSCATED)
                 .hoverEvent(hoverEvent(HoverEvent.Action.SHOW_TEXT,
-                    ("<red>Type <i>:$id:</i> or <i>Shift + Click</i> this to use this gif").miniMsg())
+                    ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this gif").miniMsg())
                 ).serialize()
             ).miniMsg()
 

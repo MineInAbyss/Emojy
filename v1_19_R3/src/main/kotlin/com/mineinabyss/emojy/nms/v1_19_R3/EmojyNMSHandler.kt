@@ -1,4 +1,4 @@
-package com.mineinabyss.emojy.nms.v1_19_R2
+package com.mineinabyss.emojy.nms.v1_19_R3
 
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.google.gson.JsonObject
@@ -6,7 +6,6 @@ import com.google.gson.JsonParser
 import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
 import com.mineinabyss.emojy.replaceEmoteIds
-import com.mineinabyss.idofront.messaging.logVal
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import io.netty.buffer.ByteBuf
 import io.netty.channel.*
@@ -17,7 +16,6 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
 import net.minecraft.nbt.StringTag
 import net.minecraft.network.*
-import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.server.MinecraftServer
@@ -151,7 +149,6 @@ class EmojyNMSHandler : IEmojyNMSHandler {
             val enumProt = ctx.channel()?.attr(Connection.ATTRIBUTE_PROTOCOL)?.get()
                 ?: throw RuntimeException("ConnectionProtocol unknown: $out")
             val int = msg.let { enumProt.getPacketId(this.protocolDirection, it) }
-                ?: throw IOException("Can't serialize unregistered packet")
             val packetDataSerializer: FriendlyByteBuf = CustomDataSerializer(player, out)
             packetDataSerializer.writeVarInt(int)
 
@@ -249,9 +246,8 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
 
         override fun readUtf(maxLength: Int): String {
-            val component = super.readUtf(maxLength)
             return super.readUtf(maxLength).apply {
-                component.miniMsg().replaceEmoteIds(player, false)
+                this.miniMsg().replaceEmoteIds(player, false)
             }
         }
 
