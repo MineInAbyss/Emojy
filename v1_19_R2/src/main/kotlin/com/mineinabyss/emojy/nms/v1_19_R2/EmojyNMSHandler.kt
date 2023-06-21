@@ -89,7 +89,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         try {
             bind(channelFutures, serverChannelHandler)
         } catch (e: IllegalArgumentException) {
-            emojy.launch {
+            emojy.plugin.launch {
                 bind(channelFutures, serverChannelHandler)
             }
         }

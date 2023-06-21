@@ -3,7 +3,6 @@ package com.mineinabyss.emojy
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.mineinabyss.emojy.EmojyGenerator.gifFolder
-import com.mineinabyss.idofront.config.config
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
@@ -23,11 +22,10 @@ import org.bukkit.entity.Player
 import java.io.File
 import javax.imageio.ImageIO
 
-val emojyConfig get() = emojy.config.data
 const val PRIVATE_USE_FIRST = 57344
 
 // TODO Temporary way of getting default values, should be replaced with a better system
-private val configFile = File(emojy.dataFolder, "config.yml")
+private val configFile = File(emojy.plugin.dataFolder, "config.yml")
 private val configuration = YamlConfiguration.loadConfiguration(configFile)
 private val defaultNamespace: String = configuration.getString("defaultNamespace", "emotes").toString()
 private val defaultFolder: String = configuration.getString("defaultFolder", "emotes").toString()
@@ -74,7 +72,7 @@ data class EmojyConfig(
                     for (j in 0 until bitmapWidth) {
                         val lastUnicode = lastUsedUnicode[_font] ?: 0
                         val row = ((getOrNull(i) ?: "") + Character.toChars(
-                            PRIVATE_USE_FIRST + lastUnicode + emojyConfig.emotes
+                            PRIVATE_USE_FIRST + lastUnicode + emojy.config.emotes
                                 .filter { it._font == _font }.map { it }.indexOf(this@Emote)
                         ).firstOrNull().toString())
                         if (getOrNull(i) == null)
@@ -106,7 +104,7 @@ data class EmojyConfig(
         }
 
         fun checkPermission(player: Player?) =
-            !emojyConfig.requirePermissions || player == null || player.hasPermission(permission) || player.hasPermission(fontPermission)
+            !emojy.config.requirePermissions || player == null || player.hasPermission(permission) || player.hasPermission(fontPermission)
 
         fun getFormattedUnicode(splitter: String = "", insert: Boolean = true): Component {
             val stripResolver = mutableSetOf<TagResolver>()
@@ -125,7 +123,7 @@ data class EmojyConfig(
                     ).serialize()
             ).miniMsg()
 
-            return if (splitter.isEmpty() || emojyConfig.emotes.indexOf(this) == emojyConfig.emotes.size - 1) component
+            return if (splitter.isEmpty() || emojy.config.emotes.indexOf(this) == emojy.config.emotes.size - 1) component
             else component.append("<font:default><white>$splitter</white></font>".miniMsg())
         }
     }
@@ -177,7 +175,7 @@ data class EmojyConfig(
         }
 
         fun checkPermission(player: Player?) =
-            !emojyConfig.requirePermissions || player == null || player.hasPermission(permission)
+            !emojy.config.requirePermissions || player == null || player.hasPermission(permission)
 
         fun getFormattedUnicode(splitter: String = "", insert: Boolean = true): Component {
             val stripResolver = mutableSetOf<TagResolver>()
@@ -192,15 +190,8 @@ data class EmojyConfig(
                 ).serialize()
             ).miniMsg()
 
-            return if (emojyConfig.gifs.indexOf(this) == emojyConfig.gifs.size - 1) component
+            return if (emojy.config.gifs.indexOf(this) == emojy.config.gifs.size - 1) component
             else component.append("<font:default><white>$splitter</white></font>".miniMsg())
         }
-    }
-
-    fun reload() {
-        emojy.config = config("config") { emojy.fromPluginPath(loadDefault = true) }
-        EmojyGenerator.reloadFontFiles()
-        if (emojyConfig.generateResourcePack)
-            EmojyGenerator.generateResourcePack()
     }
 }

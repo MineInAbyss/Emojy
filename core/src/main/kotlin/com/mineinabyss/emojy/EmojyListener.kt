@@ -1,11 +1,9 @@
 package com.mineinabyss.emojy
 
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers
-import com.mineinabyss.idofront.messaging.*
 import com.mineinabyss.idofront.textcomponents.serialize
 import io.papermc.paper.event.player.AsyncChatCommandDecorateEvent
 import io.papermc.paper.event.player.AsyncChatDecorateEvent
-import kotlinx.coroutines.*
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
 import org.bukkit.entity.Player
@@ -45,10 +43,10 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
     var msg = this
     val serialized = msg.serialize()
 
-    if (emojyConfig.emotes.none { ":${it.id}" in serialized } &&
-        emojyConfig.gifs.none { ":${it.id}" in serialized }) return msg
+    if (emojy.config.emotes.none { ":${it.id}" in serialized } &&
+        emojy.config.gifs.none { ":${it.id}" in serialized }) return msg
 
-    emojyConfig.emotes.forEach { emote ->
+    emojy.config.emotes.forEach { emote ->
         if (emote.checkPermission(player)) {
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
@@ -59,7 +57,7 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
         }
     }
 
-    emojyConfig.gifs.forEach { gif ->
+    emojy.config.gifs.forEach { gif ->
         if (gif.checkPermission(player)) {
             msg = msg.replaceText(
                 TextReplacementConfig.builder()

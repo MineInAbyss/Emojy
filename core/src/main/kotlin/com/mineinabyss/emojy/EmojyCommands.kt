@@ -11,22 +11,22 @@ import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
 
 class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
-    override val commands = commands(emojy) {
+    override val commands = commands(emojy.plugin) {
         "emojy" {
             "list" {
                 action {
-                    val emotes = emojyConfig.emotes.filter { it.checkPermission(sender as? Player) }.toSet()
-                    val gifs = emojyConfig.gifs.filter { it.checkPermission(sender as? Player) }.toSet()
+                    val emotes = emojy.config.emotes.filter { it.checkPermission(sender as? Player) }.toSet()
+                    val gifs = emojy.config .gifs.filter { it.checkPermission(sender as? Player) }.toSet()
 
                     val emoteList = if (sender is Player) emotes.joinToString("") { emote ->
                         emote.getFormattedUnicode(" ", true).serialize()
-                    }.miniMsg() else emojyConfig.emotes.joinToString(", ") { it.id }.miniMsg()
+                    }.miniMsg() else emojy.config.emotes.joinToString(", ") { it.id }.miniMsg()
 
                     val gifList = if (sender is Player) gifs.joinToString("") { gif ->
                         gif.getFormattedUnicode(" ").serialize()
-                    }.miniMsg() else emojyConfig.gifs.joinToString(", ") { it.id }.miniMsg()
+                    }.miniMsg() else emojy.config.gifs.joinToString(", ") { it.id }.miniMsg()
 
-                    if (emojyConfig.listType == ListType.BOOK)
+                    if (emojy.config.listType == ListType.BOOK)
                         sender.openBook(
                             Book.builder().addPage(
                                 "<green>List of emojis:<newline>".miniMsg().append(emoteList)
@@ -43,8 +43,9 @@ class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
             }
             "reload" {
                 action {
-                    emojyConfig.reload()
-                    sender.success("Config reloaded!")
+                    emojy.plugin.createEmojyContext()
+                    emojy.plugin.generateFiles()
+                    sender.success("Emojy has been reloaded!")
                 }
             }
         }

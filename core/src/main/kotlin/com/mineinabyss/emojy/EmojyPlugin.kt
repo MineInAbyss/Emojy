@@ -1,16 +1,14 @@
 package com.mineinabyss.emojy
 
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers
-import com.mineinabyss.idofront.config.IdofrontConfig
 import com.mineinabyss.idofront.config.config
+import com.mineinabyss.idofront.di.DI
 import com.mineinabyss.idofront.platforms.Platforms
 import com.mineinabyss.idofront.plugin.listeners
 import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 
-val emojy: EmojyPlugin by lazy { Bukkit.getPluginManager().getPlugin("Emojy") as EmojyPlugin }
 class EmojyPlugin : JavaPlugin() {
-    lateinit var config: IdofrontConfig<EmojyConfig>
     override fun onLoad() {
         Platforms.load(this, "mineinabyss")
     }
@@ -25,11 +23,8 @@ class EmojyPlugin : JavaPlugin() {
             return
         }
 
-        config = config("config") { fromPluginPath(loadDefault = true) }
-
-        EmojyGenerator.generateFontFiles()
-        if (emojyConfig.generateResourcePack)
-            EmojyGenerator.generateResourcePack()
+        createEmojyContext()
+        generateFiles()
 
         listeners(EmojyListener())
 
@@ -45,5 +40,20 @@ class EmojyPlugin : JavaPlugin() {
         Bukkit.getOnlinePlayers().forEach {
             EmojyNMSHandlers.getHandler()?.uninject(it)
         }
+    }
+    
+    fun generateFiles() {
+        EmojyGenerator.generateFontFiles()
+        if (emojy.config.generateResourcePack)
+            EmojyGenerator.generateResourcePack()
+    }
+    
+    fun createEmojyContext() {
+        DI.remove<EmojyContext>()
+        val emojyContext = object : EmojyContext {
+            override val plugin: EmojyPlugin = this@EmojyPlugin
+            override val config: EmojyConfig by config("config") { fromPluginPath(loadDefault = true) }
+        }
+        DI.add<EmojyContext>(emojyContext)
     }
 }
