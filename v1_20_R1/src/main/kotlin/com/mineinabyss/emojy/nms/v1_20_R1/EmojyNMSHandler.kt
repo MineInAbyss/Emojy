@@ -37,6 +37,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
     private val encoder = Collections.synchronizedMap(WeakHashMap<Channel, ChannelHandler>())
     private val decoder = Collections.synchronizedMap(WeakHashMap<Channel, ChannelHandler>())
 
+    @Suppress("unused", "UNCHECKED_CAST", "FunctionName")
     fun EmojyNMSHandler() {
         val connections: List<Connection> = MinecraftServer.getServer().connection?.connections ?: emptyList()
         // Have to set it accessible because unlike connections it is private

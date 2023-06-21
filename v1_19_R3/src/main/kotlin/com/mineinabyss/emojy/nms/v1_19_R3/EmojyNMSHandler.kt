@@ -1,4 +1,4 @@
-package com.mineinabyss.emojy.nms.v1_20_R1
+package com.mineinabyss.emojy.nms.v1_19_R3
 
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.minecraftDispatcher
@@ -35,6 +35,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
     private val encoder = Collections.synchronizedMap(WeakHashMap<Channel, ChannelHandler>())
     private val decoder = Collections.synchronizedMap(WeakHashMap<Channel, ChannelHandler>())
 
+    @Suppress("unused", "UNCHECKED_CAST", "FunctionName")
     fun EmojyNMSHandler() {
         val connections: List<Connection> = MinecraftServer.getServer().connection?.connections ?: emptyList()
         // Have to set it accessible because unlike connections it is private
