@@ -13,6 +13,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.event.HoverEvent.hoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
@@ -136,8 +137,13 @@ data class EmojyConfig(
         val framePath: String = "${defaultNamespace}:${defaultFolder}/$id/",
         val ascent: Int = 8,
         val height: Int = 8,
+        val type: GifType = GifType.OBFUSCATION
 
         ) {
+        enum class GifType {
+            SHADER, OBFUSCATION
+        }
+
         val font get() = Key.key(namespace, id)
         val namespace get() = framePath.substringBefore(":")
         val image get() = framePath.substringAfterLast("/")
@@ -184,7 +190,12 @@ data class EmojyConfig(
             val mm = MiniMessage.builder().tags(tagResolver).build()
 
             val component = mm.stripTags(getUnicode().toString().miniMsg()
-                .font(font).color(NamedTextColor.WHITE).insertion(":${id}:").decorate(TextDecoration.OBFUSCATED)
+                .font(font).color(NamedTextColor.WHITE).insertion(":${id}:").apply {
+                    when (type) {
+                        GifType.OBFUSCATION -> decorate(TextDecoration.OBFUSCATED)
+                        GifType.SHADER -> color(TextColor.fromHexString("#FEFEFE"))
+                    }
+                }
                 .hoverEvent(hoverEvent(HoverEvent.Action.SHOW_TEXT,
                     ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this gif").miniMsg())
                 ).serialize()

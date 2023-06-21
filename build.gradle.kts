@@ -32,7 +32,7 @@ dependencies {
 
     // Shaded
     implementation(libs.bundles.idofront.core)
-    paperweight.paperDevBundle("1.19.2-R0.1-SNAPSHOT") //NMS
+    paperweight.paperDevBundle("1.20.1-R0.1-SNAPSHOT") //NMS
     implementation(project(path = ":core"))
     implementation(project(path = ":v1_19_R1", configuration = "reobf"))
     implementation(project(path = ":v1_19_R2", configuration = "reobf"))
