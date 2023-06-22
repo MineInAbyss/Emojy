@@ -14,10 +14,6 @@ allprojects {
 
     version = rootProject.version
 
-    repositories {
-        maven("https://repo.dmulloy2.net/nexus/repository/public/")//ProtocolLib
-    }
-
     dependencies {
         compileOnly(kotlin("stdlib-jdk8"))
     }

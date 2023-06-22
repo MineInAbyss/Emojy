@@ -151,7 +151,7 @@ data class EmojyConfig(
         fun getUnicodes(): String {
             return when (type) {
                 //TODO Fix spacing here
-                GifType.SHADER -> "<#FEFEFE>" + (1..getFrameCount()).joinToString("<font:space>\uEFBE</font>") { "<font:$font>${getUnicode(it)}</font>" } + "</#FEFEFE>"
+                GifType.SHADER -> "<#FEFEFE><font:$font>" + (1..getFrameCount()).joinToString("\uEFBE") { getUnicode(it).toString() } + "</font></#FEFEFE>"
                 GifType.OBFUSCATION -> getUnicode(1).toString().miniMsg().decorate(TextDecoration.OBFUSCATED).font(font).color(NamedTextColor.WHITE).serialize()
             }
         }
