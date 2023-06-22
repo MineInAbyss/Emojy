@@ -13,7 +13,6 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.event.HoverEvent.hoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
@@ -138,8 +137,7 @@ data class EmojyConfig(
         val ascent: Int = 8,
         val height: Int = 8,
         val type: GifType = GifType.OBFUSCATION
-
-        ) {
+    ) {
         enum class GifType {
             SHADER, OBFUSCATION
         }
@@ -149,7 +147,14 @@ data class EmojyConfig(
         val image get() = framePath.substringAfterLast("/")
         val imagePath get() = framePath.substringAfter(":")
         val permission get() = "emojy.gif.$id"
-        fun getUnicode(i: Int = 1): Char = Character.toChars(PRIVATE_USE_FIRST + i).first()
+        fun getUnicode(i: Int): Char = Character.toChars(PRIVATE_USE_FIRST + i).first()
+        fun getUnicodes(): String {
+            return when (type) {
+                //TODO Fix spacing here
+                GifType.SHADER -> "<#FEFEFE>" + (1..getFrameCount()).joinToString("<font:space>\uEFBE</font>") { "<font:$font>${getUnicode(it)}</font>" } + "</#FEFEFE>"
+                GifType.OBFUSCATION -> getUnicode(1).toString().miniMsg().decorate(TextDecoration.OBFUSCATED).font(font).color(NamedTextColor.WHITE).serialize()
+            }
+        }
 
         @JvmName("getFrameCount1")
         fun getFrameCount(): Int {
@@ -177,6 +182,20 @@ data class EmojyConfig(
                 output.add("chars", chars)
                 jsonList.add(output)
             }
+
+            // Add a negative shift into the shader for ease of use
+            if (type == GifType.SHADER) {
+                val output = JsonObject()
+                val advances = JsonArray()
+                output.addProperty("type", "space")
+                //TODO Fix Spaces.of() and use that here
+                advances.add(JsonObject().apply {
+                    addProperty("\uEFBE", -9)
+                })
+                output.add("advances", advances)
+                jsonList.add(output)
+            }
+
             return jsonList
         }
 
@@ -189,20 +208,14 @@ data class EmojyConfig(
             val tagResolver = TagResolver.builder().resolvers(stripResolver).build()
             val mm = MiniMessage.builder().tags(tagResolver).build()
 
-            val component = mm.stripTags(getUnicode().toString().miniMsg()
-                .font(font).color(NamedTextColor.WHITE).insertion(":${id}:").apply {
-                    when (type) {
-                        GifType.OBFUSCATION -> decorate(TextDecoration.OBFUSCATED)
-                        GifType.SHADER -> color(TextColor.fromHexString("#FEFEFE"))
-                    }
-                }
+            val component = mm.stripTags(getUnicodes().miniMsg().insertion(":${id}:")
                 .hoverEvent(hoverEvent(HoverEvent.Action.SHOW_TEXT,
                     ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this gif").miniMsg())
                 ).serialize()
             ).miniMsg()
 
             return if (emojy.config.gifs.indexOf(this) == emojy.config.gifs.size - 1) component
-            else component.append("<font:default><white>$splitter</white></font>".miniMsg())
+            else component.append("<font:default><white>$splitter</white></font:default>".miniMsg())
         }
     }
 }

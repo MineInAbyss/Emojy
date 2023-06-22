@@ -39,14 +39,12 @@ class EmojyListener : Listener {
 }
 
 //TODO Tags like rainbow and gradient, which split the text into multiple children, will break replacement below
+// Find out why this is called 3 times
 fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): Component {
     var msg = this
     val serialized = msg.serialize()
 
-    if (emojy.config.emotes.none { ":${it.id}" in serialized } &&
-        emojy.config.gifs.none { ":${it.id}" in serialized }) return msg
-
-    emojy.config.emotes.forEach { emote ->
+    emojy.config.emotes.firstOrNull { ":${it.id}:" in serialized }?.let { emote ->
         if (emote.checkPermission(player)) {
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
@@ -57,7 +55,7 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
         }
     }
 
-    emojy.config.gifs.forEach { gif ->
+    emojy.config.gifs.firstOrNull { ":${it.id}:" in serialized }?.let { gif ->
         if (gif.checkPermission(player)) {
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
@@ -67,5 +65,6 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
             )
         }
     }
+
     return msg
 }

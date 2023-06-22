@@ -15,22 +15,22 @@ object EmojyGenerator {
         File(emojy.plugin.dataFolder, "/assets").deleteRecursively()
         emojy.config.emotes.forEach { emote ->
             val assetDir = File(emojy.plugin.dataFolder.path, "/assets").run { mkdirs(); this }
-            try {
+            runCatching {
                 val font = File(emojy.plugin.dataFolder, "/fonts/${emote.font.value()}.json")
                 font.copyTo(assetDir.resolve(emote.namespace + "/font/${emote.font.value()}.json"), true)
-            } catch (e: Exception) {
-                if (emojy.config.debug) when (e) {
+            }.getOrElse {
+                if (emojy.config.debug) when (it) {
                     is NoSuchFileException, is NullPointerException ->
                         logWarn("Could not find font ${emote.font.value()} for emote ${emote.id} in plugins/emojy/fonts")
                 }
             }
 
-            try {
+            runCatching {
                 val texture =
                     File(emojy.plugin.dataFolder.path, "/textures/${emote.image}").run { parentFile.mkdirs(); this }
                 texture.copyTo(assetDir.resolve(emote.namespace + "/textures/${emote.imagePath}"), true)
-            } catch (e: Exception) {
-                if (emojy.config.debug) when (e) {
+            }.getOrElse {
+                if (emojy.config.debug) when (it) {
                     is NoSuchFileException, is NullPointerException -> {
                         logError("Could not find texture ${emote.image} for emote ${emote.id} in plugins/emojy/textures")
                         logWarn("Will not be copied to final resourcepack folder")
@@ -42,15 +42,16 @@ object EmojyGenerator {
 
         emojy.config.gifs.forEach { gif ->
             val assetDir = File(emojy.plugin.dataFolder.path, "/assets")
-            try {
+            runCatching {
                 val font = File(emojy.plugin.dataFolder, "/fonts/gifs/${gif.id}.json").run { parentFile.mkdirs(); this }
                 font.copyTo(assetDir.resolve(gif.namespace + "/font/${gif.id}.json"), true)
-            } catch (e: Exception) {
-                if (emojy.config.debug) when (e) {
+            }.getOrElse {
+                if (emojy.config.debug) when (it) {
                     is NoSuchFileException, is NullPointerException ->
                         logWarn("Could not find font ${gif.id} for emote ${gif.id} in plugins/emojy/fonts")
                 }
             }
+
             //TODO Copy all the split images into resourcepack
             gif.generateSplitGif()
         }
@@ -79,6 +80,7 @@ object EmojyGenerator {
                     ?: fontFiles.putIfAbsent(gif.id, JsonArray().apply { add(json) })
             }
         }
+
         fontFiles.forEach { (font, array) ->
             val output = JsonObject()
             val fontFile = File("${emojy.plugin.dataFolder.absolutePath}/fonts/gifs/${font}.json")
@@ -88,8 +90,6 @@ object EmojyGenerator {
         }
 
     }
-
-    fun reloadFontFiles() = generateFontFiles()
 
     val gifFolder = File(emojy.plugin.dataFolder,"gifs").run { mkdirs(); this }
     private fun EmojyConfig.Gif.generateSplitGif() {
