@@ -146,7 +146,7 @@ data class EmojyConfig(
         val font get() = Key.key(namespace, id)
         val namespace get() = framePath.substringBefore(":")
         val image get() = framePath.substringAfterLast("/")
-        val imagePath get() = framePath.substringAfter(":")
+        val imagePath get() = framePath.substringAfter(":") + id
         val permission get() = "emojy.gif.$id"
         fun getUnicode(i: Int): Char = Character.toChars(PRIVATE_USE_FIRST + i).first()
         fun getUnicodes(): String {

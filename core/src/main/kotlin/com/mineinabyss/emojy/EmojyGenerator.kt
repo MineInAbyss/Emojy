@@ -100,28 +100,19 @@ object EmojyGenerator {
             imageReader.input = ImageIO.createImageInputStream(gifFolder.resolve("${id}.gif"))
             gifFolder.resolve(id).deleteRecursively() // Clear files for regenerating
 
+            val frameCount = getFrameCount()
             var time = 0
             var totalTime = 0
 
-            for (frameIndex in 0 until getFrameCount()) {
+            for (frameIndex in 0 until frameCount)
                 totalTime += getDelay(imageReader, frameIndex)
-            }
 
-            for (frameIndex in 0 until getFrameCount()) {
+            for (frameIndex in 0 until frameCount) {
                 val frame = imageReader.read(frameIndex)
 
-                gifFolder.resolve("${id}/${frameIndex + 1}.png")
-                (frame.raster to intArrayOf(0,0,0,255)).let { (raster, color) ->
-                    raster.setPixel(0, 0, color)
-                    raster.setPixel(0, frame.height - 1, color)
-                    raster.setPixel(frame.width - 1, 0, color)
-                    raster.setPixel(frame.width - 1, frame.height - 1, color)
-                }
-
                 val delay = getDelay(imageReader, frameIndex)
-                val start = time
-                val end = delay.let { time += it; time }
-                val finalFrame = generateFrame(frame, start, end, totalTime)
+                val finalFrame = generateFrame(frame, time, delay.let { time += it; time }, totalTime)
+
                 val dest = gifFolder.resolve("${id}/${frameIndex + 1}.png").run { parentFile.mkdirs(); this }
                 val assetDest = File(emojy.plugin.dataFolder.path, "/assets/${namespace}/textures/${imagePath}/${frameIndex + 1}.png").run { parentFile.mkdirs(); this }
                 ImageIO.write(finalFrame, "png", dest)
