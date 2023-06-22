@@ -13,6 +13,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.event.HoverEvent.hoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
@@ -151,8 +152,10 @@ data class EmojyConfig(
         fun getUnicodes(): String {
             return when (type) {
                 //TODO Fix spacing here
-                GifType.SHADER -> "<#FEFEFE><font:$font>" + (1..getFrameCount()).joinToString("\uEFBE") { getUnicode(it).toString() } + "</font></#FEFEFE>"
-                GifType.OBFUSCATION -> getUnicode(1).toString().miniMsg().decorate(TextDecoration.OBFUSCATED).font(font).color(NamedTextColor.WHITE).serialize()
+                GifType.SHADER -> (1..getFrameCount()).joinToString(getUnicode(getFrameCount() + 1).toString()) { getUnicode(it).toString() }
+                    .miniMsg().font(font).color(TextColor.fromHexString("#FEFEFE")).serialize()
+                GifType.OBFUSCATION -> getUnicode(1).toString().miniMsg()
+                    .decorate(TextDecoration.OBFUSCATED).font(font).color(NamedTextColor.WHITE).serialize()
             }
         }
 
@@ -171,7 +174,8 @@ data class EmojyConfig(
 
         fun toJson(): MutableList<JsonObject> {
             val jsonList = mutableListOf<JsonObject>()
-            (1..getFrameCount()).forEach { i ->
+            val frameCount = getFrameCount()
+            (1..frameCount).forEach { i ->
                 val output = JsonObject()
                 val chars = JsonArray()
                 output.addProperty("type", "bitmap")
@@ -188,9 +192,8 @@ data class EmojyConfig(
                 val output = JsonObject()
                 val advances = JsonArray()
                 output.addProperty("type", "space")
-                //TODO Fix Spaces.of() and use that here
                 advances.add(JsonObject().apply {
-                    addProperty("\uEFBE", -9)
+                    addProperty(getUnicode(frameCount + 1).toString(), -9)
                 })
                 output.add("advances", advances)
                 jsonList.add(output)
