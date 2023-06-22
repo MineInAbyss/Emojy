@@ -4,7 +4,6 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.messaging.logWarn
-import java.awt.Image
 import java.awt.image.BufferedImage
 import java.io.*
 import javax.imageio.ImageIO
@@ -95,49 +94,42 @@ object EmojyGenerator {
 
     val gifFolder = File(emojy.plugin.dataFolder,"gifs").run { mkdirs(); this }
     private fun EmojyConfig.Gif.generateSplitGif() {
-        try {
-            val imageReader = ImageIO.getImageReadersByFormatName("gif").next()
-            imageReader.input = ImageIO.createImageInputStream(gifFolder.resolve("${id}.gif"))
-            gifFolder.resolve(id).deleteRecursively() // Clear files for regenerating
-
+        runCatching {
+            val stream = FileInputStream(gifFolder.resolve("${id}.gif"))
+            val decoder = GifDecoder()
             val frameCount = getFrameCount()
-            var time = 0
-            var totalTime = 0
+            decoder.read(stream)
+            stream.close()
 
-            for (frameIndex in 0 until frameCount)
-                totalTime += getDelay(imageReader, frameIndex)
+            var time = 0
+            val totalTime = (0 until frameCount).sumOf { decoder.getDelay(it) }
 
             for (frameIndex in 0 until frameCount) {
-                val frame = imageReader.read(frameIndex)
+                // Delay in 1/100th of a second
+                val delay = decoder.getDelay(frameIndex)
+                val start = time
+                time += delay
+                val end = time
 
-                val delay = getDelay(imageReader, frameIndex)
-                val finalFrame = generateFrame(frame, time, delay.let { time += it; time }, totalTime)
-
+                val frame = generateFrame(decoder.getFrame(frameIndex)!!, start, end, totalTime)
                 val dest = gifFolder.resolve("${id}/${frameIndex + 1}.png").run { parentFile.mkdirs(); this }
                 val assetDest = File(emojy.plugin.dataFolder.path, "/assets/${namespace}/textures/${imagePath}/${frameIndex + 1}.png").run { parentFile.mkdirs(); this }
-                ImageIO.write(finalFrame, "png", dest)
-                ImageIO.write(finalFrame, "png", assetDest)
+                ImageIO.write(frame, "png", dest)
+                ImageIO.write(frame, "png", assetDest)
             }
-
-            imageReader.dispose()
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
+        }.onFailure(::logError)
     }
 
     private fun getDelay(imageReader: ImageReader, frameIndex: Int) : Int {
-        return readShort(ByteArrayInputStream(ByteArrayOutputStream().apply { ImageIO.write(imageReader.read(frameIndex), "png", this) }.toByteArray())) * 10
+        val inputStream = BufferedInputStream(ByteArrayInputStream(ByteArrayOutputStream().apply { ImageIO.write(imageReader.read(frameIndex), "png", this) }.toByteArray()))
+        return readShort(inputStream) * 10
     }
 
     private fun readShort(input: InputStream): Int {
         return read(input) or (read(input) shl 8)
     }
 
-    private fun read(input: InputStream): Int {
-        var curByte = 0
-        runCatching { curByte = input.read() }
-        return curByte
-    }
+    private fun read(input: InputStream) = runCatching { input.read() }.getOrNull() ?: 0
 
     private fun generateFrame(image: BufferedImage, start: Int, stop: Int, total: Int): BufferedImage {
         val frame = BufferedImage(image.width + 2, image.height + 2, BufferedImage.TYPE_INT_ARGB)
@@ -180,22 +172,5 @@ object EmojyGenerator {
 
     private fun compact(b1: Int, b2: Int, b3: Int, b4: Int): Int {
         return b4 and 0xFF shl 24 or (b1 and 0xFF shl 16) or (b2 and 0xFF shl 8) or (b3 and 0xFF)
-    }
-
-    fun toBufferedImage(img: Image): BufferedImage {
-        if (img is BufferedImage && img.type == BufferedImage.TYPE_INT_ARGB) {
-            return img
-        }
-
-        // Create a buffered image with transparency
-        val bimage = BufferedImage(img.getWidth(null), img.getHeight(null), BufferedImage.TYPE_INT_ARGB)
-
-        // Draw the image on to the buffered image
-        val bGr = bimage.createGraphics()
-        bGr.drawImage(img, 0, 0, null)
-        bGr.dispose()
-
-        // Return the buffered image
-        return bimage
     }
 }

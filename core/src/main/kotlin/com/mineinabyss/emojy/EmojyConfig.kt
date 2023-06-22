@@ -151,7 +151,6 @@ data class EmojyConfig(
         fun getUnicode(i: Int): Char = Character.toChars(PRIVATE_USE_FIRST + i).first()
         fun getUnicodes(): String {
             return when (type) {
-                //TODO Fix spacing here
                 GifType.SHADER -> (1..getFrameCount()).joinToString(getUnicode(getFrameCount() + 1).toString()) { getUnicode(it).toString() }
                     .miniMsg().font(font).color(TextColor.fromHexString("#FEFEFE")).serialize()
                 GifType.OBFUSCATION -> getUnicode(1).toString().miniMsg()
