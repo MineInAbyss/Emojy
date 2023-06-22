@@ -190,11 +190,9 @@ data class EmojyConfig(
             // Add a negative shift into the shader for ease of use
             if (type == GifType.SHADER) {
                 val output = JsonObject()
-                val advances = JsonArray()
+                val advances = JsonObject()
                 output.addProperty("type", "space")
-                advances.add(JsonObject().apply {
-                    addProperty(getUnicode(frameCount + 1).toString(), -9)
-                })
+                advances.addProperty(getUnicode(frameCount + 1).toString(), -9)
                 output.add("advances", advances)
                 jsonList.add(output)
             }
