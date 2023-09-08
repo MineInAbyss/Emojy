@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package com.mineinabyss.emojy.nms.v1_19_R3
 
 import com.github.shynixn.mccoroutine.bukkit.launch
@@ -39,7 +41,9 @@ class EmojyNMSHandler : IEmojyNMSHandler {
     fun EmojyNMSHandler() {
         val connections: List<Connection> = MinecraftServer.getServer().connection?.connections ?: emptyList()
         // Have to set it accessible because unlike connections it is private
-        val channelFutures = ServerConnectionListener::class.java.getDeclaredField("f").apply { this.isAccessible = true; }.get(MinecraftServer.getServer().connection) as List<ChannelFuture>
+        val channelFutures =
+            ServerConnectionListener::class.java.getDeclaredField("f").apply { this.isAccessible = true; }
+                .get(MinecraftServer.getServer().connection) as List<ChannelFuture>
 
 
         // Handle connected channels
@@ -68,7 +72,9 @@ class EmojyNMSHandler : IEmojyNMSHandler {
                     }
                 }
                 handler?.let {
-                    val initChannel = ChannelInitializer::class.java.getDeclaredMethod("initChannel", Channel::class.java).apply { isAccessible = true }
+                    val initChannel =
+                        ChannelInitializer::class.java.getDeclaredMethod("initChannel", Channel::class.java)
+                            .apply { isAccessible = true }
                     val original = it.javaClass.getDeclaredField("original").apply { this.isAccessible = true }
                     val initializer = original.get(it) as ChannelInitializer<*>
                     val miniInit = object : ChannelInitializer<Channel>() {
@@ -225,25 +231,20 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
 
         private fun transform(compound: CompoundTag, transformer: Function<String, String>) {
-            for (key in compound.allKeys) {
-                when (val base = compound.get(key)) {
-                    is CompoundTag -> transform(base, transformer)
-                    is ListTag -> transform(base, transformer)
-                    is StringTag -> compound.put(key, StringTag.valueOf(transformer.apply(base.asString)))
-                }
+            for (key in compound.allKeys) when (val base = compound.get(key)) {
+                is CompoundTag -> transform(base, transformer)
+                is ListTag -> transform(base, transformer)
+                is StringTag -> compound.put(key, StringTag.valueOf(transformer.apply(base.asString)))
             }
         }
 
         private fun transform(list: ListTag, transformer: Function<String, String>) {
-            for (base in list) {
-                when (base) {
-                    is CompoundTag -> transform(base, transformer)
-                    is ListTag -> transform(base, transformer)
-                    is StringTag -> {
-                        val index = list.indexOf(base)
-                        list.remove(base)
-                        list.addTag(index, StringTag.valueOf(transformer.apply(base.asString)))
-                    }
+            for (base in list) when (base) {
+                is CompoundTag -> transform(base, transformer)
+                is ListTag -> transform(base, transformer)
+                is StringTag -> list.indexOf(base).let { index ->
+                    list.add(index, StringTag.valueOf(transformer.apply(base.asString)))
+                    list.removeAt(index + 1)
                 }
             }
         }
@@ -253,7 +254,6 @@ class EmojyNMSHandler : IEmojyNMSHandler {
                 this.miniMsg().replaceEmoteIds(player, false)
             }
         }
-
 
 
     }

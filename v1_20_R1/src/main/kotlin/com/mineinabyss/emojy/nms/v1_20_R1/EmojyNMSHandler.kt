@@ -188,10 +188,9 @@ class EmojyNMSHandler : IEmojyNMSHandler {
             for (base in list) when (base) {
                 is CompoundTag -> transform(base, transformer)
                 is ListTag -> transform(base, transformer)
-                is StringTag -> {
-                    val index = list.indexOf(base)
-                    list.remove(base)
-                    list.addTag(index, StringTag.valueOf(transformer.apply(base.asString)))
+                is StringTag -> list.indexOf(base).let { index ->
+                    list.add(index, StringTag.valueOf(transformer.apply(base.asString)))
+                    list.removeAt(index + 1)
                 }
             }
         }

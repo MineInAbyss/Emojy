@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package com.mineinabyss.emojy.nms.v1_19_R2
 
 import com.github.shynixn.mccoroutine.bukkit.launch
@@ -226,25 +228,20 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
 
         private fun transform(compound: CompoundTag, transformer: Function<String, String>) {
-            for (key in compound.allKeys) {
-                when (val base = compound.get(key)) {
-                    is CompoundTag -> transform(base, transformer)
-                    is ListTag -> transform(base, transformer)
-                    is StringTag -> compound.put(key, StringTag.valueOf(transformer.apply(base.asString)))
-                }
+            for (key in compound.allKeys) when (val base = compound.get(key)) {
+                is CompoundTag -> transform(base, transformer)
+                is ListTag -> transform(base, transformer)
+                is StringTag -> compound.put(key, StringTag.valueOf(transformer.apply(base.asString)))
             }
         }
 
         private fun transform(list: ListTag, transformer: Function<String, String>) {
-            for (base in list) {
-                when (base) {
-                    is CompoundTag -> transform(base, transformer)
-                    is ListTag -> transform(base, transformer)
-                    is StringTag -> {
-                        val index = list.indexOf(base)
-                        list.remove(base)
-                        list.addTag(index, StringTag.valueOf(transformer.apply(base.asString)))
-                    }
+            for (base in list) when (base) {
+                is CompoundTag -> transform(base, transformer)
+                is ListTag -> transform(base, transformer)
+                is StringTag -> list.indexOf(base).let { index ->
+                    list.add(index, StringTag.valueOf(transformer.apply(base.asString)))
+                    list.removeAt(index + 1)
                 }
             }
         }
