@@ -16,7 +16,7 @@ class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
             "list" {
                 action {
                     val emotes = emojy.config.emotes.filter { it.checkPermission(sender as? Player) }.toSet()
-                    val gifs = emojy.config .gifs.filter { it.checkPermission(sender as? Player) }.toSet()
+                    val gifs = emojy.config.gifs.filter { it.checkPermission(sender as? Player) }.toSet()
 
                     val emoteList = if (sender is Player) emotes.joinToString("") { emote ->
                         emote.getFormattedUnicode(" ", true).serialize()
@@ -30,7 +30,8 @@ class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
                         sender.openBook(
                             Book.builder().addPage(
                                 "<green>List of emojis:<newline>".miniMsg().append(emoteList)
-                                    .append("<newline><newline><#f35444>List of gifs:<newline>".miniMsg()).append(gifList)
+                                    .append("<newline><newline><#f35444>List of gifs:<newline>".miniMsg())
+                                    .append(gifList)
                             ).build()
                         )
                     else {
@@ -57,11 +58,10 @@ class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
         label: String,
         args: Array<out String>
     ): List<String> {
-        return if (command.name == "emojy") {
-            when (args.size) {
-                1 -> listOf("list", "reload").filter { it.startsWith(args[0]) }
-                else -> emptyList()
-            }
-        } else return emptyList()
+        return if (command.name == "emojy") when (args.size) {
+            1 -> listOf("list", "reload").filter { it.startsWith(args[0]) }
+            else -> emptyList()
+        }
+        else return emptyList()
     }
 }

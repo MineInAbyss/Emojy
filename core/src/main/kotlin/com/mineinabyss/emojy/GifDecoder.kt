@@ -18,12 +18,9 @@ open class GifDecoder {
     private var gctSize = 0 // size of global color table
 
     private var loopCount = 1 // iterations; 0 = repeat forever
-    private var gct // global color table
-            : IntArray? = null
-    private var lct // local color table
-            : IntArray? = null
-    private var act // active color table
-            : IntArray? = null
+    private var gct: IntArray? = null // global color table
+    private var lct: IntArray? = null // local color table
+    private var act: IntArray? = null // active color table
     private var bgIndex = 0 // background color index
     private var bgColor = 0 // background color
     private var lastBgColor = 0 // previous bg color
@@ -82,24 +79,20 @@ open class GifDecoder {
                     null
                 }
             }
-            if (lastImage != null) {
-                val prev = (lastImage!!.raster.dataBuffer as DataBufferInt).data
-                System.arraycopy(prev, 0, dest, 0, width * height)
+            lastImage?.let {
+                System.arraycopy((it.raster.dataBuffer as DataBufferInt).data, 0, dest, 0, width * height)
                 // copy pixels
-                if (lastDispose == 2) {
-                    // fill last image rect area with background color
-                    val g = image!!.createGraphics()
-                    var c: Color? = null
-                    c = if (transparency) {
-                        Color(0, 0, 0, 0) // assume background is transparent
-                    } else {
-                        Color(lastBgColor) // use given background color
-                    }
-                    g.color = c
-                    g.composite = AlphaComposite.Src // replace area
-                    g.fill(lastRect)
-                    g.dispose()
+                if (lastDispose == 2) return@let
+
+                // fill last image rect area with background color
+                val graphics = image?.createGraphics() ?: return@let
+                graphics.color = when {
+                    transparency -> Color(0, 0, 0, 0) // assume background is transparent
+                    else -> Color(lastBgColor) // use given background color
                 }
+                graphics.composite = AlphaComposite.Src // replace area
+                graphics.fill(lastRect)
+                graphics.dispose()
             }
         }
 
@@ -167,13 +160,9 @@ open class GifDecoder {
             readHeader()
             if (!err()) {
                 readContents()
-                if (frameCount < 0) {
-                    status = STATUS_FORMAT_ERROR
-                }
+                if (frameCount < 0) status = STATUS_FORMAT_ERROR
             }
-        } else {
-            status = STATUS_OPEN_ERROR
-        }
+        } else status = STATUS_OPEN_ERROR
         runCatching { `is`!!.close() }
         return status
     }
@@ -306,9 +295,7 @@ open class GifDecoder {
         }
     }
 
-    private fun err(): Boolean {
-        return status != STATUS_OK
-    }
+    private fun err() = status != STATUS_OK
 
     private fun init() {
         status = STATUS_OK
@@ -505,9 +492,6 @@ open class GifDecoder {
         lastRect = Rectangle(ix, iy, iw, ih)
         lastImage = image
         lastBgColor = bgColor
-        val dispose = 0
-        val transparency = false
-        val delay = 0
         lct = null
     }
 
