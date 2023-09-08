@@ -2,8 +2,6 @@
 
 package com.mineinabyss.emojy.nms.v1_20_R1
 
-import com.github.shynixn.mccoroutine.bukkit.launch
-import com.github.shynixn.mccoroutine.bukkit.minecraftDispatcher
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.mineinabyss.emojy.emojy
@@ -29,9 +27,11 @@ import net.minecraft.server.network.ServerConnectionListener
 import org.bukkit.Bukkit
 import org.bukkit.craftbukkit.v1_20_R1.entity.CraftPlayer
 import org.bukkit.entity.Player
+import org.bukkit.scheduler.BukkitRunnable
 import java.io.IOException
 import java.util.*
 import java.util.function.Function
+import java.util.function.Supplier
 
 class EmojyNMSHandler : IEmojyNMSHandler {
     private val encoder = Collections.synchronizedMap(WeakHashMap<Channel, ChannelHandler>())
@@ -39,7 +39,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
     @Suppress("unused", "UNCHECKED_CAST", "FunctionName")
     fun EmojyNMSHandler() {
-        val connections: List<Connection> = MinecraftServer.getServer().connection?.connections ?: emptyList()
+        val connections = MinecraftServer.getServer().connection?.connections ?: emptyList()
         // Have to set it accessible because unlike connections it is private
         val channelFutures = ServerConnectionListener::class.java.getDeclaredField("f").apply { this.isAccessible = true; }.get(MinecraftServer.getServer().connection) as List<ChannelFuture>
 
@@ -47,15 +47,12 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         // Handle connected channels
         val endInitProtocol: ChannelInitializer<Channel> = object : ChannelInitializer<Channel>() {
             override fun initChannel(channel: Channel) {
-                try {
-                    // This can take a while, so we need to stop the main thread from interfering
+                runCatching {
                     synchronized(connections) {
                         // Stop injecting channels
                         channel.eventLoop().submit { channel.inject() }
                     }
-                } catch (e: java.lang.Exception) {
-                    e.printStackTrace()
-                }
+                }.onFailure { it.printStackTrace() }
             }
         }
 
@@ -91,12 +88,14 @@ class EmojyNMSHandler : IEmojyNMSHandler {
             }
         }
 
-        try {
+        runCatching {
             bind(channelFutures, serverChannelHandler)
-        } catch (e: IllegalArgumentException) {
-            emojy.plugin.launch(emojy.plugin.minecraftDispatcher) {
-                bind(channelFutures, serverChannelHandler)
-            }
+        }.onFailure {
+            object : BukkitRunnable() {
+                override fun run() {
+                    bind(channelFutures, serverChannelHandler)
+                }
+            }.runTask(emojy.plugin)
         }
     }
 
@@ -109,97 +108,50 @@ class EmojyNMSHandler : IEmojyNMSHandler {
     }
 
     private fun Channel.inject() {
-        if (this !in encoder.keys && this.pipeline().get("encoder") !is CustomPacketEncoder)
+        if (this !in encoder.keys && (this.pipeline().get("encoder") as ChannelHandler) !is CustomPacketEncoder)
             encoder[this] = this.pipeline().replace("encoder", "encoder", CustomPacketEncoder())
 
-        if (this !in decoder.keys && this.pipeline().get("decoder") !is CustomPacketDecoder)
+        if (this !in decoder.keys && (this.pipeline().get("decoder") as ChannelHandler) !is CustomPacketDecoder)
             decoder[this] = this.pipeline().replace("decoder", "decoder", CustomPacketDecoder())
 
     }
 
+    private fun Channel.uninject() {
+        if (this in encoder.keys) {
+            val prevHandler = encoder.remove(this)
+            val handler = if (prevHandler is PacketEncoder) PacketEncoder(PacketFlow.CLIENTBOUND) else prevHandler
+            handler?.let { this.pipeline().replace("encoder", "encoder", handler) }
+        }
+
+        if (this in decoder.keys) {
+            val prevHandler = decoder.remove(this)
+            val handler = if (prevHandler is PacketEncoder) PacketEncoder(PacketFlow.SERVERBOUND) else prevHandler
+            handler?.let { this.pipeline().replace("decoder", "decoder", handler) }
+        }
+    }
+
     override fun inject(player: Player) {
-        val channel = (player as CraftPlayer).handle.connection.connection.channel ?: return
+        val channel = (player as? CraftPlayer)?.handle?.connection?.connection?.channel ?: return
         channel.inject()
         channel.pipeline().forEach {
             when (val handler = it.value) {
-                is CustomPacketEncoder -> handler.player = player
-                is CustomPacketDecoder -> handler.player = player
+                is CustomPacketEncoder -> handler.setPlayer(player)
+                is CustomPacketDecoder -> handler.setPlayer(player)
             }
         }
     }
 
     override fun uninject(player: Player) {
-        (player as CraftPlayer).handle.connection.connection.channel.uninject()
+        (player as? CraftPlayer)?.handle?.connection?.connection?.channel?.uninject()
     }
 
-    private fun Channel.uninject() {
-        if (this in encoder.keys) {
-            val prevHandler = encoder[this]
-            val handler = if (prevHandler is PacketEncoder) PacketEncoder(PacketFlow.CLIENTBOUND) else prevHandler
-            handler?.let { this.pipeline().replace(prevHandler, "encoder", handler) }
-        }
-
-        if (this in decoder.keys) {
-            val prevHandler = decoder[this]
-            val handler = if (prevHandler is PacketEncoder) PacketEncoder(PacketFlow.SERVERBOUND) else prevHandler
-            handler?.let { this.pipeline().replace(prevHandler, "decoder", handler) }
-        }
-    }
-
-    private class CustomPacketEncoder : MessageToByteEncoder<Packet<*>>() {
-        private val protocolDirection = PacketFlow.CLIENTBOUND
-        var player: Player? = null
-
-        override fun encode(ctx: ChannelHandlerContext, msg: Packet<*>, out: ByteBuf) {
-            val enumProt = ctx.channel()?.attr(Connection.ATTRIBUTE_PROTOCOL)?.get()
-                ?: throw RuntimeException("ConnectionProtocol unknown: $out")
-            val int = msg.let { enumProt.getPacketId(this.protocolDirection, it) }
-            val packetDataSerializer: FriendlyByteBuf = CustomDataSerializer(player, out)
-            packetDataSerializer.writeVarInt(int)
-
-            try {
-                val int2 = packetDataSerializer.writerIndex()
-                msg.write(packetDataSerializer)
-                val int3 = packetDataSerializer.writerIndex() - int2
-                if (int3 > 8388608) {
-                    throw IllegalArgumentException("Packet too big (is $int3, should be less than 8388608): $msg")
-                }
-            } catch (e: Exception) {
-                if (msg.isSkippable)
-                    throw SkipPacketException(e)
-                throw e
-            }
-        }
-    }
-
-    private class CustomPacketDecoder : ByteToMessageDecoder() {
-        var player: Player? = null
-
-        override fun decode(ctx: ChannelHandlerContext, msg: ByteBuf, out: MutableList<Any>) {
-            if (msg.readableBytes() == 0) return
-
-            val dataSerializer = CustomDataSerializer(player, msg)
-            val packetID = dataSerializer.readVarInt()
-            val packet = ctx.channel().attr(Connection.ATTRIBUTE_PROTOCOL).get()
-                .createPacket(PacketFlow.SERVERBOUND, packetID, dataSerializer)
-                ?: throw IOException("Bad packet id $packetID")
-
-            if (dataSerializer.readableBytes() > 0) {
-                throw IOException("Packet $packetID ($packet) was larger than I expected, found ${dataSerializer.readableBytes()} bytes extra whilst reading packet $packetID")
-            }
-            out.add(packet)
-        }
-    }
-
-    private class CustomDataSerializer(val player: Player?, bytebuf: ByteBuf) :
+    private class CustomDataSerializer(val supplier: Supplier<Player>?, bytebuf: ByteBuf) :
         FriendlyByteBuf(bytebuf) {
 
         override fun writeUtf(string: String, maxLength: Int): FriendlyByteBuf {
-            try {
+            runCatching {
                 val element = JsonParser.parseString(string)
-                if (element.isJsonObject)
-                    return super.writeUtf(element.asJsonObject.returnFormattedString(), maxLength)
-            } catch (_: Exception) {
+                if (element.isJsonObject) return super.writeUtf(element.asJsonObject.formatString(), maxLength)
             }
 
             return super.writeUtf(string, maxLength)
@@ -208,56 +160,97 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         override fun writeNbt(compound: CompoundTag?): FriendlyByteBuf {
             return super.writeNbt(compound?.apply {
                 transform(this, Function { string: String ->
-                    try {
+                    runCatching {
                         val element = JsonParser.parseString(string)
-                        if (element.isJsonObject)
-                            return@Function element.asJsonObject.returnFormattedString(false)
-                    } catch (ignored: Exception) {
+                        if (element.isJsonObject) return@Function element.asJsonObject.formatString(false)
                     }
                     string
                 })
             })
         }
 
-        private fun JsonObject.returnFormattedString(insert: Boolean = true): String {
+        private fun JsonObject.formatString(insert: Boolean = true): String {
             val gson = GsonComponentSerializer.gson()
             return if (this.has("args") || this.has("text") || this.has("extra") || this.has("translate")) {
-                gson.serialize(gson.deserialize(this.toString()).replaceEmoteIds(player, insert))
+                gson.serialize(gson.deserialize(this.toString()).replaceEmoteIds(supplier?.get(), insert))
             } else this.toString()
         }
 
         private fun transform(compound: CompoundTag, transformer: Function<String, String>) {
-            for (key in compound.allKeys) {
-                when (val base = compound.get(key)) {
-                    is CompoundTag -> transform(base, transformer)
-                    is ListTag -> transform(base, transformer)
-                    is StringTag -> compound.put(key, StringTag.valueOf(transformer.apply(base.asString)))
-                }
+            for (key in compound.allKeys) when (val base = compound.get(key)) {
+                is CompoundTag -> transform(base, transformer)
+                is ListTag -> transform(base, transformer)
+                is StringTag -> compound.put(key, StringTag.valueOf(transformer.apply(base.asString)))
             }
         }
 
         private fun transform(list: ListTag, transformer: Function<String, String>) {
-            for (base in list) {
-                when (base) {
-                    is CompoundTag -> transform(base, transformer)
-                    is ListTag -> transform(base, transformer)
-                    is StringTag -> {
-                        transformer.apply(base.asString)
-                        list -= base
-                        list += StringTag.valueOf(transformer.apply(base.asString))
-                    }
+            for (base in list) when (base) {
+                is CompoundTag -> transform(base, transformer)
+                is ListTag -> transform(base, transformer)
+                is StringTag -> {
+                    transformer.apply(base.asString)
+                    list -= base
+                    list += StringTag.valueOf(transformer.apply(base.asString))
                 }
             }
         }
 
         override fun readUtf(maxLength: Int): String {
             return super.readUtf(maxLength).apply {
-                this.miniMsg().replaceEmoteIds(player, false)
+                this.miniMsg().replaceEmoteIds(supplier?.get(), false)
             }
         }
 
+    }
 
+    private class CustomPacketEncoder : MessageToByteEncoder<Packet<*>>() {
+        private val protocolDirection = PacketFlow.CLIENTBOUND
+        private var player: Player? = null
 
+        fun setPlayer(player: Player) {
+            this.player = player
+        }
+
+        override fun encode(ctx: ChannelHandlerContext, msg: Packet<*>, out: ByteBuf) {
+            val enumProt = ctx.channel()?.attr(Connection.ATTRIBUTE_PROTOCOL)?.get() ?: throw RuntimeException("ConnectionProtocol unknown: $out")
+            val int = msg.let { enumProt.getPacketId(this.protocolDirection, it) }
+            val packetDataSerializer: FriendlyByteBuf = CustomDataSerializer(Supplier<Player> { player }, out)
+            packetDataSerializer.writeVarInt(int)
+
+            runCatching {
+                val int2 = packetDataSerializer.writerIndex()
+                msg.write(packetDataSerializer)
+                val int3 = packetDataSerializer.writerIndex() - int2
+                if (int3 > 8388608) {
+                    throw IllegalArgumentException("Packet too big (is $int3, should be less than 8388608): $msg")
+                }
+            }.onFailure {
+                if (msg.isSkippable) throw SkipPacketException(it)
+                throw it
+            }
+        }
+    }
+
+    private class CustomPacketDecoder : ByteToMessageDecoder() {
+        private var player: Player? = null
+
+        fun setPlayer(player: Player) {
+            this.player = player
+        }
+
+        override fun decode(ctx: ChannelHandlerContext, msg: ByteBuf, out: MutableList<Any>) {
+            if (msg.readableBytes() == 0) return
+
+            val dataSerializer = CustomDataSerializer(Supplier<Player> { player }, msg)
+            val packetID = dataSerializer.readVarInt()
+            val packet = ctx.channel().attr(Connection.ATTRIBUTE_PROTOCOL).get()
+                .createPacket(PacketFlow.SERVERBOUND, packetID, dataSerializer)
+                ?: throw IOException("Bad packet id $packetID")
+
+            if (dataSerializer.readableBytes() > 0) throw IOException("Packet $packetID ($packet) was larger than I expected, found ${dataSerializer.readableBytes()} bytes extra whilst reading packet $packetID")
+            out += packet
+        }
     }
 
     override val supported get() = true
