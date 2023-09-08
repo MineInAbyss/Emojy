@@ -2,7 +2,6 @@ package com.mineinabyss.emojy
 
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers
 import com.mineinabyss.idofront.textcomponents.serialize
-import io.papermc.paper.event.player.AsyncChatCommandDecorateEvent
 import io.papermc.paper.event.player.AsyncChatDecorateEvent
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
@@ -24,11 +23,6 @@ class EmojyListener : Listener {
     @EventHandler
     fun PlayerQuitEvent.uninjectPlayer() {
         EmojyNMSHandlers.getHandler()?.uninject(player)
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    fun AsyncChatCommandDecorateEvent.onCommand() {
-        result(originalMessage().replaceEmoteIds(player()))
     }
 
     // Replace with result not original message to avoid borking other chat formatting

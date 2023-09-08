@@ -241,9 +241,9 @@ class EmojyNMSHandler : IEmojyNMSHandler {
                     is CompoundTag -> transform(base, transformer)
                     is ListTag -> transform(base, transformer)
                     is StringTag -> {
-                        transformer.apply(base.asString)
-                        list -= base
-                        list += StringTag.valueOf(transformer.apply(base.asString))
+                        val index = list.indexOf(base)
+                        list.remove(base)
+                        list.addTag(index, StringTag.valueOf(transformer.apply(base.asString)))
                     }
                 }
             }

@@ -160,11 +160,11 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         override fun writeNbt(compound: CompoundTag?): FriendlyByteBuf {
             return super.writeNbt(compound?.apply {
                 transform(this, Function { string: String ->
-                    runCatching {
+                    return@Function runCatching {
                         val element = JsonParser.parseString(string)
-                        if (element.isJsonObject) return@Function element.asJsonObject.formatString(false)
-                    }
-                    string
+                        if (element.isJsonObject) element.asJsonObject.formatString(false)
+                        else string
+                    }.getOrNull() ?: string
                 })
             })
         }
@@ -189,9 +189,9 @@ class EmojyNMSHandler : IEmojyNMSHandler {
                 is CompoundTag -> transform(base, transformer)
                 is ListTag -> transform(base, transformer)
                 is StringTag -> {
-                    transformer.apply(base.asString)
-                    list -= base
-                    list += StringTag.valueOf(transformer.apply(base.asString))
+                    val index = list.indexOf(base)
+                    list.remove(base)
+                    list.addTag(index, StringTag.valueOf(transformer.apply(base.asString)))
                 }
             }
         }
