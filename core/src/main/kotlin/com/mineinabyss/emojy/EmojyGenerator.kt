@@ -5,9 +5,9 @@ import com.google.gson.JsonObject
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.messaging.logWarn
 import java.awt.image.BufferedImage
-import java.io.*
+import java.io.File
+import java.io.FileInputStream
 import javax.imageio.ImageIO
-import javax.imageio.ImageReader
 
 
 //TODO Make font generation sort by namespace to avoid duplicate fonts
@@ -64,9 +64,12 @@ object EmojyGenerator {
             fontFiles[emote.font.value()]?.add(emote.toJson())
                 ?: fontFiles.putIfAbsent(emote.font.value(), JsonArray().apply { add(emote.toJson()) })
         }
+        val fontFolder = File("${emojy.plugin.dataFolder.absolutePath}/fonts/")
+        fontFolder.deleteRecursively()
+
         fontFiles.forEach { (font, array) ->
             val output = JsonObject()
-            val fontFile = File("${emojy.plugin.dataFolder.absolutePath}/fonts/${font}.json")
+            val fontFile = fontFolder.resolve("${font}.json")
 
             output.add("providers", array)
             fontFile.parentFile.mkdirs()
@@ -120,17 +123,6 @@ object EmojyGenerator {
         }.onFailure(::logError)
     }
 
-    private fun getDelay(imageReader: ImageReader, frameIndex: Int) : Int {
-        val inputStream = BufferedInputStream(ByteArrayInputStream(ByteArrayOutputStream().apply { ImageIO.write(imageReader.read(frameIndex), "png", this) }.toByteArray()))
-        return readShort(inputStream) * 10
-    }
-
-    private fun readShort(input: InputStream): Int {
-        return read(input) or (read(input) shl 8)
-    }
-
-    private fun read(input: InputStream) = runCatching { input.read() }.getOrNull() ?: 0
-
     private fun generateFrame(image: BufferedImage, start: Int, stop: Int, total: Int): BufferedImage {
         val frame = BufferedImage(image.width + 2, image.height + 2, BufferedImage.TYPE_INT_ARGB)
         frame.setRGB(
@@ -170,7 +162,5 @@ object EmojyGenerator {
         return frame
     }
 
-    private fun compact(b1: Int, b2: Int, b3: Int, b4: Int): Int {
-        return b4 and 0xFF shl 24 or (b1 and 0xFF shl 16) or (b2 and 0xFF shl 8) or (b3 and 0xFF)
-    }
+    private fun compact(b1: Int, b2: Int, b3: Int, b4: Int) = b4 and 0xFF shl 24 or (b1 and 0xFF shl 16) or (b2 and 0xFF shl 8) or (b3 and 0xFF)
 }
