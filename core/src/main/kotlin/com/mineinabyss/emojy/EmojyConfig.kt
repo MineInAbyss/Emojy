@@ -35,7 +35,7 @@ private val defaultHeight: Int = configuration.getInt("defaultHeight", 8)
 private val defaultAscent: Int = configuration.getInt("defaultAscent", 8)
 
 enum class ListType {
-    BOOK, CHAT
+    BOOK, BOOK2, CHAT
 }
 
 @Serializable

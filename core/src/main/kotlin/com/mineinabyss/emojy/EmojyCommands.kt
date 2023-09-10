@@ -26,19 +26,21 @@ class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
                         gif.getFormattedUnicode(" ").serialize()
                     }.miniMsg() else emojy.config.gifs.joinToString(", ") { it.id }.miniMsg()
 
-                    if (emojy.config.listType == ListType.BOOK)
-                        sender.openBook(
+                    when (emojy.config.listType) {
+                        ListType.BOOK -> sender.openBook(
                             Book.builder().addPage(
                                 "<green>List of emojis:<newline>".miniMsg().append(emoteList)
                                     .append("<newline><newline><#f35444>List of gifs:<newline>".miniMsg())
                                     .append(gifList)
                             ).build()
                         )
-                    else {
-                        sender.sendRichMessage("<green>List of emojis:")
-                        sender.sendMessage(emoteList)
-                        sender.sendRichMessage("<#f35444>List of GIFs")
-                        sender.sendMessage(gifList)
+                        ListType.BOOK2 -> sender.openBook(EmojyBook.book)
+                        ListType.CHAT -> {
+                            sender.sendRichMessage("<green>List of emojis:")
+                            sender.sendMessage(emoteList)
+                            sender.sendRichMessage("<#f35444>List of GIFs")
+                            sender.sendMessage(gifList)
+                        }
                     }
                 }
             }
