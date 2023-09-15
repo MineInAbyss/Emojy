@@ -37,7 +37,7 @@ class EmojyListener : Listener {
 //TODO Tags like rainbow and gradient, which split the text into multiple children, will break replacement below
 // Find out why this is called 3 times
 fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): Component {
-    var msg = this
+    var msg = GlobalTranslator.render(this, player?.locale() ?: Locale.ENGLISH)
     val serialized = msg.serialize()
 
     emojy.config.emotes.firstOrNull { ":${it.id}:" in serialized }?.let { emote ->
@@ -62,5 +62,5 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
         }
     }
 
-    return GlobalTranslator.render(msg, player?.locale() ?: Locale.ENGLISH)
+    return msg
 }

@@ -73,6 +73,8 @@ object EmojyGenerator {
 
             output.add("providers", array)
             fontFile.parentFile.mkdirs()
+            if (font == "default" && emojy.config.supportForceUnicode)
+                fontFolder.resolve("uniform.json").writeText(output.toString())
             fontFile.writeText(output.toString())
         }
 

@@ -48,6 +48,7 @@ data class EmojyConfig(
     val defaultAscent: Int = 8,*/
     val requirePermissions: Boolean = true,
     val generateResourcePack: Boolean = true,
+    val supportForceUnicode: Boolean = true,
     val debug: Boolean = true,
     val listType: ListType = ListType.BOOK,
     val emotes: Set<Emote> = mutableSetOf(Emote("")),
