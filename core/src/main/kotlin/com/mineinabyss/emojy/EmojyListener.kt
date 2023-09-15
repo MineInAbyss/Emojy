@@ -5,12 +5,14 @@ import com.mineinabyss.idofront.textcomponents.serialize
 import io.papermc.paper.event.player.AsyncChatDecorateEvent
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
+import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
+import java.util.*
 
 @Suppress("UnstableApiUsage")
 class EmojyListener : Listener {
@@ -60,5 +62,5 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
         }
     }
 
-    return msg
+    return GlobalTranslator.render(msg, player?.locale() ?: Locale.ENGLISH)
 }
