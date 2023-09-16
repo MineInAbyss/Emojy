@@ -1,10 +1,12 @@
 package com.mineinabyss.emojy
 
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers
+import com.mineinabyss.emojy.translator.EmojyTranslatorImpl
 import com.mineinabyss.idofront.config.config
 import com.mineinabyss.idofront.di.DI
 import com.mineinabyss.idofront.platforms.Platforms
 import com.mineinabyss.idofront.plugin.listeners
+import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 
@@ -22,6 +24,8 @@ class EmojyPlugin : JavaPlugin() {
             server.pluginManager.disablePlugin(this)
             return
         }
+
+        GlobalTranslator.translator().addSource(EmojyTranslatorImpl)
 
         createEmojyContext()
         generateFiles()
