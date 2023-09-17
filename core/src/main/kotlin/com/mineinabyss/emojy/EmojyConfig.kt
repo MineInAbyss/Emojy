@@ -51,6 +51,7 @@ data class EmojyConfig(
     val supportForceUnicode: Boolean = true,
     val debug: Boolean = true,
     val listType: ListType = ListType.BOOK,
+    val supportedLanguages: Set<String> = mutableSetOf("en_us"),
     val emotes: Set<Emote> = mutableSetOf(Emote("")),
     val gifs: Set<Gif> = mutableSetOf(Gif(""))
 ) {
