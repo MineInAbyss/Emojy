@@ -21,8 +21,7 @@ class EmojyTranslator(private val translator: TranslationRegistry) : Translator 
             values[index] = GlobalTranslator.render(argumentComponent, locale).serialize()
         }
         val resultComponent = miniMessageResult.format(values.filterNotNull().toTypedArray()).miniMsg().replaceEmoteIds()
-        val children = resultComponent.children().map { GlobalTranslator.render(it, locale) }
-        return GlobalTranslator.render(resultComponent, locale).children(children)
+        return GlobalTranslator.render(resultComponent, locale).children(resultComponent.children().map { GlobalTranslator.render(it, locale) })
     }
 
 }
