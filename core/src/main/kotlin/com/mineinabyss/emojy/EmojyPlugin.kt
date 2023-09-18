@@ -15,7 +15,6 @@ import org.bukkit.plugin.java.JavaPlugin
 import java.nio.file.Path
 import java.text.MessageFormat
 import java.util.*
-import kotlin.reflect.KProperty
 
 class EmojyPlugin : JavaPlugin() {
     override fun onLoad() {
@@ -29,12 +28,6 @@ class EmojyPlugin : JavaPlugin() {
             server.pluginManager.disablePlugin(this)
             return
         }
-
-        val registry = TranslationRegistry.create(Key.key("emojy", "localization"))
-        registry.defaultLocale(Locale.US)
-        registry.unregister("mineinabyss.tutorial.welcome.1")
-        registry.register("mineinabyss.tutorial.welcome.1", Locale.US, MessageFormat("<yellow>Welcome to <gradient:#ff7043:#ffca28:#ff7043>Mine In Abyss!"))
-        GlobalTranslator.translator().addSource(EmojyTranslator(registry))
 
         createEmojyContext()
         generateFiles()
@@ -54,29 +47,34 @@ class EmojyPlugin : JavaPlugin() {
             EmojyNMSHandlers.getHandler()?.uninject(it)
         }
     }
-    
+
     fun generateFiles() {
         EmojyGenerator.generateFontFiles()
         if (emojy.config.generateResourcePack)
             EmojyGenerator.generateResourcePack()
     }
-    
+
     fun createEmojyContext() {
         DI.remove<EmojyContext>()
         val emojyContext = object : EmojyContext {
             override val plugin: EmojyPlugin = this@EmojyPlugin
             override val config: EmojyConfig by config("config") { fromPluginPath(loadDefault = true) }
-            override val languages: Set<EmojyLanguage> by
-                config.supportedLanguages.map { config<EmojyLanguage>(it) {
+            override val languages: Set<EmojyLanguage> = config.supportedLanguages.map {
+                EmojyLanguage(it.split("_").let { l -> Locale(l.first(), l.last()) }, config<Map<String, String>>(it) {
                     fromPluginPath(relativePath = Path.of("languages"), loadDefault = true)
-                } }.toSet()
+                }.data)
+            }.toSet()
         }
         DI.add<EmojyContext>(emojyContext)
+
+        val registry = TranslationRegistry.create(Key.key("emojy", "localization"))
+        registry.defaultLocale(Locale.US)
+        emojy.languages.map { it.keys.keys }.flatten().forEach(registry::unregister)
+        emojyContext.languages.forEach {
+            registry.registerAll(it.locale, it.keys.map { k -> k.key to MessageFormat(k.value) }.toMap())
+        }
+        GlobalTranslator.translator().sources().filter { it.name() == Key.key("emojy", "localization") }.forEach(GlobalTranslator.translator()::removeSource)
+        GlobalTranslator.translator().addSource(EmojyTranslator(registry))
     }
 }
 
-private operator fun <E> Set<E>.getValue(emojyContext: EmojyContext, property: KProperty<*>): Set<EmojyLanguage> {
-    return this.map { config<EmojyLanguage>(it) {
-        emojy.plugin.fromPluginPath(relativePath = Path.of("languages"), loadDefault = true)
-    }.data }.toSet()
-}

@@ -20,8 +20,7 @@ debug: true
 listType: BOOK
 
 supportedLanguages:
-  - en_us
-  - en_uk
+  - en_US
 
 # [id]: The id of your emote, used for replacing :id:
 # [texture]: The path to your textures image (defaultNamespace:defaultFolder/id.png)
