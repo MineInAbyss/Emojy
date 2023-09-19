@@ -18,15 +18,15 @@ import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
 import net.kyori.adventure.text.minimessage.tag.standard.StandardTags
+import org.bukkit.Bukkit
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
-import java.io.File
 import javax.imageio.ImageIO
 
 const val PRIVATE_USE_FIRST = 57344
 
 // TODO Temporary way of getting default values, should be replaced with a better system
-private val configFile = File(emojy.plugin.dataFolder, "config.yml")
+private val configFile = Bukkit.getServer().pluginsFolder.resolve("Emojy/config.yml")
 private val configuration = YamlConfiguration.loadConfiguration(configFile)
 private val defaultNamespace: String = configuration.getString("defaultNamespace", "emotes").toString()
 private val defaultFolder: String = configuration.getString("defaultFolder", "emotes").toString()
@@ -46,6 +46,7 @@ data class EmojyConfig(
     val defaultFont: String = "emotes",
     val defaultHeight: Int = 8,
     val defaultAscent: Int = 8,*/
+
     val requirePermissions: Boolean = true,
     val generateResourcePack: Boolean = true,
     val supportForceUnicode: Boolean = true,
