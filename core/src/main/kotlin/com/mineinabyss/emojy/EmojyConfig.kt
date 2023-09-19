@@ -58,8 +58,7 @@ data class EmojyConfig(
     @Serializable
     data class Emote(
         val id: String,
-        @SerialName("font")
-        val _font: String = defaultFont,
+        @SerialName("font") val _font: String = defaultFont,
         val texture: String = "${defaultNamespace}:${defaultFolder}/$id.png",
         val height: Int = defaultHeight,
         val ascent: Int = defaultAscent,
