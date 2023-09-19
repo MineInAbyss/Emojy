@@ -9,11 +9,9 @@ import com.mineinabyss.idofront.platforms.Platforms
 import com.mineinabyss.idofront.plugin.listeners
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.translation.GlobalTranslator
-import net.kyori.adventure.translation.TranslationRegistry
 import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 import java.nio.file.Path
-import java.text.MessageFormat
 import java.util.*
 
 class EmojyPlugin : JavaPlugin() {
@@ -67,14 +65,8 @@ class EmojyPlugin : JavaPlugin() {
         }
         DI.add<EmojyContext>(emojyContext)
 
-        val registry = TranslationRegistry.create(Key.key("emojy", "localization"))
-        registry.defaultLocale(Locale.US)
-        emojy.languages.map { it.keys.keys }.flatten().forEach(registry::unregister)
-        emojyContext.languages.forEach {
-            registry.registerAll(it.locale, it.keys.map { k -> k.key to MessageFormat(k.value) }.toMap())
-        }
         GlobalTranslator.translator().sources().filter { it.name() == Key.key("emojy", "localization") }.forEach(GlobalTranslator.translator()::removeSource)
-        GlobalTranslator.translator().addSource(EmojyTranslator(registry))
+        GlobalTranslator.translator().addSource(EmojyTranslator())
     }
 }
 

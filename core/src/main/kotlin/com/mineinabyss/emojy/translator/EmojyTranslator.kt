@@ -1,27 +1,17 @@
 package com.mineinabyss.emojy.translator
 
-import com.mineinabyss.emojy.replaceEmoteIds
-import com.mineinabyss.idofront.textcomponents.miniMsg
-import com.mineinabyss.idofront.textcomponents.serialize
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.TranslatableComponent
-import net.kyori.adventure.translation.GlobalTranslator
-import net.kyori.adventure.translation.TranslationRegistry
-import net.kyori.adventure.translation.Translator
+import com.mineinabyss.emojy.emojy
+import net.kyori.adventure.key.Key
 import java.util.*
 
-class EmojyTranslator(private val translator: TranslationRegistry) : Translator {
-    override fun name() = this.translator.name()
-    override fun translate(key: String, locale: Locale) = this.translator.translate(key, locale)
 
-    override fun translate(component: TranslatableComponent, locale: Locale): Component? {
-        val miniMessageResult = this.translate(component.key(), locale) ?: return null
-        val values = arrayOfNulls<String>(component.args().size)
-        component.args().forEachIndexed { index, argumentComponent ->
-            values[index] = GlobalTranslator.render(argumentComponent, locale).replaceEmoteIds(insert = false).serialize()
-        }
-        val resultComponent = miniMessageResult.format(values.filterNotNull().toTypedArray()).miniMsg().replaceEmoteIds(insert = false)
-        return GlobalTranslator.render(resultComponent, locale)
+class EmojyTranslator : MiniMessageTranslator() {
+    override fun getMiniMessageString(key: String, locale: Locale): String? {
+        return emojy.languages.find { it.locale == locale }?.keys?.get(key)
+    }
+
+    override fun name(): Key {
+        return Key.key("emojy", "localization")
     }
 
 }
