@@ -18,34 +18,31 @@ import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
 import net.kyori.adventure.text.minimessage.tag.standard.StandardTags
-import org.bukkit.Bukkit
-import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import javax.imageio.ImageIO
 
 const val PRIVATE_USE_FIRST = 57344
-
-// TODO Temporary way of getting default values, should be replaced with a better system
-private val configFile = Bukkit.getServer().pluginsFolder.resolve("Emojy/config.yml")
-private val configuration = YamlConfiguration.loadConfiguration(configFile)
-private val defaultNamespace: String = configuration.getString("defaultNamespace", "emotes").toString()
-private val defaultFolder: String = configuration.getString("defaultFolder", "emotes").toString()
-private val defaultFont: String = configuration.getString("defaultFont", "emotes").toString()
-private val defaultHeight: Int = configuration.getInt("defaultHeight", 8)
-private val defaultAscent: Int = configuration.getInt("defaultAscent", 8)
 
 enum class ListType {
     BOOK, BOOK2, CHAT
 }
 
 @Serializable
-data class EmojyConfig(
-    //TODO Figure out a way for these default values to be serialized and used in subclasses correctly
-    /*val defaultNamespace: String = "emotes",
+data class GlobalEmojyConfig(
+    val defaultNamespace: String = "emotes",
     val defaultFolder: String = "emotes",
     val defaultFont: String = "emotes",
     val defaultHeight: Int = 8,
-    val defaultAscent: Int = 8,*/
+    val defaultAscent: Int = 8,
+)
+
+@Serializable
+data class EmojyConfig(
+    val defaultNamespace: String = "emotes",
+    val defaultFolder: String = "emotes",
+    val defaultFont: String = "emotes",
+    val defaultHeight: Int = 8,
+    val defaultAscent: Int = 8,
 
     val requirePermissions: Boolean = true,
     val generateResourcePack: Boolean = true,
@@ -53,16 +50,16 @@ data class EmojyConfig(
     val debug: Boolean = true,
     val listType: ListType = ListType.BOOK,
     val supportedLanguages: Set<String> = mutableSetOf("en_us"),
-    val emotes: Set<Emote> = mutableSetOf(Emote("")),
-    val gifs: Set<Gif> = mutableSetOf(Gif(""))
+    val emotes: Set<Emote> = mutableSetOf<Emote>(),
+    val gifs: Set<Gif> = mutableSetOf<Gif>()
 ) {
     @Serializable
     data class Emote(
         val id: String,
-        @SerialName("font") val _font: String = defaultFont,
-        val texture: String = "${defaultNamespace}:${defaultFolder}/$id.png",
-        val height: Int = defaultHeight,
-        val ascent: Int = defaultAscent,
+        @SerialName("font") val _font: String = defaultConfig.defaultFont,
+        val texture: String = "${defaultConfig.defaultNamespace}:${defaultConfig.defaultFolder}/$id.png",
+        val height: Int = defaultConfig.defaultHeight,
+        val ascent: Int = defaultConfig.defaultAscent,
         val bitmapWidth: Int = 1,
         val bitmapHeight: Int = 1,
     ) {
@@ -136,7 +133,7 @@ data class EmojyConfig(
     data class Gif(
         val id: String,
         val frameCount: Int = 0,
-        val framePath: String = "${defaultNamespace}:${defaultFolder}/$id/",
+        val framePath: String = "${defaultConfig.defaultNamespace}:${defaultConfig.defaultFolder}/$id/",
         val ascent: Int = 8,
         val height: Int = 8,
         val type: GifType = GifType.OBFUSCATION

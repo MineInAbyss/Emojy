@@ -1,7 +1,6 @@
 package com.mineinabyss.emojy
 
 import com.mineinabyss.idofront.commands.execution.IdofrontCommandExecutor
-import com.mineinabyss.idofront.messaging.info
 import com.mineinabyss.idofront.messaging.success
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
@@ -11,15 +10,15 @@ import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
-import java.util.*
 
 class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
     override val commands = commands(emojy.plugin) {
         "emojy" {
             "test" {
                 action {
-                    sender.info(GlobalTranslator.render("<lang:mineinabyss.tutorial.end.1><lang:mineinabyss.tutorial.end.2>".miniMsg(), Locale.US))
-                    sender.info(GlobalTranslator.render("<lang:mineinabyss.tutorial.end.1></lang><lang:mineinabyss.tutorial.end.2>".miniMsg(), Locale.US))
+                    val lang = emojy.languages.first()
+                    sender.sendMessage(GlobalTranslator.render(("<lang:mineinabyss.tutorial.welcome.1>" + " : <lang:mineinabyss.tutorial.welcome.2>").miniMsg(), lang.locale))
+                    sender.sendMessage(GlobalTranslator.render(("<lang:mineinabyss.tutorial.welcome.1>" + "</lang>" +  " : <lang:mineinabyss.tutorial.welcome.2>").miniMsg(), lang.locale))
                 }
             }
             "list" {

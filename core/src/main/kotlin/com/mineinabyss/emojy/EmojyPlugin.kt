@@ -53,6 +53,9 @@ class EmojyPlugin : JavaPlugin() {
     }
 
     fun createEmojyContext() {
+        DI.remove<EmojyConfig>()
+        DI.add<EmojyConfig>(EmojyConfig())
+
         DI.remove<EmojyContext>()
         val emojyContext = object : EmojyContext {
             override val plugin: EmojyPlugin = this@EmojyPlugin
