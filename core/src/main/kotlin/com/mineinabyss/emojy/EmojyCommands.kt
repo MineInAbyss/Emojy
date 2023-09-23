@@ -5,46 +5,58 @@ import com.mineinabyss.idofront.messaging.success
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
 import net.kyori.adventure.inventory.Book
+import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
 
 class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
-    override val commands = commands(emojy) {
+    override val commands = commands(emojy.plugin) {
         "emojy" {
+            "test" {
+                action {
+                    val lang = emojy.languages.first()
+                    sender.sendMessage(GlobalTranslator.render(("<lang:mineinabyss.tutorial.welcome.1>" + " : <lang:mineinabyss.tutorial.welcome.2>").miniMsg(), lang.locale))
+                    sender.sendMessage(GlobalTranslator.render(("<lang:mineinabyss.tutorial.welcome.1>" + "</lang>" +  " : <lang:mineinabyss.tutorial.welcome.2>").miniMsg(), lang.locale))
+                }
+            }
             "list" {
                 action {
-                    val emotes = emojyConfig.emotes.filter { it.checkPermission(sender as? Player) }.toSet()
-                    val gifs = emojyConfig.gifs.filter { it.checkPermission(sender as? Player) }.toSet()
+                    val emotes = emojy.config.emotes.filter { it.checkPermission(sender as? Player) }.toSet()
+                    val gifs = emojy.config.gifs.filter { it.checkPermission(sender as? Player) }.toSet()
 
                     val emoteList = if (sender is Player) emotes.joinToString("") { emote ->
                         emote.getFormattedUnicode(" ", true).serialize()
-                    }.miniMsg() else emojyConfig.emotes.joinToString(", ") { it.id }.miniMsg()
+                    }.miniMsg() else emojy.config.emotes.joinToString(", ") { it.id }.miniMsg()
 
                     val gifList = if (sender is Player) gifs.joinToString("") { gif ->
                         gif.getFormattedUnicode(" ").serialize()
-                    }.miniMsg() else emojyConfig.gifs.joinToString(", ") { it.id }.miniMsg()
+                    }.miniMsg() else emojy.config.gifs.joinToString(", ") { it.id }.miniMsg()
 
-                    if (emojyConfig.listType == ListType.BOOK)
-                        sender.openBook(
+                    when (emojy.config.listType) {
+                        ListType.BOOK -> sender.openBook(
                             Book.builder().addPage(
                                 "<green>List of emojis:<newline>".miniMsg().append(emoteList)
-                                    .append("<newline><newline><#f35444>List of gifs:<newline>".miniMsg()).append(gifList)
+                                    .append("<newline><newline><#f35444>List of gifs:<newline>".miniMsg())
+                                    .append(gifList)
                             ).build()
                         )
-                    else {
-                        sender.sendRichMessage("<green>List of emojis:")
-                        sender.sendMessage(emoteList)
-                        sender.sendRichMessage("<#f35444>List of GIFs")
-                        sender.sendMessage(gifList)
+                        ListType.BOOK2 -> sender.openBook(EmojyBook.book)
+                        ListType.CHAT -> {
+                            sender.sendRichMessage("<green>List of emojis:")
+                            sender.sendMessage(emoteList)
+                            sender.sendRichMessage("<#f35444>List of GIFs")
+                            sender.sendMessage(gifList)
+                        }
                     }
                 }
             }
             "reload" {
                 action {
-                    emojyConfig.reload()
-                    sender.success("Config reloaded!")
+                    emojy.plugin.createEmojyContext()
+                    emojy.plugin.generateFiles()
+                    sender.success("Emojy has been reloaded!")
                 }
             }
         }
@@ -56,11 +68,10 @@ class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
         label: String,
         args: Array<out String>
     ): List<String> {
-        return if (command.name == "emojy") {
-            when (args.size) {
-                1 -> listOf("list", "reload").filter { it.startsWith(args[0]) }
-                else -> emptyList()
-            }
-        } else return emptyList()
+        return if (command.name == "emojy") when (args.size) {
+            1 -> listOf("list", "reload").filter { it.startsWith(args[0]) }
+            else -> emptyList()
+        }
+        else return emptyList()
     }
 }

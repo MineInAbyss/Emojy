@@ -1,7 +1,5 @@
 plugins {
     id("com.mineinabyss.conventions.kotlin.jvm")
-    id("com.mineinabyss.conventions.papermc")
-    id("com.mineinabyss.conventions.publication")
     id("com.mineinabyss.conventions.autoversion")
     id("io.papermc.paperweight.userdev") version "1.5.5"
 }

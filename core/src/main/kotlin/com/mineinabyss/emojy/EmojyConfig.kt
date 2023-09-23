@@ -3,7 +3,6 @@ package com.mineinabyss.emojy
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.mineinabyss.emojy.EmojyGenerator.gifFolder
-import com.mineinabyss.idofront.config.config
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
@@ -14,55 +13,53 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.event.HoverEvent.hoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
 import net.kyori.adventure.text.minimessage.tag.standard.StandardTags
-import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
-import java.io.File
 import javax.imageio.ImageIO
-import javax.imageio.ImageReader
 
-val emojyConfig get() = emojy.config.data
 const val PRIVATE_USE_FIRST = 57344
 
-// TODO Temporary way of getting default values, should be replaced with a better system
-private val configFile = File(emojy.dataFolder, "config.yml")
-private val configuration = YamlConfiguration.loadConfiguration(configFile)
-private val defaultNamespace: String = configuration.getString("defaultNamespace", "emotes").toString()
-private val defaultFolder: String = configuration.getString("defaultFolder", "emotes").toString()
-private val defaultFont: String = configuration.getString("defaultFont", "emotes").toString()
-private val defaultHeight: Int = configuration.getInt("defaultHeight", 8)
-private val defaultAscent: Int = configuration.getInt("defaultAscent", 8)
-
 enum class ListType {
-    BOOK, CHAT
+    BOOK, BOOK2, CHAT
 }
 
 @Serializable
-data class EmojyConfig(
-    //TODO Figure out a way for these default values to be serialized and used in subclasses correctly
-    /*val defaultNamespace: String = "emotes",
+data class GlobalEmojyConfig(
+    val defaultNamespace: String = "emotes",
     val defaultFolder: String = "emotes",
     val defaultFont: String = "emotes",
     val defaultHeight: Int = 8,
-    val defaultAscent: Int = 8,*/
+    val defaultAscent: Int = 8,
+)
+
+@Serializable
+data class EmojyConfig(
+    val defaultNamespace: String = "emotes",
+    val defaultFolder: String = "emotes",
+    val defaultFont: String = "emotes",
+    val defaultHeight: Int = 8,
+    val defaultAscent: Int = 8,
+
     val requirePermissions: Boolean = true,
     val generateResourcePack: Boolean = true,
+    val supportForceUnicode: Boolean = true,
     val debug: Boolean = true,
     val listType: ListType = ListType.BOOK,
-    val emotes: Set<Emote> = mutableSetOf(Emote("")),
-    val gifs: Set<Gif> = mutableSetOf(Gif(""))
+    val supportedLanguages: Set<String> = mutableSetOf("en_us"),
+    val emotes: Set<Emote> = mutableSetOf<Emote>(),
+    val gifs: Set<Gif> = mutableSetOf<Gif>()
 ) {
     @Serializable
     data class Emote(
         val id: String,
-        @SerialName("font")
-        val _font: String = defaultFont,
-        val texture: String = "${defaultNamespace}:${defaultFolder}/$id.png",
-        val height: Int = defaultHeight,
-        val ascent: Int = defaultAscent,
+        @SerialName("font") val _font: String = defaultConfig.defaultFont,
+        val texture: String = "${defaultConfig.defaultNamespace}:${defaultConfig.defaultFolder}/$id.png",
+        val height: Int = defaultConfig.defaultHeight,
+        val ascent: Int = defaultConfig.defaultAscent,
         val bitmapWidth: Int = 1,
         val bitmapHeight: Int = 1,
     ) {
@@ -75,7 +72,7 @@ data class EmojyConfig(
                     for (j in 0 until bitmapWidth) {
                         val lastUnicode = lastUsedUnicode[_font] ?: 0
                         val row = ((getOrNull(i) ?: "") + Character.toChars(
-                            PRIVATE_USE_FIRST + lastUnicode + emojyConfig.emotes
+                            PRIVATE_USE_FIRST + lastUnicode + emojy.config.emotes
                                 .filter { it._font == _font }.map { it }.indexOf(this@Emote)
                         ).firstOrNull().toString())
                         if (getOrNull(i) == null)
@@ -107,7 +104,7 @@ data class EmojyConfig(
         }
 
         fun checkPermission(player: Player?) =
-            !emojyConfig.requirePermissions || player == null || player.hasPermission(permission) || player.hasPermission(fontPermission)
+            !emojy.config.requirePermissions || player == null || player.hasPermission(permission) || player.hasPermission(fontPermission)
 
         fun getFormattedUnicode(splitter: String = "", insert: Boolean = true): Component {
             val stripResolver = mutableSetOf<TagResolver>()
@@ -126,7 +123,7 @@ data class EmojyConfig(
                     ).serialize()
             ).miniMsg()
 
-            return if (splitter.isEmpty() || emojyConfig.emotes.indexOf(this) == emojyConfig.emotes.size - 1) component
+            return if (splitter.isEmpty() || emojy.config.emotes.indexOf(this) == emojy.config.emotes.size - 1) component
             else component.append("<font:default><white>$splitter</white></font>".miniMsg())
         }
     }
@@ -136,24 +133,35 @@ data class EmojyConfig(
     data class Gif(
         val id: String,
         val frameCount: Int = 0,
-        val framePath: String = "${defaultNamespace}:${defaultFolder}/$id/",
+        val framePath: String = "${defaultConfig.defaultNamespace}:${defaultConfig.defaultFolder}/$id/",
         val ascent: Int = 8,
         val height: Int = 8,
+        val type: GifType = GifType.OBFUSCATION
+    ) {
+        enum class GifType {
+            SHADER, OBFUSCATION
+        }
 
-        ) {
         val font get() = Key.key(namespace, id)
         val namespace get() = framePath.substringBefore(":")
         val image get() = framePath.substringAfterLast("/")
         val imagePath get() = framePath.substringAfter(":")
         val permission get() = "emojy.gif.$id"
-        fun getUnicode(i: Int = 1): Char = Character.toChars(PRIVATE_USE_FIRST + i).first()
+        fun getUnicode(i: Int): Char = Character.toChars(PRIVATE_USE_FIRST + i).first()
+        fun getUnicodes(): String {
+            return when (type) {
+                GifType.SHADER -> (1..getFrameCount()).joinToString(getUnicode(getFrameCount() + 1).toString()) { getUnicode(it).toString() }
+                    .miniMsg().font(font).color(TextColor.fromHexString("#FEFEFE")).serialize()
+                GifType.OBFUSCATION -> getUnicode(1).toString().miniMsg()
+                    .decorate(TextDecoration.OBFUSCATED).font(font).color(NamedTextColor.WHITE).serialize()
+            }
+        }
 
         @JvmName("getFrameCount1")
         fun getFrameCount(): Int {
-            val reader: ImageReader = ImageIO.getImageReadersByFormatName("gif").next() as ImageReader
-            val imageInput = ImageIO.createImageInputStream(gifFolder.resolve("${id}.gif"))
+            val reader = ImageIO.getImageReadersByFormatName("gif").next()
+            reader.input = ImageIO.createImageInputStream(gifFolder.resolve("${id}.gif"))
 
-            reader.setInput(imageInput, false)
             return try {
                 if (frameCount <= 0) reader.getNumImages(true) else frameCount
             } catch (e: IllegalStateException) {
@@ -164,7 +172,8 @@ data class EmojyConfig(
 
         fun toJson(): MutableList<JsonObject> {
             val jsonList = mutableListOf<JsonObject>()
-            (1..getFrameCount()).forEach { i ->
+            val frameCount = getFrameCount()
+            (1..frameCount).forEach { i ->
                 val output = JsonObject()
                 val chars = JsonArray()
                 output.addProperty("type", "bitmap")
@@ -175,11 +184,22 @@ data class EmojyConfig(
                 output.add("chars", chars)
                 jsonList.add(output)
             }
+
+            // Add a negative shift into the shader for ease of use
+            if (type == GifType.SHADER) {
+                val output = JsonObject()
+                val advances = JsonObject()
+                output.addProperty("type", "space")
+                advances.addProperty(getUnicode(frameCount + 1).toString(), -9)
+                output.add("advances", advances)
+                jsonList.add(output)
+            }
+
             return jsonList
         }
 
         fun checkPermission(player: Player?) =
-            !emojyConfig.requirePermissions || player == null || player.hasPermission(permission)
+            !emojy.config.requirePermissions || player == null || player.hasPermission(permission)
 
         fun getFormattedUnicode(splitter: String = "", insert: Boolean = true): Component {
             val stripResolver = mutableSetOf<TagResolver>()
@@ -187,22 +207,14 @@ data class EmojyConfig(
             val tagResolver = TagResolver.builder().resolvers(stripResolver).build()
             val mm = MiniMessage.builder().tags(tagResolver).build()
 
-            val component = mm.stripTags(getUnicode().toString().miniMsg()
-                .font(font).color(NamedTextColor.WHITE).insertion(":${id}:").decorate(TextDecoration.OBFUSCATED)
+            val component = mm.stripTags(getUnicodes().miniMsg().insertion(":${id}:")
                 .hoverEvent(hoverEvent(HoverEvent.Action.SHOW_TEXT,
                     ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this gif").miniMsg())
                 ).serialize()
             ).miniMsg()
 
-            return if (emojyConfig.gifs.indexOf(this) == emojyConfig.gifs.size - 1) component
-            else component.append("<font:default><white>$splitter</white></font>".miniMsg())
+            return if (emojy.config.gifs.indexOf(this) == emojy.config.gifs.size - 1) component
+            else component.append("<font:default><white>$splitter</white></font:default>".miniMsg())
         }
-    }
-
-    fun reload() {
-        emojy.config = config("config") { emojy.fromPluginPath(loadDefault = true) }
-        EmojyGenerator.reloadFontFiles()
-        if (emojyConfig.generateResourcePack)
-            EmojyGenerator.generateResourcePack()
     }
 }

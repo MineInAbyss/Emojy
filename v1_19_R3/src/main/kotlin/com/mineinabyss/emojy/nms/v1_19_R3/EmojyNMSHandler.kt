@@ -1,6 +1,9 @@
+@file:Suppress("unused")
+
 package com.mineinabyss.emojy.nms.v1_19_R3
 
 import com.github.shynixn.mccoroutine.bukkit.launch
+import com.github.shynixn.mccoroutine.bukkit.minecraftDispatcher
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.mineinabyss.emojy.emojy
@@ -15,7 +18,10 @@ import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
 import net.minecraft.nbt.StringTag
-import net.minecraft.network.*
+import net.minecraft.network.Connection
+import net.minecraft.network.FriendlyByteBuf
+import net.minecraft.network.PacketEncoder
+import net.minecraft.network.SkipPacketException
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.server.MinecraftServer
@@ -31,10 +37,13 @@ class EmojyNMSHandler : IEmojyNMSHandler {
     private val encoder = Collections.synchronizedMap(WeakHashMap<Channel, ChannelHandler>())
     private val decoder = Collections.synchronizedMap(WeakHashMap<Channel, ChannelHandler>())
 
+    @Suppress("unused", "UNCHECKED_CAST", "FunctionName")
     fun EmojyNMSHandler() {
-        val networkManagers: List<ConnectionProtocol> =
-            ServerConnectionListener::class.java.getDeclaredField("g").apply { this.isAccessible = true; }.get(MinecraftServer.getServer().connection) as List<ConnectionProtocol>
-        val channelFutures = ServerConnectionListener::class.java.getDeclaredField("f").apply { this.isAccessible = true; }.get(MinecraftServer.getServer().connection) as List<ChannelFuture>
+        val connections: List<Connection> = MinecraftServer.getServer().connection?.connections ?: emptyList()
+        // Have to set it accessible because unlike connections it is private
+        val channelFutures =
+            ServerConnectionListener::class.java.getDeclaredField("f").apply { this.isAccessible = true; }
+                .get(MinecraftServer.getServer().connection) as List<ChannelFuture>
 
 
         // Handle connected channels
@@ -42,7 +51,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
             override fun initChannel(channel: Channel) {
                 try {
                     // This can take a while, so we need to stop the main thread from interfering
-                    synchronized(networkManagers) {
+                    synchronized(connections) {
                         // Stop injecting channels
                         channel.eventLoop().submit { channel.inject() }
                     }
@@ -59,15 +68,15 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
                 channel.pipeline().forEach {
                     if (it.value.javaClass.name == "com.viaversion.viaversion.bukkit.handlers.BukkitChannelInitializer") {
-                        handler = it.value
+                        handler = it.value as ChannelHandler
                     }
                 }
                 handler?.let {
                     val initChannel =
                         ChannelInitializer::class.java.getDeclaredMethod("initChannel", Channel::class.java)
                             .apply { isAccessible = true }
-                    val original = handler!!.javaClass.getDeclaredField("original").apply { this.isAccessible = true }
-                    val initializer = original.get(handler) as ChannelInitializer<*>
+                    val original = it.javaClass.getDeclaredField("original").apply { this.isAccessible = true }
+                    val initializer = original.get(it) as ChannelInitializer<*>
                     val miniInit = object : ChannelInitializer<Channel>() {
                         override fun initChannel(channel: Channel) {
                             initChannel.invoke(initializer, channel)
@@ -89,7 +98,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         try {
             bind(channelFutures, serverChannelHandler)
         } catch (e: IllegalArgumentException) {
-            emojy.launch {
+            emojy.plugin.launch(emojy.plugin.minecraftDispatcher) {
                 bind(channelFutures, serverChannelHandler)
             }
         }
@@ -100,7 +109,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
             future.channel().pipeline().addFirst(serverChannelHandler)
         }
 
-        Bukkit.getOnlinePlayers().forEach { inject(it) }
+        Bukkit.getOnlinePlayers().forEach(::inject)
     }
 
     private fun Channel.inject() {
@@ -222,25 +231,20 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
 
         private fun transform(compound: CompoundTag, transformer: Function<String, String>) {
-            for (key in compound.allKeys) {
-                when (val base = compound.get(key)) {
-                    is CompoundTag -> transform(base, transformer)
-                    is ListTag -> transform(base, transformer)
-                    is StringTag -> compound.put(key, StringTag.valueOf(transformer.apply(base.asString)))
-                }
+            for (key in compound.allKeys) when (val base = compound.get(key)) {
+                is CompoundTag -> transform(base, transformer)
+                is ListTag -> transform(base, transformer)
+                is StringTag -> compound.put(key, StringTag.valueOf(transformer.apply(base.asString)))
             }
         }
 
         private fun transform(list: ListTag, transformer: Function<String, String>) {
-            for (base in list) {
-                when (base) {
-                    is CompoundTag -> transform(base, transformer)
-                    is ListTag -> transform(base, transformer)
-                    is StringTag -> {
-                        transformer.apply(base.asString)
-                        list -= base
-                        list += StringTag.valueOf(transformer.apply(base.asString))
-                    }
+            for (base in list) when (base) {
+                is CompoundTag -> transform(base, transformer)
+                is ListTag -> transform(base, transformer)
+                is StringTag -> list.indexOf(base).let { index ->
+                    list.add(index, StringTag.valueOf(transformer.apply(base.asString)))
+                    list.removeAt(index + 1)
                 }
             }
         }
@@ -250,7 +254,6 @@ class EmojyNMSHandler : IEmojyNMSHandler {
                 this.miniMsg().replaceEmoteIds(player, false)
             }
         }
-
 
 
     }

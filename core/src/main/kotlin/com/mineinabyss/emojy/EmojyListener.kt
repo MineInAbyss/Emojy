@@ -1,19 +1,18 @@
 package com.mineinabyss.emojy
 
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers
-import com.mineinabyss.idofront.messaging.*
 import com.mineinabyss.idofront.textcomponents.serialize
-import io.papermc.paper.event.player.AsyncChatCommandDecorateEvent
 import io.papermc.paper.event.player.AsyncChatDecorateEvent
-import kotlinx.coroutines.*
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
+import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
+import java.util.*
 
 @Suppress("UnstableApiUsage")
 class EmojyListener : Listener {
@@ -28,11 +27,6 @@ class EmojyListener : Listener {
         EmojyNMSHandlers.getHandler()?.uninject(player)
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    fun AsyncChatCommandDecorateEvent.onCommand() {
-        result(originalMessage().replaceEmoteIds(player()))
-    }
-
     // Replace with result not original message to avoid borking other chat formatting
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun AsyncChatDecorateEvent.onPlayerChat() {
@@ -41,14 +35,12 @@ class EmojyListener : Listener {
 }
 
 //TODO Tags like rainbow and gradient, which split the text into multiple children, will break replacement below
+// Find out why this is called 3 times
 fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): Component {
-    var msg = this
+    var msg = GlobalTranslator.render(this, player?.locale() ?: Locale.US)
     val serialized = msg.serialize()
 
-    if (emojyConfig.emotes.none { ":${it.id}" in serialized } &&
-        emojyConfig.gifs.none { ":${it.id}" in serialized }) return msg
-
-    emojyConfig.emotes.forEach { emote ->
+    emojy.config.emotes.firstOrNull { ":${it.id}:" in serialized }?.let { emote ->
         if (emote.checkPermission(player)) {
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
@@ -59,7 +51,7 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
         }
     }
 
-    emojyConfig.gifs.forEach { gif ->
+    emojy.config.gifs.firstOrNull { ":${it.id}:" in serialized }?.let { gif ->
         if (gif.checkPermission(player)) {
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
@@ -69,5 +61,6 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
             )
         }
     }
+
     return msg
 }

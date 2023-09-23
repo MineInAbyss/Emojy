@@ -6,10 +6,9 @@ object EmojyNMSHandlers {
     private var handler: IEmojyNMSHandler? = null
 
     fun getHandler(): IEmojyNMSHandler? {
-        if (handler != null) {
-            return handler
-        } else {
-            setup()
+        when {
+            handler != null -> return handler
+            else -> setup()
         }
         return handler
     }
@@ -17,11 +16,9 @@ object EmojyNMSHandlers {
     private fun setup() {
         if (handler != null) return
         SUPPORTED_VERSION.forEach { version ->
-            try {
-                Class.forName("org.bukkit.craftbukkit.$version.block.CraftBlock").name
+            runCatching {
                 handler = Class.forName("com.mineinabyss.emojy.nms.${version}.EmojyNMSHandler").getConstructor()
                     .newInstance() as IEmojyNMSHandler
-            } catch (_: Exception) {
             }
         }
     }
