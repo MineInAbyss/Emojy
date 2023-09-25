@@ -5,8 +5,8 @@ plugins {
     id("com.mineinabyss.conventions.publication")
     id("com.mineinabyss.conventions.autoversion")
     id("xyz.jpenilla.run-paper") version "2.0.1" // Adds runServer and runMojangMappedServer tasks for testing
-    id("net.minecrell.plugin-yml.bukkit") version "0.5.3"
-    id("io.papermc.paperweight.userdev") version "1.5.5"
+    id("net.minecrell.plugin-yml.bukkit") version "0.6.0"
+    id("io.papermc.paperweight.userdev") version "1.5.6"
 }
 
 allprojects {
@@ -28,12 +28,13 @@ dependencies {
 
     // Shaded
     implementation(libs.bundles.idofront.core)
-    paperweight.paperDevBundle("1.20.1-R0.1-SNAPSHOT") //NMS
+    paperweight.paperDevBundle("1.20.2-R0.1-SNAPSHOT") //NMS
     implementation(project(path = ":core"))
     implementation(project(path = ":v1_19_R1", configuration = "reobf"))
     implementation(project(path = ":v1_19_R2", configuration = "reobf"))
     implementation(project(path = ":v1_19_R3", configuration = "reobf"))
     implementation(project(path = ":v1_20_R1", configuration = "reobf"))
+    implementation(project(path = ":v1_20_R2", configuration = "reobf"))
 }
 
 tasks {
@@ -57,7 +58,7 @@ tasks {
     }
 
     runServer {
-        minecraftVersion("1.20.1")
+        minecraftVersion("1.20.2")
     }
 
     shadowJar {
@@ -65,6 +66,7 @@ tasks {
         dependsOn(":v1_19_R2:reobfJar")
         dependsOn(":v1_19_R3:reobfJar")
         dependsOn(":v1_20_R1:reobfJar")
+        dependsOn(":v1_20_R2:reobfJar")
         archiveFileName.set("Emojy.jar")
         //archiveFile.get().asFile.copyTo(layout.projectDirectory.file("run/plugins/ModernLightApi.jar").asFile, true)
     }
