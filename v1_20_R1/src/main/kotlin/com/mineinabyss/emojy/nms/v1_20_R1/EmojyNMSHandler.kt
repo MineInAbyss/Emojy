@@ -32,6 +32,7 @@ import org.bukkit.scheduler.BukkitRunnable
 import java.io.IOException
 import java.util.*
 import java.util.function.Function
+import java.util.function.Supplier
 
 class EmojyNMSHandler : IEmojyNMSHandler {
     private val encoder = Collections.synchronizedMap(WeakHashMap<Channel, ChannelHandler>())
