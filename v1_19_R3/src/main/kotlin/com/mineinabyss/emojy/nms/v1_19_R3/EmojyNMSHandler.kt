@@ -24,6 +24,7 @@ import net.minecraft.network.PacketEncoder
 import net.minecraft.network.SkipPacketException
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.PacketFlow
+import net.minecraft.network.protocol.game.ClientboundPlayerChatPacket
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.network.ServerConnectionListener
 import org.bukkit.Bukkit
@@ -179,19 +180,25 @@ class EmojyNMSHandler : IEmojyNMSHandler {
     private class CustomPacketDecoder : ByteToMessageDecoder() {
         var player: Player? = null
 
-        override fun decode(ctx: ChannelHandlerContext, msg: ByteBuf, out: MutableList<Any>) {
-            if (msg.readableBytes() == 0) return
+        override fun decode(ctx: ChannelHandlerContext, buffer: ByteBuf, out: MutableList<Any>) {
+            val buffferCopy = buffer.copy()
+            if (buffer.readableBytes() == 0) return
 
-            val dataSerializer = CustomDataSerializer(player, msg)
+            val dataSerializer: FriendlyByteBuf = CustomDataSerializer(player, buffer)
             val packetID = dataSerializer.readVarInt()
-            val packet = ctx.channel().attr(Connection.ATTRIBUTE_PROTOCOL).get()
-                .createPacket(PacketFlow.SERVERBOUND, packetID, dataSerializer)
-                ?: throw IOException("Bad packet id $packetID")
+            val protocol = ctx.channel().attr(Connection.ATTRIBUTE_PROTOCOL).get()
+            var packet = protocol.createPacket(PacketFlow.SERVERBOUND, packetID, dataSerializer) ?: throw IOException("Bad packet id $packetID")
 
-            if (dataSerializer.readableBytes() > 0) {
-                throw IOException("Packet $packetID ($packet) was larger than I expected, found ${dataSerializer.readableBytes()} bytes extra whilst reading packet $packetID")
+            when {
+                dataSerializer.readableBytes() > 0 -> throw IOException("Packet $packetID ($packet) was larger than I expected, found ${dataSerializer.readableBytes()} bytes extra whilst reading packet $packetID")
+                packet is ClientboundPlayerChatPacket -> {
+                    val serializer = FriendlyByteBuf(buffferCopy)
+                    serializer.readVarInt()
+                    packet = protocol.createPacket(PacketFlow.SERVERBOUND, packetID, serializer) ?: throw IOException("Bad packet id $packetID")
+                }
             }
-            out.add(packet)
+
+            out += packet
         }
     }
 
