@@ -1,10 +1,11 @@
 package com.mineinabyss.emojy
 
 import com.mineinabyss.idofront.commands.execution.IdofrontCommandExecutor
+import com.mineinabyss.idofront.messaging.broadcastVal
 import com.mineinabyss.idofront.messaging.success
 import com.mineinabyss.idofront.textcomponents.miniMsg
-import com.mineinabyss.idofront.textcomponents.serialize
 import net.kyori.adventure.inventory.Book
+import net.kyori.adventure.text.Component
 import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
@@ -19,31 +20,35 @@ class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
                     val lang = emojy.languages.first()
                     sender.sendMessage(GlobalTranslator.render(("<lang:mineinabyss.tutorial.welcome.1>" + " : <lang:mineinabyss.tutorial.welcome.2>").miniMsg(), lang.locale))
                     sender.sendMessage(GlobalTranslator.render(("<lang:mineinabyss.tutorial.welcome.1>" + "</lang>" +  " : <lang:mineinabyss.tutorial.welcome.2>").miniMsg(), lang.locale))
+                    emojy.languages.map { it.locale to it.keys }.joinToString(", ").broadcastVal()
                 }
             }
             "list" {
                 action {
-                    val emotes = emojy.config.emotes.filter { it.checkPermission(sender as? Player) }.toSet()
-                    val gifs = emojy.config.gifs.filter { it.checkPermission(sender as? Player) }.toSet()
+                    val emotes = emojy.config.emotes.filter { it.checkPermission(sender as? Player) && it !in emojy.config.emojyList.ignoredEmotes }.toSet()
+                    val gifs = emojy.config.gifs.filter { it.checkPermission(sender as? Player) && it !in emojy.config.emojyList.ignoredGifs }.toSet()
 
-                    val emoteList = if (sender is Player) emotes.joinToString("") { emote ->
-                        emote.getFormattedUnicode(" ", true).serialize()
-                    }.miniMsg() else emojy.config.emotes.joinToString(", ") { it.id }.miniMsg()
+                    val emoteList = when (sender) {
+                        is Player -> Component.textOfChildren(*emotes.map { it.getFormattedUnicode(true) }.toTypedArray())
+                        else -> emojy.config.emotes.joinToString(", ") { it.id }.miniMsg()
+                    }
 
-                    val gifList = if (sender is Player) gifs.joinToString("") { gif ->
-                        gif.getFormattedUnicode(" ").serialize()
-                    }.miniMsg() else emojy.config.gifs.joinToString(", ") { it.id }.miniMsg()
+                    val gifList = when (sender) {
+                        is Player -> Component.textOfChildren(*gifs.map { it.getFormattedUnicode(true).appendSpace() }.toTypedArray())
 
-                    when (emojy.config.listType) {
-                        ListType.BOOK -> sender.openBook(
+                        else -> emojy.config.gifs.joinToString(", ") { it.id }.miniMsg()
+                    }
+
+                    when (emojy.config.emojyList.type) {
+                        EmojyConfig.ListType.BOOK -> sender.openBook(
                             Book.builder().addPage(
                                 "<green>List of emojis:<newline>".miniMsg().append(emoteList)
                                     .append("<newline><newline><#f35444>List of gifs:<newline>".miniMsg())
                                     .append(gifList)
                             ).build()
                         )
-                        ListType.BOOK2 -> sender.openBook(EmojyBook.book)
-                        ListType.CHAT -> {
+                        EmojyConfig.ListType.BOOK2 -> EmojyBook.book(sender)
+                        EmojyConfig.ListType.CHAT -> {
                             sender.sendRichMessage("<green>List of emojis:")
                             sender.sendMessage(emoteList)
                             sender.sendRichMessage("<#f35444>List of GIFs")

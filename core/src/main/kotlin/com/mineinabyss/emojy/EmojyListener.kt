@@ -11,7 +11,6 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
-import org.bukkit.event.player.PlayerQuitEvent
 import java.util.*
 
 @Suppress("UnstableApiUsage")
@@ -22,13 +21,8 @@ class EmojyListener : Listener {
         EmojyNMSHandlers.getHandler()?.inject(player)
     }
 
-    @EventHandler
-    fun PlayerQuitEvent.uninjectPlayer() {
-        EmojyNMSHandlers.getHandler()?.uninject(player)
-    }
-
     // Replace with result not original message to avoid borking other chat formatting
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     fun AsyncChatDecorateEvent.onPlayerChat() {
         result(result().replaceEmoteIds(player()))
     }

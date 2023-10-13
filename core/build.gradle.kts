@@ -21,4 +21,5 @@ dependencies {
 
     // Shaded
     implementation(libs.bundles.idofront.core)
+    implementation("com.aaaaahhhhh.bananapuncher714:GifConverter:1.0")
 }

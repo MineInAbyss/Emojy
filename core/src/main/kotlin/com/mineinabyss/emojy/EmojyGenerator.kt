@@ -1,13 +1,11 @@
 package com.mineinabyss.emojy
 
+import com.aaaaahhhhhhh.bananapuncher714.gifconverter.GifConverter
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.messaging.logWarn
-import java.awt.image.BufferedImage
 import java.io.File
-import java.io.FileInputStream
-import javax.imageio.ImageIO
 
 
 //TODO Make font generation sort by namespace to avoid duplicate fonts
@@ -26,7 +24,8 @@ object EmojyGenerator {
                 }
             }
 
-            runCatching {
+            //TODO Remove or find a better solution (files cant have same names here and its annoying either way)
+            /*runCatching {
                 val texture =
                     File(emojy.plugin.dataFolder.path, "/textures/${emote.image}").run { parentFile.mkdirs(); this }
                 texture.copyTo(assetDir.resolve(emote.namespace + "/textures/${emote.imagePath}"), true)
@@ -38,7 +37,7 @@ object EmojyGenerator {
                         logWarn("If you have it through another resourcepack, ignore this")
                     }
                 }
-            }
+            }*/
         }
 
         emojy.config.gifs.forEach { gif ->
@@ -100,69 +99,10 @@ object EmojyGenerator {
     val gifFolder = File(emojy.plugin.dataFolder,"gifs").run { mkdirs(); this }
     private fun EmojyConfig.Gif.generateSplitGif() {
         runCatching {
-            val stream = FileInputStream(gifFolder.resolve("${id}.gif"))
-            val decoder = GifDecoder()
-            val frameCount = getFrameCount()
-            decoder.read(stream)
-            stream.close()
-
-            var time = 0
-            val totalTime = (0 until frameCount).sumOf { decoder.getDelay(it) }
-
-            for (frameIndex in 0 until frameCount) {
-                // Delay in 1/100th of a second
-                val delay = decoder.getDelay(frameIndex)
-                val start = time
-                time += delay
-                val end = time
-
-                val frame = generateFrame(decoder.getFrame(frameIndex)!!, start, end, totalTime)
-                val dest = gifFolder.resolve("${id}/${frameIndex + 1}.png").run { parentFile.mkdirs(); this }
-                val assetDest = File(emojy.plugin.dataFolder.path, "/assets/${namespace}/textures/${imagePath}/${frameIndex + 1}.png").run { parentFile.mkdirs(); this }
-                ImageIO.write(frame, "png", dest)
-                ImageIO.write(frame, "png", assetDest)
-            }
-        }.onFailure(::logError)
+            gifFolder.resolve(id).deleteRecursively() // Clear files for regenerating
+            GifConverter.splitGif( gifFolder.resolve("${id}.gif"), getFrameCount())
+        }.onFailure {
+            if (emojy.config.debug) logError("Could not generate split gif for ${id}.gif: ${it.message}")
+        }
     }
-
-    private fun generateFrame(image: BufferedImage, start: Int, stop: Int, total: Int): BufferedImage {
-        val frame = BufferedImage(image.width + 2, image.height + 2, BufferedImage.TYPE_INT_ARGB)
-        frame.setRGB(
-            1,
-            1,
-            image.width,
-            image.height,
-            image.getRGB(0, 0, image.width, image.height, null, 0, image.width),
-            0,
-            image.width
-        )
-        val width = frame.width - 1
-        val height = frame.height - 1
-        val info = IntArray(8)
-        info[0] = total shr 8 and 0xFF
-        info[1] = total and 0xFF
-        info[2] = start shr 8 and 0xFF
-        info[3] = start and 0xFF
-        info[4] = stop shr 8 and 0xFF
-        info[5] = stop and 0xFF
-
-        // 0, 1, 2, 3 for quadrants
-        // 149 for identifier
-        // Other 2 are for relative coords
-        frame.setRGB(width, 0, compact(0, 0, 0, 149))
-        frame.setRGB(0, 0, compact(1, 0, 0, 149))
-        frame.setRGB(0, height, compact(2, 0, 0, 149))
-        frame.setRGB(width, height, compact(3, 0, 0, 149))
-        frame.setRGB(width - 1, 0, compact(info[0], info[1], info[2], info[3]))
-        frame.setRGB(width, 1, compact(info[4], info[5], info[6], info[7]))
-        frame.setRGB(1, 0, compact(info[0], info[1], info[2], info[3]))
-        frame.setRGB(0, 1, compact(info[4], info[5], info[6], info[7]))
-        frame.setRGB(1, height, compact(info[0], info[1], info[2], info[3]))
-        frame.setRGB(0, height - 1, compact(info[4], info[5], info[6], info[7]))
-        frame.setRGB(width - 1, height, compact(info[0], info[1], info[2], info[3]))
-        frame.setRGB(width, height - 1, compact(info[4], info[5], info[6], info[7]))
-        return frame
-    }
-
-    private fun compact(b1: Int, b2: Int, b3: Int, b4: Int) = b4 and 0xFF shl 24 or (b1 and 0xFF shl 16) or (b2 and 0xFF shl 8) or (b3 and 0xFF)
 }

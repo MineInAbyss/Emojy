@@ -4,7 +4,7 @@ import com.mineinabyss.emojy.translator.EmojyLanguage
 import com.mineinabyss.idofront.di.DI
 
 val emojy by DI.observe<EmojyContext>()
-val defaultConfig by DI.observe<EmojyConfig>()
+val defaultConfig by DI.observe<GlobalEmojyConfig>()
 interface EmojyContext {
     val plugin: EmojyPlugin
     val config: EmojyConfig

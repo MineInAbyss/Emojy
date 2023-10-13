@@ -9,10 +9,9 @@ import com.mineinabyss.idofront.platforms.Platforms
 import com.mineinabyss.idofront.plugin.listeners
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.translation.GlobalTranslator
-import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
-import java.nio.file.Path
 import java.util.*
+import kotlin.io.path.div
 
 class EmojyPlugin : JavaPlugin() {
     override fun onLoad() {
@@ -32,7 +31,7 @@ class EmojyPlugin : JavaPlugin() {
 
         listeners(EmojyListener())
 
-        Bukkit.getOnlinePlayers().forEach {
+        server.onlinePlayers.forEach {
             EmojyNMSHandlers.getHandler()?.inject(it)
         }
 
@@ -41,7 +40,7 @@ class EmojyPlugin : JavaPlugin() {
     }
 
     override fun onDisable() {
-        Bukkit.getOnlinePlayers().forEach {
+        server.onlinePlayers.forEach {
             EmojyNMSHandlers.getHandler()?.uninject(it)
         }
     }
@@ -53,17 +52,16 @@ class EmojyPlugin : JavaPlugin() {
     }
 
     fun createEmojyContext() {
-        DI.remove<EmojyConfig>()
-        DI.add<EmojyConfig>(EmojyConfig())
+        DI.remove<GlobalEmojyConfig>()
+        DI.add<GlobalEmojyConfig>(GlobalEmojyConfig())
 
         DI.remove<EmojyContext>()
         val emojyContext = object : EmojyContext {
             override val plugin: EmojyPlugin = this@EmojyPlugin
-            override val config: EmojyConfig by config("config") { fromPluginPath(loadDefault = true) }
+            override val config: EmojyConfig by config("config", plugin.dataFolder.toPath(), EmojyConfig())
             override val languages: Set<EmojyLanguage> = config.supportedLanguages.map {
-                EmojyLanguage(it.split("_").let { l -> Locale(l.first(), l.last()) }, config<Map<String, String>>(it) {
-                    fromPluginPath(relativePath = Path.of("languages"), loadDefault = true)
-                }.data)
+                EmojyLanguage(it.split("_").let { l -> Locale(l.first(), l.last().uppercase()) },
+                    config<Map<String, String>>(it, plugin.dataFolder.toPath() / "languages", mapOf()).getOrLoad())
             }.toSet()
         }
         DI.add<EmojyContext>(emojyContext)

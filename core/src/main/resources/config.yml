@@ -17,7 +17,12 @@ defaultAscent: 8
 requirePermission: true
 generateResourcePack: true
 debug: true
-listType: BOOK
+
+emojyList:
+  type: CHAT
+  ignoredFontIds: []
+  ignoredEmoteIds: []
+  ignoredGifs: []
 
 supportedLanguages:
   - en_US

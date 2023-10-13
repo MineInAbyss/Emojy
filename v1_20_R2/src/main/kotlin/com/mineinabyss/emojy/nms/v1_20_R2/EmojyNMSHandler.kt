@@ -71,7 +71,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
                     val miniInit = object : ChannelInitializer<Channel>() {
                         override fun initChannel(channel: Channel) {
                             initChannel.invoke(initializer, channel)
-                            channel.inject()
+                            channel.eventLoop().submit { channel.inject() }
                         }
                     }
                     original.set(handler, miniInit)
@@ -130,7 +130,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
     override fun inject(player: Player) {
         val channel = (player as? CraftPlayer)?.handle?.connection?.connection?.channel ?: return
-        channel.inject()
+        channel.eventLoop().submit { channel.inject() }
         channel.pipeline().forEach {
             when (val handler = it.value) {
                 is CustomPacketEncoder -> handler.setPlayer(player)

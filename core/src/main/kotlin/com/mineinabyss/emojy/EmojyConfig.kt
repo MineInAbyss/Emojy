@@ -13,19 +13,14 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.event.HoverEvent.hoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.Style
 import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.format.TextDecoration
-import net.kyori.adventure.text.minimessage.MiniMessage
-import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
-import net.kyori.adventure.text.minimessage.tag.standard.StandardTags
 import org.bukkit.entity.Player
+import java.io.File
 import javax.imageio.ImageIO
 
 const val PRIVATE_USE_FIRST = 57344
-
-enum class ListType {
-    BOOK, BOOK2, CHAT
-}
 
 @Serializable
 data class GlobalEmojyConfig(
@@ -48,11 +43,27 @@ data class EmojyConfig(
     val generateResourcePack: Boolean = true,
     val supportForceUnicode: Boolean = true,
     val debug: Boolean = true,
-    val listType: ListType = ListType.BOOK,
+    val emojyList: EmojyList = EmojyList(),
     val supportedLanguages: Set<String> = mutableSetOf("en_us"),
-    val emotes: Set<Emote> = mutableSetOf<Emote>(),
-    val gifs: Set<Gif> = mutableSetOf<Gif>()
+    val emotes: Set<Emote> = mutableSetOf(),
+    val gifs: Set<Gif> = mutableSetOf()
 ) {
+    @Serializable
+    data class EmojyList(
+        val type: ListType = ListType.CHAT,
+        val ignoredEmoteIds: Set<String> = mutableSetOf(),
+        val ignoredGifIds: Set<String> = mutableSetOf(),
+        val ignoredFonts: Set<String> = mutableSetOf()
+    ) {
+        val ignoredEmotes: Set<Emote> get() = emojy.config.emotes.filter { it.id in ignoredEmoteIds|| it._font in ignoredFonts || it.font.asString() in ignoredFonts }.toSet()
+        val ignoredGifs: Set<Gif> get() = emojy.config.gifs.filter { it.id in ignoredGifIds || it.font.asString() in ignoredFonts }.toSet()
+    }
+
+    enum class ListType {
+        BOOK, BOOK2, CHAT
+    }
+
+
     @Serializable
     data class Emote(
         val id: String,
@@ -104,27 +115,21 @@ data class EmojyConfig(
         }
 
         fun checkPermission(player: Player?) =
-            !emojy.config.requirePermissions || player == null || player.hasPermission(permission) || player.hasPermission(fontPermission)
+            !emojy.config.requirePermissions || player == null || player.hasPermission(permission) || player.hasPermission(
+                fontPermission
+            )
 
-        fun getFormattedUnicode(splitter: String = "", insert: Boolean = true): Component {
-            val stripResolver = mutableSetOf<TagResolver>()
-                .apply { if (!insert) addAll(listOf(StandardTags.hoverEvent(), StandardTags.insertion())) }
-            val tagResolver = TagResolver.builder().resolvers(stripResolver).build()
-            val mm = MiniMessage.builder().tags(tagResolver).build()
+        fun getFormattedUnicode(appendSpace: Boolean = false, insert: Boolean = true): Component {
+            var bitmap = when {
+                getUnicodes().size > 1 -> Component.textOfChildren(*getUnicodes().map {
+                    Component.text(it).appendNewline()
+                }.toTypedArray())
+                else -> getUnicodes().first().miniMsg()
+            }.font(font).color(NamedTextColor.WHITE)
 
-            val bitmap = (if (getUnicodes().size > 1) {
-                getUnicodes().joinToString(splitter) { "<newline>$it" }
-            } else getUnicodes().first()).miniMsg()
-
-            val component = mm.stripTags(
-                bitmap.font(font).color(NamedTextColor.WHITE).insertion(":${id}:")
-                    .hoverEvent(hoverEvent(HoverEvent.Action.SHOW_TEXT,
-                        ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this emote").miniMsg())
-                    ).serialize()
-            ).miniMsg()
-
-            return if (splitter.isEmpty() || emojy.config.emotes.indexOf(this) == emojy.config.emotes.size - 1) component
-            else component.append("<font:default><white>$splitter</white></font>".miniMsg())
+            bitmap = if (!insert) bitmap else bitmap.insertion(":${id}:").hoverEvent(hoverEvent(HoverEvent.Action.SHOW_TEXT,
+                ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this emote").miniMsg()))
+            return if (appendSpace) bitmap.apply { appendSpace().style(Style.empty()) } else bitmap
         }
     }
 
@@ -133,7 +138,7 @@ data class EmojyConfig(
     data class Gif(
         val id: String,
         val frameCount: Int = 0,
-        val framePath: String = "${defaultConfig.defaultNamespace}:${defaultConfig.defaultFolder}/$id/",
+        @SerialName("framePath") val _framePath: String = "${defaultConfig.defaultNamespace}:${defaultConfig.defaultFolder}/$id/",
         val ascent: Int = 8,
         val height: Int = 8,
         val type: GifType = GifType.OBFUSCATION
@@ -142,6 +147,7 @@ data class EmojyConfig(
             SHADER, OBFUSCATION
         }
 
+        val framePath get() = _framePath.let { if (it.endsWith("/")) it else "$it/" }
         val font get() = Key.key(namespace, id)
         val namespace get() = framePath.substringBefore(":")
         val image get() = framePath.substringAfterLast("/")
@@ -150,8 +156,9 @@ data class EmojyConfig(
         fun getUnicode(i: Int): Char = Character.toChars(PRIVATE_USE_FIRST + i).first()
         fun getUnicodes(): String {
             return when (type) {
-                GifType.SHADER -> (1..getFrameCount()).joinToString(getUnicode(getFrameCount() + 1).toString()) { getUnicode(it).toString() }
-                    .miniMsg().font(font).color(TextColor.fromHexString("#FEFEFE")).serialize()
+                GifType.SHADER -> (1..getFrameCount()).joinToString(getUnicode(getFrameCount() + 1).toString()) {
+                    getUnicode(it).toString()
+                }.miniMsg().font(font).color(TextColor.fromHexString("#FEFEFE")).serialize()
                 GifType.OBFUSCATION -> getUnicode(1).toString().miniMsg()
                     .decorate(TextDecoration.OBFUSCATED).font(font).color(NamedTextColor.WHITE).serialize()
             }
@@ -161,11 +168,12 @@ data class EmojyConfig(
         fun getFrameCount(): Int {
             val reader = ImageIO.getImageReadersByFormatName("gif").next()
             reader.input = ImageIO.createImageInputStream(gifFolder.resolve("${id}.gif"))
+            File("").absoluteFile.path
 
             return try {
                 if (frameCount <= 0) reader.getNumImages(true) else frameCount
             } catch (e: IllegalStateException) {
-                logError("Could not get frame count for ${id}.gif")
+                if (emojy.config.debug) logError("Could not get frame count for ${id}.gif")
                 return 0
             }
         }
@@ -201,20 +209,12 @@ data class EmojyConfig(
         fun checkPermission(player: Player?) =
             !emojy.config.requirePermissions || player == null || player.hasPermission(permission)
 
-        fun getFormattedUnicode(splitter: String = "", insert: Boolean = true): Component {
-            val stripResolver = mutableSetOf<TagResolver>()
-                .apply { if (!insert) addAll(listOf(StandardTags.hoverEvent(), StandardTags.insertion())) }
-            val tagResolver = TagResolver.builder().resolvers(stripResolver).build()
-            val mm = MiniMessage.builder().tags(tagResolver).build()
+        fun getFormattedUnicode(appendSpace: Boolean = false, insert: Boolean = true): Component {
+            var bitmap = getUnicodes().miniMsg().font(font).color(TextColor.fromHexString("#FEFEFE"))
 
-            val component = mm.stripTags(getUnicodes().miniMsg().insertion(":${id}:")
-                .hoverEvent(hoverEvent(HoverEvent.Action.SHOW_TEXT,
-                    ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this gif").miniMsg())
-                ).serialize()
-            ).miniMsg()
-
-            return if (emojy.config.gifs.indexOf(this) == emojy.config.gifs.size - 1) component
-            else component.append("<font:default><white>$splitter</white></font:default>".miniMsg())
+            bitmap = if (!insert) bitmap else bitmap.insertion(":${id}:").hoverEvent(hoverEvent(HoverEvent.Action.SHOW_TEXT,
+                ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this emote").miniMsg()))
+            return if (appendSpace) bitmap.apply { appendSpace().style(Style.empty()) } else bitmap
         }
     }
 }
