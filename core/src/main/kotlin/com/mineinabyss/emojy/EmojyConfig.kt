@@ -115,17 +115,17 @@ data class EmojyConfig(
         }
 
         fun checkPermission(player: Player?) =
-            !emojy.config.requirePermissions || player == null || player.hasPermission(permission) || player.hasPermission(
-                fontPermission
-            )
+            !emojy.config.requirePermissions || player == null || player.hasPermission(permission) || player.hasPermission(fontPermission)
 
-        fun getFormattedUnicode(appendSpace: Boolean = false, insert: Boolean = true): Component {
+        fun getFormattedUnicode(appendSpace: Boolean = false, insert: Boolean = true, colorable: Boolean = false): Component {
             var bitmap = when {
                 getUnicodes().size > 1 -> Component.textOfChildren(*getUnicodes().map {
                     Component.text().content(it).build().appendNewline()
                 }.toTypedArray())
                 else -> Component.text().content(getUnicodes().first()).build()
-            }.font(font).color(NamedTextColor.WHITE)
+            }.font(font)
+
+            bitmap = if (colorable) bitmap else bitmap.color(NamedTextColor.WHITE)
 
             bitmap = if (!insert) bitmap else bitmap.insertion(":${id}:").hoverEvent(hoverEvent(HoverEvent.Action.SHOW_TEXT,
                 ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this emote").miniMsg()))

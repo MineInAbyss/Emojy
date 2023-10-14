@@ -38,8 +38,14 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
         if (emote.checkPermission(player)) {
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
+                    .match(":${emote.id}:(c|colorable):")
+                    .replacement(emote.getFormattedUnicode(insert = insert, colorable = true))
+                    .build()
+            )
+            msg = msg.replaceText(
+                TextReplacementConfig.builder()
                     .matchLiteral(":${emote.id}:")
-                    .replacement(emote.getFormattedUnicode(insert = insert))
+                    .replacement(emote.getFormattedUnicode(insert = insert, colorable = false))
                     .build()
             )
         }
@@ -49,7 +55,7 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
         if (gif.checkPermission(player)) {
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
-                    .match(":${gif.id}:")
+                    .matchLiteral(":${gif.id}:")
                     .replacement(gif.getFormattedUnicode(insert = insert))
                     .build()
             )
