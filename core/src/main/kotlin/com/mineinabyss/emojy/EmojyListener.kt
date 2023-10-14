@@ -34,7 +34,7 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
     var msg = GlobalTranslator.render(this, player?.locale() ?: Locale.US)
     val serialized = msg.serialize()
 
-    emojy.config.emotes.firstOrNull { ":${it.id}:" in serialized }?.let { emote ->
+    emojy.config.emotes.filter { ":${it.id}:" in serialized }.forEach { emote ->
         if (emote.checkPermission(player)) {
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
@@ -51,7 +51,7 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
         }
     }
 
-    emojy.config.gifs.firstOrNull { ":${it.id}:" in serialized }?.let { gif ->
+    emojy.config.gifs.filter { ":${it.id}:" in serialized }.forEach { gif ->
         if (gif.checkPermission(player)) {
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
