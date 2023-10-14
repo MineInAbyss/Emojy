@@ -148,6 +148,10 @@ class EmojyNMSHandler : IEmojyNMSHandler {
     private class CustomDataSerializer(val player: Player?, bytebuf: ByteBuf) :
         FriendlyByteBuf(bytebuf) {
 
+        override fun writeComponent(component: net.kyori.adventure.text.Component): FriendlyByteBuf {
+            return super.writeComponent(component.replaceEmoteIds(player, false))
+        }
+
         override fun writeUtf(string: String, maxLength: Int): FriendlyByteBuf {
             runCatching {
                 val element = JsonParser.parseString(string)
