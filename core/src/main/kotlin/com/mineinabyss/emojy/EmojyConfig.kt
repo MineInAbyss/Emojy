@@ -6,6 +6,8 @@ import com.mineinabyss.emojy.EmojyGenerator.gifFolder
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.EncodeDefault.Mode.NEVER
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.kyori.adventure.key.Key
@@ -63,20 +65,19 @@ data class EmojyConfig(
         BOOK, BOOK2, CHAT
     }
 
-
     @Serializable
     data class Emote(
         val id: String,
-        @SerialName("font") val _font: String = defaultConfig.defaultFont,
-        val texture: String = "${defaultConfig.defaultNamespace}:${defaultConfig.defaultFolder}/$id.png",
-        val height: Int = defaultConfig.defaultHeight,
-        val ascent: Int = defaultConfig.defaultAscent,
-        val bitmapWidth: Int = 1,
-        val bitmapHeight: Int = 1,
+        @EncodeDefault(NEVER) @SerialName("font") val _font: String = defaultConfig.defaultFont,
+        @EncodeDefault(NEVER) val texture: String = "${defaultConfig.defaultNamespace}:${defaultConfig.defaultFolder}/$id.png",
+        @EncodeDefault(NEVER) val height: Int = defaultConfig.defaultHeight,
+        @EncodeDefault(NEVER) val ascent: Int = defaultConfig.defaultAscent,
+        @EncodeDefault(NEVER) val bitmapWidth: Int = 1,
+        @EncodeDefault(NEVER) val bitmapHeight: Int = 1,
     ) {
         // Beginning of Private Use Area \uE000 -> uF8FF
         // Option: (Character.toCodePoint('\uE000', '\uFF8F')/37 + getIndex())
-        private val lastUsedUnicode: MutableMap<String, Int> = mutableMapOf()
+        @EncodeDefault(NEVER) private val lastUsedUnicode: MutableMap<String, Int> = mutableMapOf()
         fun getUnicodes(): MutableList<String> {
             return mutableListOf("").apply {
                 for (i in 0 until bitmapHeight) {
@@ -137,11 +138,11 @@ data class EmojyConfig(
     @Serializable
     data class Gif(
         val id: String,
-        val frameCount: Int = 0,
-        @SerialName("framePath") val _framePath: String = "${defaultConfig.defaultNamespace}:${defaultConfig.defaultFolder}/$id/",
-        val ascent: Int = 8,
-        val height: Int = 8,
-        val type: GifType = GifType.OBFUSCATION
+        @EncodeDefault(NEVER) val frameCount: Int = 0,
+        @EncodeDefault(NEVER) @SerialName("framePath") val _framePath: String = "${defaultConfig.defaultNamespace}:${defaultConfig.defaultFolder}/$id/",
+        @EncodeDefault(NEVER) val ascent: Int = 8,
+        @EncodeDefault(NEVER) val height: Int = 8,
+        @EncodeDefault(NEVER) val type: GifType = GifType.SHADER
     ) {
         enum class GifType {
             SHADER, OBFUSCATION
