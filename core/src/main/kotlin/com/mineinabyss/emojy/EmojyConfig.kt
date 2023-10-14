@@ -122,9 +122,9 @@ data class EmojyConfig(
         fun getFormattedUnicode(appendSpace: Boolean = false, insert: Boolean = true): Component {
             var bitmap = when {
                 getUnicodes().size > 1 -> Component.textOfChildren(*getUnicodes().map {
-                    Component.text(it).appendNewline()
+                    Component.text().content(it).build().appendNewline()
                 }.toTypedArray())
-                else -> getUnicodes().first().miniMsg()
+                else -> Component.text().content(getUnicodes().first()).build()
             }.font(font).color(NamedTextColor.WHITE)
 
             bitmap = if (!insert) bitmap else bitmap.insertion(":${id}:").hoverEvent(hoverEvent(HoverEvent.Action.SHOW_TEXT,
