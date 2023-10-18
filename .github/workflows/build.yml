@@ -1,12 +1,13 @@
-name: Gradle CI
+name: Build
 
 on:
   push:
     branches:
       - master
-    paths-ignore:
-      - '**.md'
-  pull_request:
+
+concurrency:
+  cancel-in-progress: true
+  group: ci-${{ github.ref }}
 
 jobs:
   build:
@@ -23,9 +24,3 @@ jobs:
 
       - name: Build
         run: gradle build
-
-      - name: Upload build
-        uses: actions/upload-artifact@v1
-        with:
-          name: build
-          path: build/libs
