@@ -6,7 +6,7 @@ plugins {
     id("com.mineinabyss.conventions.autoversion")
     id("xyz.jpenilla.run-paper") version "2.0.1" // Adds runServer and runMojangMappedServer tasks for testing
     id("net.minecrell.plugin-yml.bukkit") version "0.6.0"
-    id("io.papermc.paperweight.userdev") version "1.5.6"
+    id("io.papermc.paperweight.userdev") version "1.5.8"
 }
 
 allprojects {
