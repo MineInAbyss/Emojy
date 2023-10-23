@@ -14,12 +14,12 @@ repositories {
 
 dependencies {
     // MineInAbyss platform
+    compileOnly(libs.bundles.idofront.core)
     compileOnly(libs.kotlinx.serialization.json)
     compileOnly(libs.kotlinx.serialization.kaml)
     compileOnly(libs.kotlinx.coroutines)
     compileOnly(libs.minecraft.mccoroutine)
 
     // Shaded
-    implementation(libs.bundles.idofront.core)
     implementation("com.aaaaahhhhh.bananapuncher714:GifConverter:1.0")
 }

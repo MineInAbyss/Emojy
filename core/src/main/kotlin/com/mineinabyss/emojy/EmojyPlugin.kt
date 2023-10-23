@@ -5,7 +5,6 @@ import com.mineinabyss.emojy.translator.EmojyLanguage
 import com.mineinabyss.emojy.translator.EmojyTranslator
 import com.mineinabyss.idofront.config.config
 import com.mineinabyss.idofront.di.DI
-import com.mineinabyss.idofront.platforms.Platforms
 import com.mineinabyss.idofront.plugin.listeners
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.translation.GlobalTranslator
@@ -14,9 +13,6 @@ import java.util.*
 import kotlin.io.path.div
 
 class EmojyPlugin : JavaPlugin() {
-    override fun onLoad() {
-        Platforms.load(this, "mineinabyss")
-    }
 
     override fun onEnable() {
         // NMS version check
