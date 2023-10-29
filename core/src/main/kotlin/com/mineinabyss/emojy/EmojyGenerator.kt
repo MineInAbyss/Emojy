@@ -3,8 +3,11 @@ package com.mineinabyss.emojy
 import com.aaaaahhhhhhh.bananapuncher714.gifconverter.GifConverter
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
+import com.mineinabyss.idofront.font.Space
+import com.mineinabyss.idofront.font.Space.Companion.toNumber
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.messaging.logWarn
+import net.kyori.adventure.key.Key
 import java.io.File
 
 
@@ -76,7 +79,6 @@ object EmojyGenerator {
                 fontFolder.resolve("uniform.json").writeText(output.toString())
             fontFile.writeText(output.toString())
         }
-
         fontFiles.clear()
 
         emojy.config.gifs.forEach { gif ->
@@ -93,6 +95,24 @@ object EmojyGenerator {
             fontFile.parentFile.mkdirs()
             fontFile.writeText(output.toString())
         }
+        fontFiles.clear()
+
+        // Generate space-font
+        val spaceKey = emojy.config.spaceFont.let { Key.key(it.substringBefore(":", "minecraft"), it.substringAfter(":", emojy.config.spaceFont)) }
+        File("${emojy.plugin.dataFolder.absolutePath}/fonts/${spaceKey.key().value()}.json").writeText(
+            JsonObject().apply {
+                add("providers", JsonArray().apply {
+                    add(JsonObject().apply {
+                        addProperty("type", "space")
+                        add("advances", JsonObject().apply {
+                            Space.entries.filter { it.unicode.isNotEmpty() }.map { space -> space.toNumber() to space.unicode }.forEach { (number, unicode) ->
+                                addProperty(unicode, number)
+                            }
+                        })
+                    })
+                })
+            }.toString()
+        )
 
     }
 

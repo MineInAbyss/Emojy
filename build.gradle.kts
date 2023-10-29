@@ -79,8 +79,8 @@ paper {
     main = "com.mineinabyss.emojy.EmojyPlugin"
     name = "Emojy"
     prefix = "Emojy"
-    val pluginVersion: String by project
-    version = pluginVersion
+    val version: String by project
+    this.version = version
     authors = listOf("boy0000")
     apiVersion = "1.19"
 

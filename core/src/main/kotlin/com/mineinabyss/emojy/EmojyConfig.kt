@@ -3,11 +3,13 @@ package com.mineinabyss.emojy
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.mineinabyss.emojy.EmojyGenerator.gifFolder
+import com.mineinabyss.idofront.font.Space
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.EncodeDefault.Mode.NEVER
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.kyori.adventure.key.Key
@@ -23,6 +25,7 @@ import java.io.File
 import javax.imageio.ImageIO
 
 const val PRIVATE_USE_FIRST = 57344
+const val SPACE_PERMISSION = "emojy.space"
 
 @Serializable
 data class GlobalEmojyConfig(
@@ -40,6 +43,8 @@ data class EmojyConfig(
     val defaultFont: String = "emotes",
     val defaultHeight: Int = 8,
     val defaultAscent: Int = 8,
+
+    val spaceFont: String = "space",
 
     val requirePermissions: Boolean = true,
     val generateResourcePack: Boolean = true,
@@ -65,6 +70,7 @@ data class EmojyConfig(
         BOOK, BOOK2, CHAT
     }
 
+    @OptIn(ExperimentalSerializationApi::class)
     @Serializable
     data class Emote(
         val id: String,
