@@ -104,7 +104,7 @@ data class EmojyConfig(
 
 
         val font get() = Key.key(namespace, _font)
-        val namespace get() = texture.substringBefore(":")
+        val namespace get() = texture.substringBefore(":", "minecraft")
         val image get() = texture.substringAfterLast("/")
         val imagePath get() = texture.substringAfter(":")
         val permission get() = "emojy.emote.$id"
