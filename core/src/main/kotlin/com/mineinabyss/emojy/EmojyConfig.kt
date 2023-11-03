@@ -8,12 +8,8 @@ import com.mineinabyss.emojy.EmojyGenerator.gifFolder
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
-import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.*
 import kotlinx.serialization.EncodeDefault.Mode.NEVER
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
@@ -81,10 +77,10 @@ data class EmojyTemplates(
 @Serializable
 data class EmojyTemplate(
     val id: String,
-    val texture: String? = null,
-    val font: String? = null,
-    val ascent: Int? = null,
-    val height: Int? = null
+    @EncodeDefault(NEVER) val texture: String? = null,
+    @EncodeDefault(NEVER) val font: String? = null,
+    @EncodeDefault(NEVER) val ascent: Int? = null,
+    @EncodeDefault(NEVER) val height: Int? = null
 )
 
 @Serializable
