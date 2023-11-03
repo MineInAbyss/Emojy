@@ -1,9 +1,10 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
 package com.mineinabyss.emojy
 
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.mineinabyss.emojy.EmojyGenerator.gifFolder
-import com.mineinabyss.idofront.font.Space
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
@@ -12,6 +13,7 @@ import kotlinx.serialization.EncodeDefault.Mode.NEVER
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
@@ -37,13 +39,18 @@ data class GlobalEmojyConfig(
 )
 
 @Serializable
-data class EmojyConfig(
-    val defaultNamespace: String = "emotes",
-    val defaultFolder: String = "emotes",
-    val defaultFont: String = "emotes",
-    val defaultHeight: Int = 8,
-    val defaultAscent: Int = 8,
+data class EmojyTemplates(val templates: Set<EmojyTemplate> = setOf(EmojyTemplate("example_template", "example_namespace:example/texture", "example_font", 8, 8)))
+@Serializable
+data class EmojyTemplate(
+    val id: String,
+    val texture: String? = null,
+    val font: String? = null,
+    val ascent: Int? = null,
+    val height: Int? = null
+)
 
+@Serializable
+data class EmojyConfig(
     val spaceFont: String = "space",
 
     val requirePermissions: Boolean = true,
@@ -70,14 +77,16 @@ data class EmojyConfig(
         BOOK, BOOK2, CHAT
     }
 
-    @OptIn(ExperimentalSerializationApi::class)
     @Serializable
     data class Emote(
         val id: String,
-        @EncodeDefault(NEVER) @SerialName("font") val _font: String = defaultConfig.defaultFont,
-        @EncodeDefault(NEVER) val texture: String = "${defaultConfig.defaultNamespace}:${defaultConfig.defaultFolder}/$id.png",
-        @EncodeDefault(NEVER) val height: Int = defaultConfig.defaultHeight,
-        @EncodeDefault(NEVER) val ascent: Int = defaultConfig.defaultAscent,
+        @SerialName("template") @EncodeDefault(NEVER) val _template: String? = null,
+        @EncodeDefault(NEVER) @Transient private val template: EmojyTemplate? = templates.find { it.id == _template },
+
+        @EncodeDefault(NEVER) @SerialName("font") val _font: String = template?.font ?: defaultConfig.defaultFont,
+        @EncodeDefault(NEVER) val texture: String = template?.texture ?: "${defaultConfig.defaultNamespace}:${defaultConfig.defaultFolder}/$id.png",
+        @EncodeDefault(NEVER) val height: Int = template?.height ?: defaultConfig.defaultHeight,
+        @EncodeDefault(NEVER) val ascent: Int = template?.ascent ?: defaultConfig.defaultAscent,
         @EncodeDefault(NEVER) val bitmapWidth: Int = 1,
         @EncodeDefault(NEVER) val bitmapHeight: Int = 1,
     ) {

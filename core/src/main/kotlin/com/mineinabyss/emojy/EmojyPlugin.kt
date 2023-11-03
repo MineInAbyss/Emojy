@@ -51,13 +51,16 @@ class EmojyPlugin : JavaPlugin() {
         DI.remove<GlobalEmojyConfig>()
         DI.add<GlobalEmojyConfig>(GlobalEmojyConfig())
 
+        DI.remove<Set<EmojyTemplate>>()
+        DI.add(config<EmojyTemplates>("templates", dataFolder.toPath(), EmojyTemplates()))
+
         DI.remove<EmojyContext>()
         val emojyContext = object : EmojyContext {
             override val plugin: EmojyPlugin = this@EmojyPlugin
-            override val config: EmojyConfig by config("config", plugin.dataFolder.toPath(), EmojyConfig())
+            override val config: EmojyConfig by config("config", dataFolder.toPath(), EmojyConfig())
             override val languages: Set<EmojyLanguage> = config.supportedLanguages.map {
                 EmojyLanguage(it.split("_").let { l -> Locale(l.first(), l.last().uppercase()) },
-                    config<Map<String, String>>(it, plugin.dataFolder.toPath() / "languages", mapOf()).getOrLoad())
+                    config<Map<String, String>>(it, dataFolder.toPath() / "languages", mapOf()).getOrLoad())
             }.toSet()
         }
         DI.add<EmojyContext>(emojyContext)

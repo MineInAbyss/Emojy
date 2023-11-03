@@ -98,8 +98,11 @@ object EmojyGenerator {
         fontFiles.clear()
 
         // Generate space-font
-        val spaceKey = emojy.config.spaceFont.let { Key.key(it.substringBefore(":", "minecraft"), it.substringAfter(":", emojy.config.spaceFont)) }
-        File("${emojy.plugin.dataFolder.absolutePath}/fonts/${spaceKey.key().value()}.json").writeText(
+        val spaceKey = emojy.config.spaceFont.let { Key.key(it.substringBefore(":", "minecraft"), it.substringAfter(":", it)) }
+        emojy.plugin.dataFolder.resolve("fonts/${spaceKey.key().value()}.json").apply {
+            parentFile.mkdirs()
+            createNewFile()
+        }.writeText(
             JsonObject().apply {
                 add("providers", JsonArray().apply {
                     add(JsonObject().apply {
