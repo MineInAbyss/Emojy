@@ -30,16 +30,54 @@ const val PRIVATE_USE_FIRST = 57344
 const val SPACE_PERMISSION = "emojy.space"
 
 @Serializable
-data class GlobalEmojyConfig(
+data class EmojyConfig(
     val defaultNamespace: String = "emotes",
     val defaultFolder: String = "emotes",
     val defaultFont: String = "emotes",
     val defaultHeight: Int = 8,
     val defaultAscent: Int = 8,
-)
+    val spaceFont: String = "space",
+
+    val requirePermissions: Boolean = true,
+    val generateResourcePack: Boolean = true,
+    val supportForceUnicode: Boolean = true,
+    val debug: Boolean = true,
+    val emojyList: EmojyList = EmojyList(),
+    val supportedLanguages: Set<String> = mutableSetOf("en_us"),
+
+    ) {
+
+    enum class ListType {
+        BOOK, BOOK2, CHAT
+    }
+    @Serializable
+    data class EmojyList(
+        val type: ListType = ListType.CHAT,
+        val ignoredEmoteIds: Set<String> = mutableSetOf(),
+        val ignoredGifIds: Set<String> = mutableSetOf(),
+        val ignoredFonts: Set<String> = mutableSetOf()
+    ) {
+        val ignoredEmotes: Set<Emotes.Emote>
+            get() = emojy.emotes.filter { it.id in ignoredEmoteIds || it._font in ignoredFonts || it.font.asString() in ignoredFonts }
+                .toSet()
+        val ignoredGifs: Set<Gifs.Gif>
+            get() = emojy.gifs.filter { it.id in ignoredGifIds || it.font.asString() in ignoredFonts }.toSet()
+    }
+}
 
 @Serializable
-data class EmojyTemplates(val templates: Set<EmojyTemplate> = setOf(EmojyTemplate("example_template", "example_namespace:example/texture", "example_font", 8, 8)))
+data class EmojyTemplates(
+    val templates: Set<EmojyTemplate> = setOf(
+        EmojyTemplate(
+            "example_template",
+            "example_namespace:example/texture",
+            "example_font",
+            8,
+            8
+        )
+    )
+)
+
 @Serializable
 data class EmojyTemplate(
     val id: String,
@@ -50,32 +88,7 @@ data class EmojyTemplate(
 )
 
 @Serializable
-data class EmojyConfig(
-    val spaceFont: String = "space",
-
-    val requirePermissions: Boolean = true,
-    val generateResourcePack: Boolean = true,
-    val supportForceUnicode: Boolean = true,
-    val debug: Boolean = true,
-    val emojyList: EmojyList = EmojyList(),
-    val supportedLanguages: Set<String> = mutableSetOf("en_us"),
-    val emotes: Set<Emote> = mutableSetOf(),
-    val gifs: Set<Gif> = mutableSetOf()
-) {
-    @Serializable
-    data class EmojyList(
-        val type: ListType = ListType.CHAT,
-        val ignoredEmoteIds: Set<String> = mutableSetOf(),
-        val ignoredGifIds: Set<String> = mutableSetOf(),
-        val ignoredFonts: Set<String> = mutableSetOf()
-    ) {
-        val ignoredEmotes: Set<Emote> get() = emojy.config.emotes.filter { it.id in ignoredEmoteIds|| it._font in ignoredFonts || it.font.asString() in ignoredFonts }.toSet()
-        val ignoredGifs: Set<Gif> get() = emojy.config.gifs.filter { it.id in ignoredGifIds || it.font.asString() in ignoredFonts }.toSet()
-    }
-
-    enum class ListType {
-        BOOK, BOOK2, CHAT
-    }
+data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
 
     @Serializable
     data class Emote(
@@ -83,23 +96,25 @@ data class EmojyConfig(
         @SerialName("template") @EncodeDefault(NEVER) val _template: String? = null,
         @EncodeDefault(NEVER) @Transient private val template: EmojyTemplate? = templates.find { it.id == _template },
 
-        @EncodeDefault(NEVER) @SerialName("font") val _font: String = template?.font ?: defaultConfig.defaultFont,
-        @EncodeDefault(NEVER) val texture: String = template?.texture ?: "${defaultConfig.defaultNamespace}:${defaultConfig.defaultFolder}/$id.png",
-        @EncodeDefault(NEVER) val height: Int = template?.height ?: defaultConfig.defaultHeight,
-        @EncodeDefault(NEVER) val ascent: Int = template?.ascent ?: defaultConfig.defaultAscent,
+        @EncodeDefault(NEVER) @SerialName("font") val _font: String = template?.font ?: emojyConfig.defaultFont,
+        @EncodeDefault(NEVER) val texture: String = template?.texture
+            ?: "${emojyConfig.defaultNamespace}:${emojyConfig.defaultFolder}/$id.png",
+        @EncodeDefault(NEVER) val height: Int = template?.height ?: emojyConfig.defaultHeight,
+        @EncodeDefault(NEVER) val ascent: Int = template?.ascent ?: emojyConfig.defaultAscent,
         @EncodeDefault(NEVER) val bitmapWidth: Int = 1,
         @EncodeDefault(NEVER) val bitmapHeight: Int = 1,
     ) {
         // Beginning of Private Use Area \uE000 -> uF8FF
         // Option: (Character.toCodePoint('\uE000', '\uFF8F')/37 + getIndex())
-        @EncodeDefault(NEVER) private val lastUsedUnicode: MutableMap<String, Int> = mutableMapOf()
+        @EncodeDefault(NEVER)
+        private val lastUsedUnicode: MutableMap<String, Int> = mutableMapOf()
         fun getUnicodes(): MutableList<String> {
             return mutableListOf("").apply {
                 for (i in 0 until bitmapHeight) {
                     for (j in 0 until bitmapWidth) {
                         val lastUnicode = lastUsedUnicode[_font] ?: 0
                         val row = ((getOrNull(i) ?: "") + Character.toChars(
-                            PRIVATE_USE_FIRST + lastUnicode + emojy.config.emotes
+                            PRIVATE_USE_FIRST + lastUnicode + emojy.emotes
                                 .filter { it._font == _font }.map { it }.indexOf(this@Emote)
                         ).firstOrNull().toString())
                         if (getOrNull(i) == null)
@@ -131,30 +146,43 @@ data class EmojyConfig(
         }
 
         fun checkPermission(player: Player?) =
-            !emojy.config.requirePermissions || player == null || player.hasPermission(permission) || player.hasPermission(fontPermission)
+            !emojyConfig.requirePermissions || player == null || player.hasPermission(permission) || player.hasPermission(
+                fontPermission
+            )
 
-        fun getFormattedUnicode(appendSpace: Boolean = false, insert: Boolean = true, colorable: Boolean = false): Component {
+        fun getFormattedUnicode(
+            appendSpace: Boolean = false,
+            insert: Boolean = true,
+            colorable: Boolean = false
+        ): Component {
             var bitmap = when {
                 getUnicodes().size > 1 -> Component.textOfChildren(*getUnicodes().map {
                     Component.text().content(it).build().appendNewline()
                 }.toTypedArray())
+
                 else -> Component.text().content(getUnicodes().first()).build()
             }.font(font)
 
             bitmap = if (colorable) bitmap else bitmap.color(NamedTextColor.WHITE)
 
-            bitmap = if (!insert) bitmap else bitmap.insertion(":${id}:").hoverEvent(hoverEvent(HoverEvent.Action.SHOW_TEXT,
-                ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this emote").miniMsg()))
+            bitmap = if (!insert) bitmap else bitmap.insertion(":${id}:").hoverEvent(
+                hoverEvent(
+                    HoverEvent.Action.SHOW_TEXT,
+                    ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this emote").miniMsg()
+                )
+            )
             return if (appendSpace) bitmap.apply { appendSpace().style(Style.empty()) } else bitmap
         }
     }
+}
 
-
+@Serializable
+data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
     @Serializable
     data class Gif(
         val id: String,
         @EncodeDefault(NEVER) val frameCount: Int = 0,
-        @EncodeDefault(NEVER) @SerialName("framePath") val _framePath: String = "${defaultConfig.defaultNamespace}:${defaultConfig.defaultFolder}/$id/",
+        @EncodeDefault(NEVER) @SerialName("framePath") val _framePath: String = "${emojyConfig.defaultNamespace}:${emojyConfig.defaultFolder}/$id/",
         @EncodeDefault(NEVER) val ascent: Int = 8,
         @EncodeDefault(NEVER) val height: Int = 8,
         @EncodeDefault(NEVER) val type: GifType = GifType.SHADER
@@ -175,6 +203,7 @@ data class EmojyConfig(
                 GifType.SHADER -> (1..getFrameCount()).joinToString(getUnicode(getFrameCount() + 1).toString()) {
                     getUnicode(it).toString()
                 }.miniMsg().font(font).color(TextColor.fromHexString("#FEFEFE")).serialize()
+
                 GifType.OBFUSCATION -> getUnicode(1).toString().miniMsg()
                     .decorate(TextDecoration.OBFUSCATED).font(font).color(NamedTextColor.WHITE).serialize()
             }
@@ -189,7 +218,7 @@ data class EmojyConfig(
             return try {
                 if (frameCount <= 0) reader.getNumImages(true) else frameCount
             } catch (e: IllegalStateException) {
-                if (emojy.config.debug) logError("Could not get frame count for ${id}.gif")
+                if (emojyConfig.debug) logError("Could not get frame count for ${id}.gif")
                 return 0
             }
         }
@@ -223,13 +252,17 @@ data class EmojyConfig(
         }
 
         fun checkPermission(player: Player?) =
-            !emojy.config.requirePermissions || player == null || player.hasPermission(permission)
+            !emojyConfig.requirePermissions || player == null || player.hasPermission(permission)
 
         fun getFormattedUnicode(appendSpace: Boolean = false, insert: Boolean = true): Component {
             var bitmap = getUnicodes().miniMsg().font(font).color(TextColor.fromHexString("#FEFEFE"))
 
-            bitmap = if (!insert) bitmap else bitmap.insertion(":${id}:").hoverEvent(hoverEvent(HoverEvent.Action.SHOW_TEXT,
-                ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this emote").miniMsg()))
+            bitmap = if (!insert) bitmap else bitmap.insertion(":${id}:").hoverEvent(
+                hoverEvent(
+                    HoverEvent.Action.SHOW_TEXT,
+                    ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this emote").miniMsg()
+                )
+            )
             return if (appendSpace) bitmap.apply { appendSpace().style(Style.empty()) } else bitmap
         }
     }

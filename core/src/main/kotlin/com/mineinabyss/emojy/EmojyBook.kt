@@ -15,7 +15,7 @@ object EmojyBook {
     private val frontPage =
         Component.text("Fonts:").style(Style.style(TextDecoration.UNDERLINED)).color(NamedTextColor.GOLD)
             .append(Component.newline().style(Style.empty()).children(
-                emojy.config.emotes.map { it.font }.mapIndexed { index, font ->
+                emojy.emotes.map { it.font }.mapIndexed { index, font ->
                     Component.text(font.asString()).color(NamedTextColor.RED)
                         .clickEvent(ClickEvent.changePage(index + 2)).appendNewline()
                 })
@@ -24,8 +24,8 @@ object EmojyBook {
     fun book(sender: CommandSender) {
         runCatching {
             sender.openBook(Book.builder().pages(
-                frontPage, *emojy.config.emotes.groupBy { it.font }.map { (_, emotes) ->
-                    Component.textOfChildren(*emotes.filter { it.checkPermission(sender as? Player) && it !in emojy.config.emojyList.ignoredEmotes }
+                frontPage, *emojy.emotes.groupBy { it.font }.map { (_, emotes) ->
+                    Component.textOfChildren(*emotes.filter { it.checkPermission(sender as? Player) && it !in emojyConfig.emojyList.ignoredEmotes }
                         .take(10).map { it.getFormattedUnicode() }.toTypedArray())
                 }.toTypedArray()
             ).build()

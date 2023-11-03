@@ -25,21 +25,21 @@ class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
             }
             "list" {
                 action {
-                    val emotes = emojy.config.emotes.filter { it.checkPermission(sender as? Player) && it !in emojy.config.emojyList.ignoredEmotes }.toSet()
-                    val gifs = emojy.config.gifs.filter { it.checkPermission(sender as? Player) && it !in emojy.config.emojyList.ignoredGifs }.toSet()
+                    val emotes = emojy.emotes.filter { it.checkPermission(sender as? Player) && it !in emojyConfig.emojyList.ignoredEmotes }.toSet()
+                    val gifs = emojy.gifs.filter { it.checkPermission(sender as? Player) && it !in emojyConfig.emojyList.ignoredGifs }.toSet()
 
                     val emoteList = when (sender) {
                         is Player -> Component.textOfChildren(*emotes.map { it.getFormattedUnicode(true) }.toTypedArray())
-                        else -> emojy.config.emotes.joinToString(", ") { it.id }.miniMsg()
+                        else -> emojy.emotes.joinToString(", ") { it.id }.miniMsg()
                     }
 
                     val gifList = when (sender) {
                         is Player -> Component.textOfChildren(*gifs.map { it.getFormattedUnicode(true).appendSpace() }.toTypedArray())
 
-                        else -> emojy.config.gifs.joinToString(", ") { it.id }.miniMsg()
+                        else -> emojy.gifs.joinToString(", ") { it.id }.miniMsg()
                     }
 
-                    when (emojy.config.emojyList.type) {
+                    when (emojyConfig.emojyList.type) {
                         EmojyConfig.ListType.BOOK -> sender.openBook(
                             Book.builder().addPage(
                                 "<green>List of emojis:<newline>".miniMsg().append(emoteList)

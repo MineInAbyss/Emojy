@@ -43,13 +43,13 @@ class EmojyPlugin : JavaPlugin() {
 
     fun generateFiles() {
         EmojyGenerator.generateFontFiles()
-        if (emojy.config.generateResourcePack)
+        if (emojyConfig.generateResourcePack)
             EmojyGenerator.generateResourcePack()
     }
 
     fun createEmojyContext() {
-        DI.remove<GlobalEmojyConfig>()
-        DI.add<GlobalEmojyConfig>(GlobalEmojyConfig())
+        DI.remove<EmojyConfig>()
+        DI.add(config("config", dataFolder.toPath(), EmojyConfig()).getOrLoad())
 
         DI.remove<Set<EmojyTemplate>>()
         DI.add(config<EmojyTemplates>("templates", dataFolder.toPath(), EmojyTemplates()))
@@ -57,8 +57,9 @@ class EmojyPlugin : JavaPlugin() {
         DI.remove<EmojyContext>()
         val emojyContext = object : EmojyContext {
             override val plugin: EmojyPlugin = this@EmojyPlugin
-            override val config: EmojyConfig by config("config", dataFolder.toPath(), EmojyConfig())
-            override val languages: Set<EmojyLanguage> = config.supportedLanguages.map {
+            override val emotes: Set<Emotes.Emote> = config("emotes", dataFolder.toPath(), Emotes()).getOrLoad().emotes
+            override val gifs: Set<Gifs.Gif> = config("gifs", dataFolder.toPath(), Gifs()).getOrLoad().gifs
+            override val languages: Set<EmojyLanguage> = emojyConfig.supportedLanguages.map {
                 EmojyLanguage(it.split("_").let { l -> Locale(l.first(), l.last().uppercase()) },
                     config<Map<String, String>>(it, dataFolder.toPath() / "languages", mapOf()).getOrLoad())
             }.toSet()

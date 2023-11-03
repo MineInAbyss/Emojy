@@ -4,10 +4,11 @@ import com.mineinabyss.emojy.translator.EmojyLanguage
 import com.mineinabyss.idofront.di.DI
 
 val emojy by DI.observe<EmojyContext>()
-val defaultConfig by DI.observe<GlobalEmojyConfig>()
+val emojyConfig by DI.observe<EmojyConfig>()
 val templates get() = DI.observe<EmojyTemplates>().getOrNull()?.templates ?: emptySet()
 interface EmojyContext {
     val plugin: EmojyPlugin
-    val config: EmojyConfig
+    val emotes: Set<Emotes.Emote>
+    val gifs: Set<Gifs.Gif>
     val languages: Set<EmojyLanguage>
 }
