@@ -45,10 +45,10 @@ object EmojyGenerator {
         }
 
         emojy.gifs.forEach { gif ->
-            val assetDir = File(emojy.plugin.dataFolder.path, "/assets")
+            val assetDir = emojy.plugin.dataFolder.resolve("assets")
             runCatching {
                 val font = File(emojy.plugin.dataFolder, "/fonts/gifs/${gif.id}.json").run { parentFile.mkdirs(); this }
-                font.copyTo(assetDir.resolve(gif.namespace + "/font/${gif.id}.json"), true)
+                font.copyTo(assetDir.resolve(gif.framePath.namespace() + "/font/${gif.id}.json"), true)
             }.getOrElse {
                 if (emojyConfig.debug) when (it) {
                     is NoSuchFileException, is NullPointerException ->
@@ -56,8 +56,13 @@ object EmojyGenerator {
                 }
             }
 
-            //TODO Copy all the split images into resourcepack
             gif.generateSplitGif()
+        }
+
+        // Copy space-font
+        emojy.plugin.dataFolder.resolve("fonts/${emojyConfig.spaceFont.value()}.json").apply {
+            parentFile.mkdirs()
+            copyTo(emojy.plugin.dataFolder.resolve("assets/${emojyConfig.spaceFont.namespace()}/font/${emojyConfig.spaceFont.value()}.json"), true)
         }
     }
 
@@ -99,12 +104,9 @@ object EmojyGenerator {
         fontFiles.clear()
 
         // Generate space-font
-        val spaceKey = emojyConfig.spaceFont.let { Key.key(it.substringBefore(":", "minecraft"), it.substringAfter(":", it)) }
-        emojy.plugin.dataFolder.resolve("fonts/${spaceKey.key().value()}.json").apply {
+        emojy.plugin.dataFolder.resolve("fonts/${emojyConfig.spaceFont.value()}.json").apply {
             parentFile.mkdirs()
-            createNewFile()
-        }.writeText(
-            JsonObject().apply {
+            writeText(JsonObject().apply {
                 add("providers", JsonArray().apply {
                     add(JsonObject().apply {
                         addProperty("type", "space")
@@ -115,16 +117,16 @@ object EmojyGenerator {
                         })
                     })
                 })
-            }.toString()
-        )
-
+            }.toString())
+        }
     }
 
-    val gifFolder = File(emojy.plugin.dataFolder,"gifs").run { mkdirs(); this }
+    val gifFolder = emojy.plugin.dataFolder.resolve("gifs").apply { mkdirs() }
     private fun Gifs.Gif.generateSplitGif() {
         runCatching {
             gifFolder.resolve(id).deleteRecursively() // Clear files for regenerating
-            GifConverter.splitGif( gifFolder.resolve("${id}.gif"), getFrameCount())
+            GifConverter.splitGif(gifFolder.resolve("${id}.gif"), getFrameCount())
+            gifFolder.resolve(id).copyRecursively(emojy.plugin.dataFolder.resolve("assets/${framePath.namespace()}/textures/${framePath.value()}"), true)
         }.onFailure {
             if (emojyConfig.debug) logError("Could not generate split gif for ${id}.gif: ${it.message}")
         }

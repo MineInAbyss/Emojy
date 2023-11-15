@@ -37,7 +37,7 @@ data class EmojyConfig(
     val defaultFont: @Serializable(KeySerializer::class) Key = Key.key("emotes:emotes"),
     val defaultHeight: Int = 8,
     val defaultAscent: Int = 8,
-    val spaceFont: String = "space",
+    val spaceFont: @Serializable(KeySerializer::class) Key = Key.key("minecraft:space"),
 
     val requirePermissions: Boolean = true,
     val generateResourcePack: Boolean = true,
@@ -161,7 +161,7 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
     data class Gif(
         val id: String,
         @EncodeDefault(NEVER) val frameCount: Int = 0,
-        @EncodeDefault(NEVER) @SerialName("framePath") val _framePath: String = "${emojyConfig.defaultNamespace}:${emojyConfig.defaultFolder}/$id/",
+        @EncodeDefault(NEVER) @SerialName("framePath") val _framePath: @Serializable(KeySerializer::class) Key = Key.key("${emojyConfig.defaultNamespace}:${emojyConfig.defaultFolder}/$id"),
         @EncodeDefault(NEVER) val ascent: Int = 8,
         @EncodeDefault(NEVER) val height: Int = 8,
         @EncodeDefault(NEVER) val type: GifType = GifType.SHADER
@@ -170,11 +170,8 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
             SHADER, OBFUSCATION
         }
 
-        val framePath get() = _framePath.let { if (it.endsWith("/")) it else "$it/" }
-        val font get() = Key.key(namespace, id)
-        val namespace get() = framePath.substringBefore(":")
-        val image get() = framePath.substringAfterLast("/")
-        val imagePath get() = framePath.substringAfter(":")
+        val framePath get() = Key.key(_framePath.asString().removeSuffix("/") + "/")
+        val font get() = Key.key(framePath.namespace(), id)
         val permission get() = "emojy.gif.$id"
         fun getUnicode(i: Int): Char = Character.toChars(PRIVATE_USE_FIRST + i).first()
         fun getUnicodes(): String {
