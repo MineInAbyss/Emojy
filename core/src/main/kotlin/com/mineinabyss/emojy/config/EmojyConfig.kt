@@ -24,7 +24,6 @@ import net.kyori.adventure.text.format.Style
 import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.entity.Player
-import java.io.File
 import javax.imageio.ImageIO
 
 const val PRIVATE_USE_FIRST = 57344
@@ -51,6 +50,7 @@ data class EmojyConfig(
     enum class ListType {
         BOOK, BOOK2, CHAT
     }
+
     @Serializable
     data class EmojyList(
         val type: ListType = ListType.CHAT,
@@ -66,7 +66,6 @@ data class EmojyConfig(
 }
 
 
-
 @Serializable
 data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
 
@@ -76,7 +75,8 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
         @SerialName("template") @EncodeDefault(NEVER) private val _template: String? = null,
         @EncodeDefault(NEVER) @Transient val template: EmojyTemplate? = templates.find { it.id == _template },
 
-        @EncodeDefault(NEVER) val font: @Serializable(KeySerializer::class) Key = template?.font ?: emojyConfig.defaultFont,
+        @EncodeDefault(NEVER) val font: @Serializable(KeySerializer::class) Key = template?.font
+            ?: emojyConfig.defaultFont,
         @EncodeDefault(NEVER) val texture: @Serializable(KeySerializer::class) Key = template?.texture
             ?: Key.key("${emojyConfig.defaultNamespace}:${emojyConfig.defaultFolder}/${id.lowercase()}.png"),
         @EncodeDefault(NEVER) val height: Int = template?.height ?: emojyConfig.defaultHeight,
@@ -86,7 +86,8 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
     ) {
         // Beginning of Private Use Area \uE000 -> uF8FF
         // Option: (Character.toCodePoint('\uE000', '\uFF8F')/37 + getIndex())
-        @EncodeDefault(NEVER) @Transient
+        @EncodeDefault(NEVER)
+        @Transient
         private val lastUsedUnicode: MutableMap<Key, Int> = mutableMapOf()
         fun getUnicodes(): MutableList<String> {
             return mutableListOf("").apply {
@@ -160,8 +161,10 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
     @Serializable
     data class Gif(
         val id: String,
-        @EncodeDefault(NEVER) val frameCount: Int = 0,
-        @EncodeDefault(NEVER) @SerialName("framePath") val _framePath: @Serializable(KeySerializer::class) Key = Key.key("${emojyConfig.defaultNamespace}:${emojyConfig.defaultFolder}/$id"),
+        @EncodeDefault(NEVER) var frameCount: Int = 0,
+        @EncodeDefault(NEVER) @SerialName("framePath") val _framePath: @Serializable(KeySerializer::class) Key = Key.key(
+            "${emojyConfig.defaultNamespace}:${emojyConfig.defaultFolder}/$id"
+        ),
         @EncodeDefault(NEVER) val ascent: Int = 8,
         @EncodeDefault(NEVER) val height: Int = 8,
         @EncodeDefault(NEVER) val type: GifType = GifType.SHADER
@@ -173,35 +176,33 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
         val framePath get() = Key.key(_framePath.asString().removeSuffix("/") + "/")
         val font get() = Key.key(framePath.namespace(), id)
         val permission get() = "emojy.gif.$id"
-        fun getUnicode(i: Int): Char = Character.toChars(PRIVATE_USE_FIRST + i).first()
-        fun getUnicodes(): String {
+        private fun unicode(index: Int): Char = Character.toChars(PRIVATE_USE_FIRST + index).first()
+        private fun unicode(): String {
             return when (type) {
-                GifType.SHADER -> (1..getFrameCount()).joinToString(getUnicode(getFrameCount() + 1).toString()) {
-                    getUnicode(it).toString()
+                GifType.SHADER -> (1..frameCount()).joinToString(unicode(frameCount() + 1).toString()) {
+                    unicode(it).toString()
                 }.miniMsg().font(font).color(TextColor.fromHexString("#FEFEFE")).serialize()
 
-                GifType.OBFUSCATION -> getUnicode(1).toString().miniMsg()
+                GifType.OBFUSCATION -> unicode(1).toString().miniMsg()
                     .decorate(TextDecoration.OBFUSCATED).font(font).color(NamedTextColor.WHITE).serialize()
             }
         }
 
-        @JvmName("getFrameCount1")
-        fun getFrameCount(): Int {
-            val reader = ImageIO.getImageReadersByFormatName("gif").next()
-            reader.input = ImageIO.createImageInputStream(gifFolder.resolve("${id}.gif"))
-            File("").absoluteFile.path
-
-            return try {
-                if (frameCount <= 0) reader.getNumImages(true) else frameCount
-            } catch (e: IllegalStateException) {
+        fun frameCount(): Int {
+            if (frameCount <= 0) frameCount = runCatching {
+                val reader = ImageIO.getImageReadersByFormatName("gif").next()
+                reader.input = ImageIO.createImageInputStream(gifFolder.resolve("${id}.gif"))
+                reader.getNumImages(true)
+            }.onFailure {
                 if (emojyConfig.debug) logError("Could not get frame count for ${id}.gif")
-                return 0
-            }
+            }.getOrNull() ?: 0
+
+            return frameCount
         }
 
         fun toJson(): MutableList<JsonObject> {
             val jsonList = mutableListOf<JsonObject>()
-            val frameCount = getFrameCount()
+            val frameCount = frameCount()
             (1..frameCount).forEach { i ->
                 val output = JsonObject()
                 val chars = JsonArray()
@@ -209,7 +210,7 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
                 output.addProperty("file", "$framePath$i.png")
                 output.addProperty("ascent", ascent)
                 output.addProperty("height", height)
-                chars.add(getUnicode(i))
+                chars.add(unicode(i))
                 output.add("chars", chars)
                 jsonList.add(output)
             }
@@ -219,7 +220,7 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
                 val output = JsonObject()
                 val advances = JsonObject()
                 output.addProperty("type", "space")
-                advances.addProperty(getUnicode(frameCount + 1).toString(), -9)
+                advances.addProperty(unicode(frameCount + 1).toString(), -9)
                 output.add("advances", advances)
                 jsonList.add(output)
             }
@@ -231,7 +232,7 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
             !emojyConfig.requirePermissions || player == null || player.hasPermission(permission)
 
         fun getFormattedUnicode(appendSpace: Boolean = false, insert: Boolean = true): Component {
-            var bitmap = getUnicodes().miniMsg().font(font).color(TextColor.fromHexString("#FEFEFE"))
+            var bitmap = unicode().miniMsg().font(font).color(TextColor.fromHexString("#FEFEFE"))
 
             bitmap = if (!insert) bitmap else bitmap.insertion(":${id}:").hoverEvent(
                 hoverEvent(

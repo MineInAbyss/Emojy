@@ -8,7 +8,6 @@ import com.mineinabyss.idofront.font.Space
 import com.mineinabyss.idofront.font.Space.Companion.toNumber
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.messaging.logWarn
-import net.kyori.adventure.key.Key
 import java.io.File
 
 
@@ -125,7 +124,7 @@ object EmojyGenerator {
     private fun Gifs.Gif.generateSplitGif() {
         runCatching {
             gifFolder.resolve(id).deleteRecursively() // Clear files for regenerating
-            GifConverter.splitGif(gifFolder.resolve("${id}.gif"), getFrameCount())
+            GifConverter.splitGif(gifFolder.resolve("${id}.gif"), frameCount())
             gifFolder.resolve(id).copyRecursively(emojy.plugin.dataFolder.resolve("assets/${framePath.namespace()}/textures/${framePath.value()}"), true)
         }.onFailure {
             if (emojyConfig.debug) logError("Could not generate split gif for ${id}.gif: ${it.message}")
