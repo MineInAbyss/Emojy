@@ -7,6 +7,7 @@ import com.google.gson.JsonObject
 import com.mineinabyss.emojy.EmojyGenerator.gifFolder
 import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.emojyConfig
+import com.mineinabyss.emojy.space
 import com.mineinabyss.emojy.templates
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.serialization.KeySerializer
@@ -151,7 +152,7 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
                     ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this emote").miniMsg()
                 )
             )
-            return if (appendSpace) bitmap.apply { appendSpace().style(Style.empty()) } else bitmap
+            return if (appendSpace) bitmap.space() else bitmap
         }
     }
 }
@@ -240,7 +241,7 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
                     ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this emote").miniMsg()
                 )
             )
-            return if (appendSpace) bitmap.apply { appendSpace().style(Style.empty()) } else bitmap
+            return if (appendSpace) bitmap.space() else bitmap
         }
     }
 }

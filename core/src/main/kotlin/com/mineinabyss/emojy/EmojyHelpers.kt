@@ -6,6 +6,7 @@ import com.mineinabyss.idofront.textcomponents.serialize
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
+import net.kyori.adventure.text.format.Style
 import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.entity.Player
 import java.util.*
@@ -56,3 +57,5 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
 
 private fun buildSpaceComponents(space: Int) =
     Component.text().content(Space.of(space)).font(emojyConfig.spaceFont).build()
+
+fun Component.space() = append(Component.space().style(Style.empty()))
