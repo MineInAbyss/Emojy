@@ -1,5 +1,9 @@
 package com.mineinabyss.emojy
 
+import com.mineinabyss.emojy.config.EmojyConfig
+import com.mineinabyss.emojy.config.EmojyTemplates
+import com.mineinabyss.emojy.config.Emotes
+import com.mineinabyss.emojy.config.Gifs
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers
 import com.mineinabyss.emojy.translator.EmojyLanguage
 import com.mineinabyss.emojy.translator.EmojyTranslator
@@ -49,13 +53,13 @@ class EmojyPlugin : JavaPlugin() {
 
     fun createEmojyContext() {
         DI.remove<EmojyConfig>()
-        DI.add(config("config", dataFolder.toPath(), EmojyConfig()).getOrLoad())
+        DI.add(config<EmojyConfig>("config", dataFolder.toPath(), EmojyConfig()).getOrLoad())
 
-        DI.remove<Set<EmojyTemplate>>()
-        DI.add(config<EmojyTemplates>("templates", dataFolder.toPath(), EmojyTemplates()))
+        DI.remove<EmojyTemplates>()
+        DI.add(config<EmojyTemplates>("templates", dataFolder.toPath(), EmojyTemplates()).getOrLoad())
 
         DI.remove<EmojyContext>()
-        val emojyContext = object : EmojyContext {
+        DI.add<EmojyContext>(object : EmojyContext {
             override val plugin: EmojyPlugin = this@EmojyPlugin
             override val emotes: Set<Emotes.Emote> = config("emotes", dataFolder.toPath(), Emotes()).getOrLoad().emotes
             override val gifs: Set<Gifs.Gif> = config("gifs", dataFolder.toPath(), Gifs()).getOrLoad().gifs
@@ -63,8 +67,7 @@ class EmojyPlugin : JavaPlugin() {
                 EmojyLanguage(it.split("_").let { l -> Locale(l.first(), l.last().uppercase()) },
                     config<Map<String, String>>(it, dataFolder.toPath() / "languages", mapOf()).getOrLoad())
             }.toSet()
-        }
-        DI.add<EmojyContext>(emojyContext)
+        })
 
         GlobalTranslator.translator().sources().filter { it.name() == Key.key("emojy", "localization") }.forEach(GlobalTranslator.translator()::removeSource)
         GlobalTranslator.translator().addSource(EmojyTranslator())

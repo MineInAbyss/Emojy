@@ -1,7 +1,7 @@
 package com.mineinabyss.emojy
 
+import com.mineinabyss.emojy.config.SPACE_PERMISSION
 import com.mineinabyss.idofront.font.Space
-import com.mineinabyss.idofront.messaging.broadcastVal
 import com.mineinabyss.idofront.textcomponents.serialize
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component

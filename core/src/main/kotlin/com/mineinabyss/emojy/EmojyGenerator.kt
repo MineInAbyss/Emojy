@@ -3,6 +3,7 @@ package com.mineinabyss.emojy
 import com.aaaaahhhhhhh.bananapuncher714.gifconverter.GifConverter
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
+import com.mineinabyss.emojy.config.Gifs
 import com.mineinabyss.idofront.font.Space
 import com.mineinabyss.idofront.font.Space.Companion.toNumber
 import com.mineinabyss.idofront.messaging.logError
@@ -16,14 +17,14 @@ object EmojyGenerator {
     fun generateResourcePack() {
         File(emojy.plugin.dataFolder, "/assets").deleteRecursively()
         emojy.emotes.forEach { emote ->
-            val assetDir = File(emojy.plugin.dataFolder.path, "/assets").run { mkdirs(); this }
+            val assetDir = File(emojy.plugin.dataFolder.path, "/assets").apply { mkdirs() }
             runCatching {
                 val font = File(emojy.plugin.dataFolder, "/fonts/${emote.font.value()}.json")
-                font.copyTo(assetDir.resolve(emote.namespace + "/font/${emote.font.value()}.json"), true)
+                font.copyTo(assetDir.resolve("${emote.font.namespace()}/font/${emote.font.value()}.json"), true)
             }.getOrElse {
                 if (emojyConfig.debug) when (it) {
                     is NoSuchFileException, is NullPointerException ->
-                        logWarn("Could not find font ${emote.font.value()} for emote ${emote.id} in plugins/emojy/fonts")
+                        logWarn("Could not find font ${emote.font.asString()} for emote ${emote.id} in plugins/emojy/fonts")
                 }
             }
 

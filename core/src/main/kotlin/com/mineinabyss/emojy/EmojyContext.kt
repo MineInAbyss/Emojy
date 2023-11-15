@@ -1,5 +1,9 @@
 package com.mineinabyss.emojy
 
+import com.mineinabyss.emojy.config.EmojyConfig
+import com.mineinabyss.emojy.config.EmojyTemplates
+import com.mineinabyss.emojy.config.Emotes
+import com.mineinabyss.emojy.config.Gifs
 import com.mineinabyss.emojy.translator.EmojyLanguage
 import com.mineinabyss.idofront.di.DI
 

@@ -1,15 +1,20 @@
 @file:OptIn(ExperimentalSerializationApi::class)
 
-package com.mineinabyss.emojy
+package com.mineinabyss.emojy.config
 
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.mineinabyss.emojy.EmojyGenerator.gifFolder
+import com.mineinabyss.emojy.emojy
+import com.mineinabyss.emojy.emojyConfig
+import com.mineinabyss.emojy.templates
 import com.mineinabyss.idofront.messaging.logError
+import com.mineinabyss.idofront.serialization.KeySerializer
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
 import kotlinx.serialization.*
 import kotlinx.serialization.EncodeDefault.Mode.NEVER
+import kotlinx.serialization.Transient
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
@@ -29,7 +34,7 @@ const val SPACE_PERMISSION = "emojy.space"
 data class EmojyConfig(
     val defaultNamespace: String = "emotes",
     val defaultFolder: String = "emotes",
-    val defaultFont: String = "emotes",
+    val defaultFont: @Serializable(KeySerializer::class) Key = Key.key("emotes:emotes"),
     val defaultHeight: Int = 8,
     val defaultAscent: Int = 8,
     val spaceFont: String = "space",
@@ -51,37 +56,16 @@ data class EmojyConfig(
         val type: ListType = ListType.CHAT,
         val ignoredEmoteIds: Set<String> = mutableSetOf(),
         val ignoredGifIds: Set<String> = mutableSetOf(),
-        val ignoredFonts: Set<String> = mutableSetOf()
+        val ignoredFonts: Set<@Serializable(KeySerializer::class) Key> = mutableSetOf()
     ) {
         val ignoredEmotes: Set<Emotes.Emote>
-            get() = emojy.emotes.filter { it.id in ignoredEmoteIds || it._font in ignoredFonts || it.font.asString() in ignoredFonts }
-                .toSet()
+            get() = emojy.emotes.filter { it.id in ignoredEmoteIds || it.font in ignoredFonts }.toSet()
         val ignoredGifs: Set<Gifs.Gif>
-            get() = emojy.gifs.filter { it.id in ignoredGifIds || it.font.asString() in ignoredFonts }.toSet()
+            get() = emojy.gifs.filter { it.id in ignoredGifIds || it.font in ignoredFonts }.toSet()
     }
 }
 
-@Serializable
-data class EmojyTemplates(
-    val templates: Set<EmojyTemplate> = setOf(
-        EmojyTemplate(
-            "example_template",
-            "example_namespace:example/texture",
-            "example_font",
-            8,
-            8
-        )
-    )
-)
 
-@Serializable
-data class EmojyTemplate(
-    val id: String,
-    @EncodeDefault(NEVER) val texture: String? = null,
-    @EncodeDefault(NEVER) val font: String? = null,
-    @EncodeDefault(NEVER) val ascent: Int? = null,
-    @EncodeDefault(NEVER) val height: Int? = null
-)
 
 @Serializable
 data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
@@ -89,33 +73,33 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
     @Serializable
     data class Emote(
         val id: String,
-        @SerialName("template") @EncodeDefault(NEVER) val _template: String? = null,
-        @EncodeDefault(NEVER) @Transient private val template: EmojyTemplate? = templates.find { it.id == _template },
+        @SerialName("template") @EncodeDefault(NEVER) private val _template: String? = null,
+        @EncodeDefault(NEVER) @Transient val template: EmojyTemplate? = templates.find { it.id == _template },
 
-        @EncodeDefault(NEVER) @SerialName("font") val _font: String = template?.font ?: emojyConfig.defaultFont,
-        @EncodeDefault(NEVER) val texture: String = template?.texture
-            ?: "${emojyConfig.defaultNamespace}:${emojyConfig.defaultFolder}/$id.png",
+        @EncodeDefault(NEVER) val font: @Serializable(KeySerializer::class) Key = template?.font ?: emojyConfig.defaultFont,
+        @EncodeDefault(NEVER) val texture: @Serializable(KeySerializer::class) Key = template?.texture
+            ?: Key.key("${emojyConfig.defaultNamespace}:${emojyConfig.defaultFolder}/${id.lowercase()}.png"),
         @EncodeDefault(NEVER) val height: Int = template?.height ?: emojyConfig.defaultHeight,
         @EncodeDefault(NEVER) val ascent: Int = template?.ascent ?: emojyConfig.defaultAscent,
-        @EncodeDefault(NEVER) val bitmapWidth: Int = 1,
-        @EncodeDefault(NEVER) val bitmapHeight: Int = 1,
+        @EncodeDefault(NEVER) val bitmapWidth: Int = template?.bitmapWidth ?: 1,
+        @EncodeDefault(NEVER) val bitmapHeight: Int = template?.bitmapHeight ?: 1,
     ) {
         // Beginning of Private Use Area \uE000 -> uF8FF
         // Option: (Character.toCodePoint('\uE000', '\uFF8F')/37 + getIndex())
-        @EncodeDefault(NEVER)
-        private val lastUsedUnicode: MutableMap<String, Int> = mutableMapOf()
+        @EncodeDefault(NEVER) @Transient
+        private val lastUsedUnicode: MutableMap<Key, Int> = mutableMapOf()
         fun getUnicodes(): MutableList<String> {
             return mutableListOf("").apply {
                 for (i in 0 until bitmapHeight) {
                     for (j in 0 until bitmapWidth) {
-                        val lastUnicode = lastUsedUnicode[_font] ?: 0
+                        val lastUnicode = lastUsedUnicode[font] ?: 0
                         val row = ((getOrNull(i) ?: "") + Character.toChars(
                             PRIVATE_USE_FIRST + lastUnicode + emojy.emotes
-                                .filter { it._font == _font }.map { it }.indexOf(this@Emote)
+                                .filter { it.font == font }.map { it }.indexOf(this@Emote)
                         ).firstOrNull().toString())
                         if (getOrNull(i) == null)
                             add(i, row) else set(i, row)
-                        lastUsedUnicode.put(_font, lastUnicode + 1) ?: lastUsedUnicode.putIfAbsent(_font, 1)
+                        lastUsedUnicode.put(font, lastUnicode + 1) ?: lastUsedUnicode.putIfAbsent(font, 1)
                     }
                 }
                 lastUsedUnicode.clear()
@@ -123,17 +107,16 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
         }
 
 
-        val font get() = Key.key(namespace, _font)
-        val namespace get() = texture.substringBefore(":", "minecraft")
-        val image get() = texture.substringAfterLast("/")
-        val imagePath get() = texture.substringAfter(":")
+        val namespace get() = texture.namespace()
+        val image get() = texture.value().substringAfterLast("/")
+        val imagePath get() = texture.value()
         val permission get() = "emojy.emote.$id"
         val fontPermission get() = "emojy.font.$font"
         fun toJson(): JsonObject {
             val output = JsonObject()
             val chars = JsonArray()
             output.addProperty("type", "bitmap")
-            output.addProperty("file", texture)
+            output.addProperty("file", texture.asString())
             output.addProperty("ascent", ascent)
             output.addProperty("height", height)
             for (char in getUnicodes()) chars.add(char)

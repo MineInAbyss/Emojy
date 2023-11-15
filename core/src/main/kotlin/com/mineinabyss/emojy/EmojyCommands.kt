@@ -1,5 +1,6 @@
 package com.mineinabyss.emojy
 
+import com.mineinabyss.emojy.config.EmojyConfig
 import com.mineinabyss.idofront.commands.execution.IdofrontCommandExecutor
 import com.mineinabyss.idofront.messaging.broadcastVal
 import com.mineinabyss.idofront.messaging.success
