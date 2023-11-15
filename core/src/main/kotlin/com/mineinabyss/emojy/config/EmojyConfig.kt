@@ -21,7 +21,6 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.event.HoverEvent.hoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.Style
 import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.entity.Player
@@ -48,9 +47,7 @@ data class EmojyConfig(
 
     ) {
 
-    enum class ListType {
-        BOOK, BOOK2, CHAT
-    }
+    enum class ListType { BOOK, BOOK2, CHAT }
 
     @Serializable
     data class EmojyList(
@@ -66,7 +63,6 @@ data class EmojyConfig(
     }
 }
 
-
 @Serializable
 data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
 
@@ -76,10 +72,10 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
         @SerialName("template") @EncodeDefault(NEVER) private val _template: String? = null,
         @EncodeDefault(NEVER) @Transient val template: EmojyTemplate? = templates.find { it.id == _template },
 
-        @EncodeDefault(NEVER) val font: @Serializable(KeySerializer::class) Key = template?.font
-            ?: emojyConfig.defaultFont,
-        @EncodeDefault(NEVER) val texture: @Serializable(KeySerializer::class) Key = template?.texture
-            ?: Key.key("${emojyConfig.defaultNamespace}:${emojyConfig.defaultFolder}/${id.lowercase()}.png"),
+        @EncodeDefault(NEVER) val font: @Serializable(KeySerializer::class) Key =
+            template?.font ?: emojyConfig.defaultFont,
+        @EncodeDefault(NEVER) val texture: @Serializable(KeySerializer::class) Key =
+            template?.texture ?: Key.key("${emojyConfig.defaultNamespace}:${emojyConfig.defaultFolder}/${id.lowercase()}.png"),
         @EncodeDefault(NEVER) val height: Int = template?.height ?: emojyConfig.defaultHeight,
         @EncodeDefault(NEVER) val ascent: Int = template?.ascent ?: emojyConfig.defaultAscent,
         @EncodeDefault(NEVER) val bitmapWidth: Int = template?.bitmapWidth ?: 1,
@@ -87,10 +83,8 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
     ) {
         // Beginning of Private Use Area \uE000 -> uF8FF
         // Option: (Character.toCodePoint('\uE000', '\uFF8F')/37 + getIndex())
-        @EncodeDefault(NEVER)
-        @Transient
-        private val lastUsedUnicode: MutableMap<Key, Int> = mutableMapOf()
-        fun getUnicodes(): MutableList<String> {
+        @EncodeDefault(NEVER) @Transient private val lastUsedUnicode: MutableMap<Key, Int> = mutableMapOf()
+        private fun unicodes(): MutableList<String> {
             return mutableListOf("").apply {
                 for (i in 0 until bitmapHeight) {
                     for (j in 0 until bitmapWidth) {
@@ -108,21 +102,15 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
             }
         }
 
-
-        val namespace get() = texture.namespace()
-        val image get() = texture.value().substringAfterLast("/")
-        val imagePath get() = texture.value()
-        val permission get() = "emojy.emote.$id"
-        val fontPermission get() = "emojy.font.$font"
+        private val permission get() = "emojy.emote.$id"
+        private val fontPermission get() = "emojy.font.$font"
         fun toJson(): JsonObject {
             val output = JsonObject()
-            val chars = JsonArray()
             output.addProperty("type", "bitmap")
             output.addProperty("file", texture.asString())
             output.addProperty("ascent", ascent)
             output.addProperty("height", height)
-            for (char in getUnicodes()) chars.add(char)
-            output.add("chars", chars)
+            output.add("chars", JsonArray().apply { unicodes().forEach { add(it) } })
             return output
         }
 
@@ -131,17 +119,17 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
                 fontPermission
             )
 
-        fun getFormattedUnicode(
+        fun formattedUnicode(
             appendSpace: Boolean = false,
             insert: Boolean = true,
             colorable: Boolean = false
         ): Component {
             var bitmap = when {
-                getUnicodes().size > 1 -> Component.textOfChildren(*getUnicodes().map {
+                unicodes().size > 1 -> Component.textOfChildren(*unicodes().map {
                     Component.text().content(it).build().appendNewline()
                 }.toTypedArray())
 
-                else -> Component.text().content(getUnicodes().first()).build()
+                else -> Component.text().content(unicodes().first()).build()
             }.font(font)
 
             bitmap = if (colorable) bitmap else bitmap.color(NamedTextColor.WHITE)
@@ -206,24 +194,20 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
             val frameCount = frameCount()
             (1..frameCount).forEach { i ->
                 val output = JsonObject()
-                val chars = JsonArray()
                 output.addProperty("type", "bitmap")
                 output.addProperty("file", "$framePath$i.png")
                 output.addProperty("ascent", ascent)
                 output.addProperty("height", height)
-                chars.add(unicode(i))
-                output.add("chars", chars)
+                output.add("chars", JsonArray().apply { add(unicode(i).toString()) })
                 jsonList.add(output)
             }
 
             // Add a negative shift into the shader for ease of use
             if (type == GifType.SHADER) {
-                val output = JsonObject()
-                val advances = JsonObject()
-                output.addProperty("type", "space")
-                advances.addProperty(unicode(frameCount + 1).toString(), -9)
-                output.add("advances", advances)
-                jsonList.add(output)
+                jsonList.add(JsonObject().apply {
+                    addProperty("type", "space")
+                    add("advances", JsonObject().apply { addProperty(unicode(frameCount + 1).toString(), -9) })
+                })
             }
 
             return jsonList
@@ -232,7 +216,7 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
         fun checkPermission(player: Player?) =
             !emojyConfig.requirePermissions || player == null || player.hasPermission(permission)
 
-        fun getFormattedUnicode(appendSpace: Boolean = false, insert: Boolean = true): Component {
+        fun formattedUnicode(appendSpace: Boolean = false, insert: Boolean = true): Component {
             var bitmap = unicode().miniMsg().font(font).color(TextColor.fromHexString("#FEFEFE"))
 
             bitmap = if (!insert) bitmap else bitmap.insertion(":${id}:").hoverEvent(

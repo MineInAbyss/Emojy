@@ -30,12 +30,12 @@ class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
                     val gifs = emojy.gifs.filter { it.checkPermission(sender as? Player) && it !in emojyConfig.emojyList.ignoredGifs }.toSet()
 
                     val emoteList = when (sender) {
-                        is Player -> Component.textOfChildren(*emotes.map { it.getFormattedUnicode(true) }.toTypedArray())
+                        is Player -> Component.textOfChildren(*emotes.map { it.formattedUnicode(true) }.toTypedArray())
                         else -> emojy.emotes.joinToString(", ") { it.id }.miniMsg()
                     }
 
                     val gifList = when (sender) {
-                        is Player -> Component.textOfChildren(*gifs.map { it.getFormattedUnicode(true).space() }.toTypedArray())
+                        is Player -> Component.textOfChildren(*gifs.map { it.formattedUnicode(true).space() }.toTypedArray())
 
                         else -> emojy.gifs.joinToString(", ") { it.id }.miniMsg()
                     }

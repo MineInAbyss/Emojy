@@ -6,7 +6,6 @@ import com.mineinabyss.idofront.textcomponents.serialize
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
-import net.kyori.adventure.text.format.Style
 import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.entity.Player
 import java.util.*
@@ -22,13 +21,13 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
         msg = msg.replaceText(
             TextReplacementConfig.builder()
                 .match(":${emote.id}:(c|colorable):")
-                .replacement(emote.getFormattedUnicode(insert = insert, colorable = true))
+                .replacement(emote.formattedUnicode(insert = insert, colorable = true))
                 .build()
         )
         msg = msg.replaceText(
             TextReplacementConfig.builder()
                 .matchLiteral(":${emote.id}:")
-                .replacement(emote.getFormattedUnicode(insert = insert, colorable = false))
+                .replacement(emote.formattedUnicode(insert = insert, colorable = false))
                 .build()
         )
     }
@@ -37,7 +36,7 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
         msg = msg.replaceText(
             TextReplacementConfig.builder()
                 .matchLiteral(":${gif.id}:")
-                .replacement(gif.getFormattedUnicode(insert = insert))
+                .replacement(gif.formattedUnicode(insert = insert))
                 .build()
         )
     }
