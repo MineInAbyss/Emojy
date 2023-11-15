@@ -25,6 +25,8 @@ import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.entity.Player
 import javax.imageio.ImageIO
+import kotlin.math.roundToInt
+import kotlin.properties.Delegates
 
 const val PRIVATE_USE_FIRST = 57344
 const val SPACE_PERMISSION = "emojy.space"
@@ -158,13 +160,15 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
         @EncodeDefault(NEVER) val height: Int = 8,
         @EncodeDefault(NEVER) val type: GifType = GifType.SHADER
     ) {
+        @Transient val framePath = Key.key(_framePath.asString().removeSuffix("/") + "/")
+        @Transient val font = Key.key(framePath.namespace(), id)
+        @Transient val permission = "emojy.gif.$id"
+        private var aspectRatio by Delegates.notNull<Float>()
+
         enum class GifType {
             SHADER, OBFUSCATION
         }
 
-        val framePath get() = Key.key(_framePath.asString().removeSuffix("/") + "/")
-        val font get() = Key.key(framePath.namespace(), id)
-        val permission get() = "emojy.gif.$id"
         private fun unicode(index: Int): Char = Character.toChars(PRIVATE_USE_FIRST + index).first()
         private fun unicode(): String {
             return when (type) {
@@ -176,11 +180,11 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
                     .decorate(TextDecoration.OBFUSCATED).font(font).color(NamedTextColor.WHITE).serialize()
             }
         }
-
         fun frameCount(): Int {
             if (frameCount <= 0) frameCount = runCatching {
                 val reader = ImageIO.getImageReadersByFormatName("gif").next()
                 reader.input = ImageIO.createImageInputStream(gifFolder.resolve("${id}.gif"))
+                aspectRatio = reader.getAspectRatio(0)
                 reader.getNumImages(true)
             }.onFailure {
                 if (emojyConfig.debug) logError("Could not get frame count for ${id}.gif")
@@ -206,7 +210,7 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
             if (type == GifType.SHADER) {
                 jsonList.add(JsonObject().apply {
                     addProperty("type", "space")
-                    add("advances", JsonObject().apply { addProperty(unicode(frameCount + 1).toString(), -9) })
+                    add("advances", JsonObject().apply { addProperty(unicode(frameCount + 1).toString(), -(height * aspectRatio + 1).roundToInt()) })
                 })
             }
 
