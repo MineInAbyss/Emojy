@@ -188,7 +188,10 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
                 reader.getNumImages(true)
             }.onFailure {
                 if (emojyConfig.debug) logError("Could not get frame count for ${id}.gif")
-            }.getOrNull() ?: 0
+            }.getOrNull() ?: run {
+                aspectRatio = 1f
+                0
+            }
 
             return frameCount
         }
