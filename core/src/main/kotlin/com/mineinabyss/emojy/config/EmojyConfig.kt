@@ -4,7 +4,6 @@ package com.mineinabyss.emojy.config
 
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
-import com.mineinabyss.emojy.EmojyGenerator.gifFolder
 import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.emojyConfig
 import com.mineinabyss.emojy.space
@@ -24,6 +23,8 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.entity.Player
+import team.unnamed.creative.font.Font
+import team.unnamed.creative.font.FontProvider
 import javax.imageio.ImageIO
 import kotlin.math.roundToInt
 import kotlin.properties.Delegates
@@ -36,12 +37,11 @@ data class EmojyConfig(
     val defaultNamespace: String = "emotes",
     val defaultFolder: String = "emotes",
     val defaultFont: @Serializable(KeySerializer::class) Key = Key.key("emotes:emotes"),
-    val defaultHeight: Int = 8,
-    val defaultAscent: Int = 8,
+    val defaultHeight: Int = 7,
+    val defaultAscent: Int = 7,
     val spaceFont: @Serializable(KeySerializer::class) Key = Key.key("minecraft:space"),
 
     val requirePermissions: Boolean = true,
-    val generateResourcePack: Boolean = true,
     val supportForceUnicode: Boolean = true,
     val debug: Boolean = true,
     val emojyList: EmojyList = EmojyList(),
@@ -83,10 +83,12 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
         @EncodeDefault(NEVER) val bitmapWidth: Int = template?.bitmapWidth ?: 1,
         @EncodeDefault(NEVER) val bitmapHeight: Int = template?.bitmapHeight ?: 1,
     ) {
+        val isBitmap: Boolean get() = bitmapWidth > 1 || bitmapHeight > 1
+
         // Beginning of Private Use Area \uE000 -> uF8FF
         // Option: (Character.toCodePoint('\uE000', '\uFF8F')/37 + getIndex())
-        @EncodeDefault(NEVER) @Transient private val lastUsedUnicode: MutableMap<Key, Int> = mutableMapOf()
-        private fun unicodes(): MutableList<String> {
+        @Transient private val lastUsedUnicode: MutableMap<Key, Int> = mutableMapOf()
+        fun unicodes(): MutableList<String> {
             return mutableListOf("").apply {
                 for (i in 0 until bitmapHeight) {
                     for (j in 0 until bitmapWidth) {
@@ -106,15 +108,7 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
 
         private val permission get() = "emojy.emote.$id"
         private val fontPermission get() = "emojy.font.$font"
-        fun toJson(): JsonObject {
-            val output = JsonObject()
-            output.addProperty("type", "bitmap")
-            output.addProperty("file", texture.asString())
-            output.addProperty("ascent", ascent)
-            output.addProperty("height", height)
-            output.add("chars", JsonArray().apply { unicodes().forEach { add(it) } })
-            return output
-        }
+        fun font() = Font.font(font, FontProvider.bitMap(texture, height, ascent, unicodes()))
 
         fun checkPermission(player: Player?) =
             !emojyConfig.requirePermissions || player == null || player.hasPermission(permission) || player.hasPermission(
@@ -163,6 +157,8 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
         @Transient val framePath = Key.key(_framePath.asString().removeSuffix("/") + "/")
         @Transient val font = Key.key(framePath.namespace(), id)
         @Transient val permission = "emojy.gif.$id"
+
+        val gifFile get() = emojy.plugin.dataFolder.resolve("gifs/${id}.gif").apply { mkdirs() }
         private var aspectRatio by Delegates.notNull<Float>()
 
         enum class GifType {
@@ -183,7 +179,7 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
         fun frameCount(): Int {
             if (frameCount <= 0) frameCount = runCatching {
                 val reader = ImageIO.getImageReadersByFormatName("gif").next()
-                reader.input = ImageIO.createImageInputStream(gifFolder.resolve("${id}.gif"))
+                reader.input = ImageIO.createImageInputStream(gifFile)
                 aspectRatio = reader.getAspectRatio(0)
                 reader.getNumImages(true)
             }.onFailure {
@@ -195,30 +191,8 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
 
             return frameCount
         }
-
-        fun toJson(): MutableList<JsonObject> {
-            val jsonList = mutableListOf<JsonObject>()
-            val frameCount = frameCount()
-            (1..frameCount).forEach { i ->
-                val output = JsonObject()
-                output.addProperty("type", "bitmap")
-                output.addProperty("file", "$framePath$i.png")
-                output.addProperty("ascent", ascent)
-                output.addProperty("height", height)
-                output.add("chars", JsonArray().apply { add(unicode(i).toString()) })
-                jsonList.add(output)
-            }
-
-            // Add a negative shift into the shader for ease of use
-            if (type == GifType.SHADER) {
-                jsonList.add(JsonObject().apply {
-                    addProperty("type", "space")
-                    add("advances", JsonObject().apply { addProperty(unicode(frameCount + 1).toString(), -(height * aspectRatio + 1).roundToInt()) })
-                })
-            }
-
-            return jsonList
-        }
+        fun font() = Font.font(font, fontProviders())
+        private fun fontProviders() = (1..frameCount()).map { FontProvider.bitMap(Key.key("$framePath$it.png"), height, ascent, listOf(unicode(it).toString())) }
 
         fun checkPermission(player: Player?) =
             !emojyConfig.requirePermissions || player == null || player.hasPermission(permission)

@@ -8,124 +8,45 @@ import com.mineinabyss.idofront.font.Space
 import com.mineinabyss.idofront.font.Space.Companion.toNumber
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.messaging.logWarn
+import net.kyori.adventure.key.Key
+import team.unnamed.creative.ResourcePack
+import team.unnamed.creative.base.Writable
+import team.unnamed.creative.font.Font
+import team.unnamed.creative.font.FontProvider
+import team.unnamed.creative.serialize.minecraft.MinecraftResourcePackWriter
+import team.unnamed.creative.texture.Texture
 import java.io.File
 
-
-//TODO Make font generation sort by namespace to avoid duplicate fonts
 object EmojyGenerator {
+    private val gifFolder = emojy.plugin.dataFolder.resolve("gifs").apply { mkdirs() }
+    private val emotesFolder = emojy.plugin.dataFolder.resolve("emotes").apply { mkdirs() }
     fun generateResourcePack() {
+        val resourcePack = ResourcePack.resourcePack()
         File(emojy.plugin.dataFolder, "/assets").deleteRecursively()
+
         emojy.emotes.forEach { emote ->
-            val assetDir = File(emojy.plugin.dataFolder.path, "/assets").apply { mkdirs() }
-            runCatching {
-                val font = File(emojy.plugin.dataFolder, "/fonts/${emote.font.value()}.json")
-                font.copyTo(assetDir.resolve("${emote.font.namespace()}/font/${emote.font.value()}.json"), true)
-            }.getOrElse {
-                if (emojyConfig.debug) when (it) {
-                    is NoSuchFileException, is NullPointerException ->
-                        logWarn("Could not find font ${emote.font.asString()} for emote ${emote.id} in plugins/emojy/fonts")
-                }
-            }
-
-            //TODO Remove or find a better solution (files cant have same names here and its annoying either way)
-            /*runCatching {
-                val texture =
-                    File(emojy.plugin.dataFolder.path, "/textures/${emote.image}").run { parentFile.mkdirs(); this }
-                texture.copyTo(assetDir.resolve(emote.namespace + "/textures/${emote.imagePath}"), true)
-            }.getOrElse {
-                if (emojy.config.debug) when (it) {
-                    is NoSuchFileException, is NullPointerException -> {
-                        logError("Could not find texture ${emote.image} for emote ${emote.id} in plugins/emojy/textures")
-                        logWarn("Will not be copied to final resourcepack folder")
-                        logWarn("If you have it through another resourcepack, ignore this")
-                    }
-                }
-            }*/
+            if (emote.isBitmap && resourcePack.font(emote.font) != null) return@forEach if (emojyConfig.debug) logWarn("Skipping ${emote.id}-font because it is a bitmap and already added") else {}
+            resourcePack.font(emote.font())
+            emotesFolder.listFiles()?.find { f -> f.nameWithoutExtension == emote.texture.value().substringAfterLast("/").removeSuffix(".png") }?.let {
+                resourcePack.texture(Texture.texture(emote.texture, Writable.file(it)))
+            } ?: if (emojyConfig.debug) logWarn("Could not find texture for ${emote.id}") else {}
         }
-
-        emojy.gifs.forEach { gif ->
-            val assetDir = emojy.plugin.dataFolder.resolve("assets")
-            runCatching {
-                val font = File(emojy.plugin.dataFolder, "/fonts/gifs/${gif.id}.json").run { parentFile.mkdirs(); this }
-                font.copyTo(assetDir.resolve(gif.framePath.namespace() + "/font/${gif.id}.json"), true)
-            }.getOrElse {
-                if (emojyConfig.debug) when (it) {
-                    is NoSuchFileException, is NullPointerException ->
-                        logWarn("Could not find font ${gif.id} for emote ${gif.id} in plugins/emojy/fonts")
-                }
-            }
-
-            gif.generateSplitGif()
+        emojy.gifs.forEach {
+            it.generateSplitGif(resourcePack)
+            resourcePack.font(it.font())
         }
+        resourcePack.font(Font.font(emojyConfig.spaceFont, FontProvider.space(Space.entries.associate { it.unicode to it.toNumber() })))
 
-        // Copy space-font
-        emojy.plugin.dataFolder.resolve("fonts/${emojyConfig.spaceFont.value()}.json").apply {
-            parentFile.mkdirs()
-            copyTo(emojy.plugin.dataFolder.resolve("assets/${emojyConfig.spaceFont.namespace()}/font/${emojyConfig.spaceFont.value()}.json"), true)
-        }
+        MinecraftResourcePackWriter.minecraft().writeToZipFile(emojy.plugin.dataFolder.resolve("pack.zip"), resourcePack)
     }
 
-    fun generateFontFiles() {
-        val fontFiles = mutableMapOf<String, JsonArray>()
-        emojy.emotes.forEach { emote ->
-            fontFiles[emote.font.value()]?.add(emote.toJson())
-                ?: fontFiles.putIfAbsent(emote.font.value(), JsonArray().apply { add(emote.toJson()) })
-        }
-        val fontFolder = File("${emojy.plugin.dataFolder.absolutePath}/fonts/")
-        fontFolder.deleteRecursively()
-
-        fontFiles.forEach { (font, array) ->
-            val output = JsonObject()
-            val fontFile = fontFolder.resolve("${font}.json")
-
-            output.add("providers", array)
-            fontFile.parentFile.mkdirs()
-            if (font == "default" && emojyConfig.supportForceUnicode)
-                fontFolder.resolve("uniform.json").writeText(output.toString())
-            fontFile.writeText(output.toString())
-        }
-        fontFiles.clear()
-
-        emojy.gifs.forEach { gif ->
-            gif.toJson().forEach { json ->
-                fontFiles[gif.id]?.add(json)
-                    ?: fontFiles.putIfAbsent(gif.id, JsonArray().apply { add(json) })
-            }
-        }
-
-        fontFiles.forEach { (font, array) ->
-            val output = JsonObject()
-            val fontFile = File("${emojy.plugin.dataFolder.absolutePath}/fonts/gifs/${font}.json")
-            output.add("providers", array)
-            fontFile.parentFile.mkdirs()
-            fontFile.writeText(output.toString())
-        }
-        fontFiles.clear()
-
-        // Generate space-font
-        emojy.plugin.dataFolder.resolve("fonts/${emojyConfig.spaceFont.value()}.json").apply {
-            parentFile.mkdirs()
-            writeText(JsonObject().apply {
-                add("providers", JsonArray().apply {
-                    add(JsonObject().apply {
-                        addProperty("type", "space")
-                        add("advances", JsonObject().apply {
-                            Space.entries.filter { it.unicode.isNotEmpty() }.map { space -> space.toNumber() to space.unicode }.forEach { (number, unicode) ->
-                                addProperty(unicode, number)
-                            }
-                        })
-                    })
-                })
-            }.toString())
-        }
-    }
-
-    val gifFolder = emojy.plugin.dataFolder.resolve("gifs").apply { mkdirs() }
-    private fun Gifs.Gif.generateSplitGif() {
+    private fun Gifs.Gif.generateSplitGif(resourcePack: ResourcePack) {
         runCatching {
-            gifFolder.resolve(id).deleteRecursively() // Clear files for regenerating
-            GifConverter.splitGif(gifFolder.resolve("${id}.gif"), frameCount())
-            gifFolder.resolve(id).copyRecursively(emojy.plugin.dataFolder.resolve("assets/${framePath.namespace()}/textures/${framePath.value()}"), true)
+            gifFolder.resolve(id).deleteRecursively()
+            GifConverter.splitGif(gifFile, frameCount())
+            gifFolder.resolve(id).listFiles()?.filterNotNull()?.map {
+                Texture.texture(Key.key("${framePath.asString()}${it.name}"), Writable.file(it))
+            }?.forEach(resourcePack::texture)
         }.onFailure {
             if (emojyConfig.debug) logError("Could not generate split gif for ${id}.gif: ${it.message}")
         }

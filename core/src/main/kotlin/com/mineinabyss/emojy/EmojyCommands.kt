@@ -61,7 +61,7 @@ class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
             "reload" {
                 action {
                     emojy.plugin.createEmojyContext()
-                    emojy.plugin.generateFiles()
+                    EmojyGenerator.generateResourcePack()
                     sender.success("Emojy has been reloaded!")
                 }
             }

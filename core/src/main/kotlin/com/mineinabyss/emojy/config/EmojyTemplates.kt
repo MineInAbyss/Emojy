@@ -27,8 +27,8 @@ data class EmojyTemplate(
     val id: String,
     @EncodeDefault(NEVER) val texture: @Serializable(KeySerializer::class) Key? = null,
     @EncodeDefault(NEVER) val font: @Serializable(KeySerializer::class) Key? = null,
-    @EncodeDefault(NEVER) val ascent: Int? = null,
     @EncodeDefault(NEVER) val height: Int? = null,
+    @EncodeDefault(NEVER) val ascent: Int? = null,
     @EncodeDefault(NEVER) val bitmapWidth: Int? = null,
     @EncodeDefault(NEVER) val bitmapHeight: Int? = null,
 )

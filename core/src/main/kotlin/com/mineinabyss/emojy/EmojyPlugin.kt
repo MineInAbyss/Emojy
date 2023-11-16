@@ -27,7 +27,7 @@ class EmojyPlugin : JavaPlugin() {
         }
 
         createEmojyContext()
-        generateFiles()
+        EmojyGenerator.generateResourcePack()
 
         listeners(EmojyListener())
 
@@ -43,12 +43,6 @@ class EmojyPlugin : JavaPlugin() {
         server.onlinePlayers.forEach {
             EmojyNMSHandlers.getHandler()?.uninject(it)
         }
-    }
-
-    fun generateFiles() {
-        EmojyGenerator.generateFontFiles()
-        if (emojyConfig.generateResourcePack)
-            EmojyGenerator.generateResourcePack()
     }
 
     fun createEmojyContext() {

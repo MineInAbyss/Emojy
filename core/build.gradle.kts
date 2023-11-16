@@ -9,6 +9,7 @@ repositories {
     gradlePluginPortal()
     maven("https://repo.mineinabyss.com/releases")
     maven("https://repo.papermc.io/repository/maven-public/")
+    maven("https://repo.unnamed.team/repository/unnamed-public/")
     google()
 }
 
@@ -19,6 +20,9 @@ dependencies {
     compileOnly(libs.kotlinx.serialization.kaml)
     compileOnly(libs.kotlinx.coroutines)
     compileOnly(libs.minecraft.mccoroutine)
+
+    compileOnly(libs.creative.api)
+    compileOnly(libs.creative.serializer.minecraft)
 
     // Shaded
     implementation("com.aaaaahhhhh.bananapuncher714:GifConverter:1.0")
