@@ -26,7 +26,7 @@ object EmojyBook {
             sender.openBook(Book.builder().pages(
                 frontPage, *emojy.emotes.groupBy { it.font }.map { (_, emotes) ->
                     Component.textOfChildren(*emotes.filter { it.checkPermission(sender as? Player) && it !in emojyConfig.emojyList.ignoredEmotes }
-                        .take(10).map { it.getFormattedUnicode() }.toTypedArray())
+                        .take(10).map { it.formattedUnicode() }.toTypedArray())
                 }.toTypedArray()
             ).build()
             )
