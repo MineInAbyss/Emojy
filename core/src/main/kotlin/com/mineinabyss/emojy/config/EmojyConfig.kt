@@ -2,12 +2,11 @@
 
 package com.mineinabyss.emojy.config
 
-import com.google.gson.JsonArray
-import com.google.gson.JsonObject
 import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.emojyConfig
 import com.mineinabyss.emojy.space
 import com.mineinabyss.emojy.templates
+import com.mineinabyss.idofront.font.Space
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.serialization.KeySerializer
 import com.mineinabyss.idofront.textcomponents.miniMsg
@@ -23,8 +22,10 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.entity.Player
+import team.unnamed.creative.ResourcePack
 import team.unnamed.creative.font.Font
 import team.unnamed.creative.font.FontProvider
+import team.unnamed.creative.font.SpaceFontProvider
 import javax.imageio.ImageIO
 import kotlin.math.roundToInt
 import kotlin.properties.Delegates
@@ -108,7 +109,8 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
 
         private val permission get() = "emojy.emote.$id"
         private val fontPermission get() = "emojy.font.$font"
-        fun font() = Font.font(font, FontProvider.bitMap(texture, height, ascent, unicodes()))
+        private fun fontProvider() = FontProvider.bitMap(texture, height, ascent, unicodes())
+        fun appendFont(resourcePack: ResourcePack) = (resourcePack.font(font)?.toBuilder() ?: Font.font().key(font)).addProvider(fontProvider()).build()
 
         fun checkPermission(player: Player?) =
             !emojyConfig.requirePermissions || player == null || player.hasPermission(permission) || player.hasPermission(
@@ -191,8 +193,9 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
 
             return frameCount
         }
-        fun font() = Font.font(font, fontProviders())
-        private fun fontProviders() = (1..frameCount()).map { FontProvider.bitMap(Key.key("$framePath$it.png"), height, ascent, listOf(unicode(it).toString())) }
+        fun font() = Font.font(font, fontProviders().toMutableList().also { it.add(gifAdvance()) })
+        private fun gifAdvance() = FontProvider.space().advance(unicode(frameCount() + 1).toString(), -(height * aspectRatio + 1).roundToInt()).build()
+        private fun fontProviders(): List<FontProvider> = (1..frameCount()).map { FontProvider.bitMap(Key.key("$framePath$it.png"), height, ascent, listOf(unicode(it).toString())) }
 
         fun checkPermission(player: Player?) =
             !emojyConfig.requirePermissions || player == null || player.hasPermission(permission)

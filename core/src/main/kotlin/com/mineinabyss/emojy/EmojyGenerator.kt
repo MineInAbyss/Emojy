@@ -26,7 +26,7 @@ object EmojyGenerator {
 
         emojy.emotes.forEach { emote ->
             if (emote.isBitmap && resourcePack.font(emote.font) != null) return@forEach if (emojyConfig.debug) logWarn("Skipping ${emote.id}-font because it is a bitmap and already added") else {}
-            resourcePack.font(emote.font())
+            resourcePack.font(emote.appendFont(resourcePack))
             emotesFolder.listFiles()?.find { f -> f.nameWithoutExtension == emote.texture.value().substringAfterLast("/").removeSuffix(".png") }?.let {
                 resourcePack.texture(Texture.texture(emote.texture, Writable.file(it)))
             } ?: if (emojyConfig.debug) logWarn("Could not find texture for ${emote.id}") else {}
