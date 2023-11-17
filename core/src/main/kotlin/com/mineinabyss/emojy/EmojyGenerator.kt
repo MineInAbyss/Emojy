@@ -35,7 +35,7 @@ object EmojyGenerator {
             it.generateSplitGif(resourcePack)
             resourcePack.font(it.font())
         }
-        resourcePack.font(Font.font(emojyConfig.spaceFont, FontProvider.space(Space.entries.associate { it.unicode to it.toNumber() })))
+        resourcePack.font(Font.font(emojyConfig.spaceFont, FontProvider.space(Space.entries.filterNot(Space.NULL::equals).associate { it.unicode to it.toNumber() })))
 
         MinecraftResourcePackWriter.minecraft().writeToZipFile(emojy.plugin.dataFolder.resolve("pack.zip"), resourcePack)
     }
