@@ -11,8 +11,10 @@ import com.mineinabyss.idofront.messaging.logWarn
 import net.kyori.adventure.key.Key
 import team.unnamed.creative.ResourcePack
 import team.unnamed.creative.base.Writable
+import team.unnamed.creative.font.BitMapFontProvider
 import team.unnamed.creative.font.Font
 import team.unnamed.creative.font.FontProvider
+import team.unnamed.creative.font.SpaceFontProvider
 import team.unnamed.creative.serialize.minecraft.MinecraftResourcePackWriter
 import team.unnamed.creative.texture.Texture
 import java.io.File
@@ -25,7 +27,17 @@ object EmojyGenerator {
         File(emojy.plugin.dataFolder, "/assets").deleteRecursively()
 
         emojy.emotes.forEach { emote ->
-            if (emote.isBitmap && resourcePack.font(emote.font) != null) return@forEach if (emojyConfig.debug) logWarn("Skipping ${emote.id}-font because it is a bitmap and already added") else {}
+            val font = resourcePack.font(emote.font)
+            if (emote.isBitmap && font != null) when {
+                // Add a -1 advance to the font for ease of use
+                // Mainly needed for ESC menu and default font due to no other font being supported
+                font.providers().none { it is SpaceFontProvider } ->
+                    resourcePack.font(font.toBuilder().addProvider(FontProvider.space().advance("\uE101", -1).build()).build())
+                // If the font has already added an entry for the emote, skip it
+                font.providers().any { it is BitMapFontProvider && it.file() == emote.texture } ->
+                    return@forEach if (emojyConfig.debug) logWarn("Skipping ${emote.id}-font because it is a bitmap and already added")  else {}
+            }
+
             resourcePack.font(emote.appendFont(resourcePack))
             emotesFolder.listFiles()?.find { f -> f.nameWithoutExtension == emote.texture.value().substringAfterLast("/").removeSuffix(".png") }?.let {
                 resourcePack.texture(Texture.texture(emote.texture, Writable.file(it)))
