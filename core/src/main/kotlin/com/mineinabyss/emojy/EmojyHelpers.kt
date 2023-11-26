@@ -17,17 +17,14 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
     var msg = GlobalTranslator.render(this, player?.locale() ?: Locale.US)
     val serialized = msg.serialize()
 
-    emojy.emotes.filter { ":${it.id}:" in serialized && it.checkPermission(player) }.forEach { emote ->
+    emojy.emotes.filter { it.checkPermission(player) }.forEach { emote ->
+        val colorable = ":${emote.id}\\|(c|colorable):".toRegex().containsMatchIn(serialized)
+        val bitmapIndex = ":${emote.id}\\|([0-9]+):".toRegex().find(serialized)?.groupValues?.get(1)?.toIntOrNull() ?: -1
+
         msg = msg.replaceText(
             TextReplacementConfig.builder()
-                .match(":${emote.id}:(c|colorable):")
-                .replacement(emote.formattedUnicode(insert = insert, colorable = true))
-                .build()
-        )
-        msg = msg.replaceText(
-            TextReplacementConfig.builder()
-                .matchLiteral(":${emote.id}:")
-                .replacement(emote.formattedUnicode(insert = insert, colorable = false))
+                .match(":${emote.id}.*:")
+                .replacement(emote.formattedUnicode(insert = insert, colorable = colorable, bitmapIndex = bitmapIndex))
                 .build()
         )
     }

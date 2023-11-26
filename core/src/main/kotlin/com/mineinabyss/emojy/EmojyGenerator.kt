@@ -1,8 +1,6 @@
 package com.mineinabyss.emojy
 
 import com.aaaaahhhhhhh.bananapuncher714.gifconverter.GifConverter
-import com.google.gson.JsonArray
-import com.google.gson.JsonObject
 import com.mineinabyss.emojy.config.Gifs
 import com.mineinabyss.idofront.font.Space
 import com.mineinabyss.idofront.font.Space.Companion.toNumber
@@ -28,7 +26,7 @@ object EmojyGenerator {
 
         emojy.emotes.forEach { emote ->
             val font = resourcePack.font(emote.font)
-            if (emote.isBitmap && font != null) when {
+            if (emote.isMultiBitmap && font != null) when {
                 // Add a -1 advance to the font for ease of use
                 // Mainly needed for ESC menu and default font due to no other font being supported
                 font.providers().none { it is SpaceFontProvider } ->

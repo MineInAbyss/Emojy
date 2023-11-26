@@ -6,7 +6,6 @@ import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.emojyConfig
 import com.mineinabyss.emojy.space
 import com.mineinabyss.emojy.templates
-import com.mineinabyss.idofront.font.Space
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.serialization.KeySerializer
 import com.mineinabyss.idofront.textcomponents.miniMsg
@@ -25,7 +24,6 @@ import org.bukkit.entity.Player
 import team.unnamed.creative.ResourcePack
 import team.unnamed.creative.font.Font
 import team.unnamed.creative.font.FontProvider
-import team.unnamed.creative.font.SpaceFontProvider
 import javax.imageio.ImageIO
 import kotlin.math.roundToInt
 import kotlin.properties.Delegates
@@ -84,7 +82,7 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
         @EncodeDefault(NEVER) val bitmapWidth: Int = template?.bitmapWidth ?: 1,
         @EncodeDefault(NEVER) val bitmapHeight: Int = template?.bitmapHeight ?: 1,
     ) {
-        val isBitmap: Boolean get() = bitmapWidth > 1 || bitmapHeight > 1
+        val isMultiBitmap: Boolean get() = bitmapWidth > 1 || bitmapHeight > 1
 
         // Beginning of Private Use Area \uE000 -> uF8FF
         // Option: (Character.toCodePoint('\uE000', '\uFF8F')/37 + getIndex())
@@ -116,16 +114,21 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
             !emojyConfig.requirePermissions || player == null || player.hasPermission(permission) || player.hasPermission(
                 fontPermission
             )
-
         fun formattedUnicode(
             appendSpace: Boolean = false,
             insert: Boolean = true,
-            colorable: Boolean = false
+            colorable: Boolean = false,
+            bitmapIndex: Int = -1
         ): Component {
             var bitmap = when {
-                unicodes().size > 1 -> Component.textOfChildren(*unicodes().map {
-                    Component.text().content(it).build().appendNewline()
-                }.toTypedArray())
+                unicodes().size > 1 -> {
+                    if (bitmapIndex >= 0) {
+                        val unicode = unicodes().joinToString("").toCharArray().getOrElse(maxOf(bitmapIndex, 1) - 1) { unicodes().last().last() }.toString()
+                        Component.text().content(unicode).build()
+                    } else Component.textOfChildren(*unicodes().map {
+                        Component.text().content(it).build().appendNewline()
+                    }.toTypedArray())
+                }
 
                 else -> Component.text().content(unicodes().first()).build()
             }.font(font)
