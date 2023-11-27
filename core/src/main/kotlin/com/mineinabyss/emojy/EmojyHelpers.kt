@@ -18,12 +18,13 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
     val serialized = msg.serialize()
 
     emojy.emotes.filter { ":${it.id}.*:".toRegex() in serialized && it.checkPermission(player) }.forEach { emote ->
-        val colorable = ":${emote.id}\\|(c|colorable):".toRegex() in serialized
-        val bitmapIndex = ":${emote.id}\\|([0-9]+):".toRegex().find(serialized)?.groupValues?.get(1)?.toIntOrNull() ?: -1
+        val match = ":${emote.id}(\\|((c|colorable)|[0-9]+))+:".toRegex().find(serialized)?.value ?: return@forEach
+        val colorable = "\\|(c|colorable)".toRegex() in serialized
+        val bitmapIndex = "\\|([0-9]+)".toRegex().find(match)?.groupValues?.get(1)?.toIntOrNull() ?: -1
 
         msg = msg.replaceText(
             TextReplacementConfig.builder()
-                .match(":${emote.id}.*:")
+                .match(":${emote.id}(\\|((c|colorable)|[0-9]+))+:")
                 .replacement(emote.formattedUnicode(insert = insert, colorable = colorable, bitmapIndex = bitmapIndex))
                 .build()
         )
