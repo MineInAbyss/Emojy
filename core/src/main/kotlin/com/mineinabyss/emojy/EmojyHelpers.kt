@@ -17,8 +17,8 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
     var msg = GlobalTranslator.render(this, player?.locale() ?: Locale.US)
     val serialized = msg.serialize()
 
-    emojy.emotes.filter { ":${it.id}.*:" in serialized && it.checkPermission(player) }.forEach { emote ->
-        val colorable = ":${emote.id}\\|(c|colorable):".toRegex().containsMatchIn(serialized)
+    emojy.emotes.filter { ":${it.id}.*:".toRegex() in serialized && it.checkPermission(player) }.forEach { emote ->
+        val colorable = ":${emote.id}\\|(c|colorable):".toRegex() in serialized
         val bitmapIndex = ":${emote.id}\\|([0-9]+):".toRegex().find(serialized)?.groupValues?.get(1)?.toIntOrNull() ?: -1
 
         msg = msg.replaceText(
@@ -54,4 +54,5 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
 private fun buildSpaceComponents(space: Int) =
     Component.text().content(Space.of(space)).font(emojyConfig.spaceFont).build()
 
+fun Component.space(advance: Int = 3) = this.append(buildSpaceComponents(advance))
 fun Component.space() = append(Component.text().content(" ").font(Key.key("default")))

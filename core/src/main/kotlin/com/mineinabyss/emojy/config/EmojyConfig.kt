@@ -141,7 +141,7 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
                     ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this emote").miniMsg()
                 )
             )
-            return if (appendSpace) bitmap.space() else bitmap
+            return if (appendSpace) bitmap.space(2) else bitmap
         }
     }
 }
@@ -212,7 +212,7 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
                     ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this emote").miniMsg()
                 )
             )
-            return if (appendSpace) bitmap.space() else bitmap
+            return if (appendSpace) bitmap.space(1) else bitmap
         }
     }
 }
