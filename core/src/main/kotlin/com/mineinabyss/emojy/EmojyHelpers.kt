@@ -54,4 +54,5 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
 private fun buildSpaceComponents(space: Int) =
     Component.text().content(Space.of(space)).font(emojyConfig.spaceFont).build()
 
+fun Component.space(advance: Int = 3) = this.append(buildSpaceComponents(advance))
 fun Component.space() = append(Component.text().content(" ").font(Key.key("default")))
