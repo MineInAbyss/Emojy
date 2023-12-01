@@ -5,8 +5,11 @@ import com.mineinabyss.idofront.font.Space
 import com.mineinabyss.idofront.textcomponents.serialize
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.ComponentLike
 import net.kyori.adventure.text.TextReplacementConfig
+import net.kyori.adventure.text.minimessage.tag.Tag
 import net.kyori.adventure.translation.GlobalTranslator
+import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import java.util.*
 
@@ -56,7 +59,7 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
 }
 
 private fun buildSpaceComponents(space: Int) =
-    Component.text().content(Space.of(space)).font(emojyConfig.spaceFont).build()
+    Component.textOfChildren(Component.text(Space.of(space)).font(emojyConfig.spaceFont))
 
 fun Component.space(advance: Int = 3) = this.append(buildSpaceComponents(advance))
 fun Component.space() = append(Component.text().content(" ").font(Key.key("default")))
