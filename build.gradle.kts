@@ -8,7 +8,7 @@ plugins {
     id("com.mineinabyss.conventions.autoversion")
     id("xyz.jpenilla.run-paper") version "2.0.1" // Adds runServer and runMojangMappedServer tasks for testing
     id("net.minecrell.plugin-yml.paper") version "0.6.0"
-    id("io.papermc.paperweight.userdev") version "1.5.8"
+    id("io.papermc.paperweight.userdev") version "1.5.11"
 }
 
 allprojects {
@@ -18,6 +18,10 @@ allprojects {
 
     dependencies {
         compileOnly(kotlin("stdlib-jdk8"))
+    }
+
+    repositories {
+        mavenLocal()
     }
 }
 
@@ -30,13 +34,14 @@ dependencies {
     compileOnly(libs.minecraft.mccoroutine)
 
     // Shaded
-    paperweight.paperDevBundle("1.20.2-R0.1-SNAPSHOT") //NMS
+    paperweight.paperDevBundle("1.20.4-R0.1-SNAPSHOT") //NMS
     implementation(project(path = ":core"))
     implementation(project(path = ":v1_19_R1", configuration = "reobf"))
     implementation(project(path = ":v1_19_R2", configuration = "reobf"))
     implementation(project(path = ":v1_19_R3", configuration = "reobf"))
     implementation(project(path = ":v1_20_R1", configuration = "reobf"))
     implementation(project(path = ":v1_20_R2", configuration = "reobf"))
+    implementation(project(path = ":v1_20_R3", configuration = "reobf"))
 }
 
 tasks {
@@ -69,6 +74,7 @@ tasks {
         dependsOn(":v1_19_R3:reobfJar")
         dependsOn(":v1_20_R1:reobfJar")
         dependsOn(":v1_20_R2:reobfJar")
+        dependsOn(":v1_20_R3:reobfJar")
         archiveFileName.set("Emojy.jar")
     }
 

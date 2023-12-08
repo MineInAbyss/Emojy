@@ -9,6 +9,7 @@ pluginManagement {
         google()
         maven("https://repo.mineinabyss.com/releases")
         maven("https://repo.papermc.io/repository/maven-public/")
+        mavenLocal()
     }
 
     resolutionStrategy.eachPlugin {
@@ -22,6 +23,7 @@ dependencyResolutionManagement {
 
     repositories {
         maven("https://repo.mineinabyss.com/releases")
+        mavenLocal()
     }
 
     versionCatalogs {
@@ -30,4 +32,4 @@ dependencyResolutionManagement {
     }
 }
 
-include("core", "v1_19_R1", "v1_19_R2", "v1_19_R3", "v1_20_R1", "v1_20_R2")
+include("core", "v1_19_R1", "v1_19_R2", "v1_19_R3", "v1_20_R1", "v1_20_R2", "v1_20_R3")
