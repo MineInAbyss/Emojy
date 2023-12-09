@@ -13,6 +13,8 @@ import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import java.util.*
 
+private val colorableRegex: Regex = "\\|(c|colorable)".toRegex()
+private val bitmapIndexRegex: Regex = "\\|([0-9]+)".toRegex()
 //TODO Tags like rainbow and gradient, which split the text into multiple children, will break replacement below
 // Above is due to Adventure-issue, nothing on our end for once. https://github.com/KyoriPowered/adventure/issues/872
 // Find out why this is called 3 times
@@ -20,11 +22,11 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
     var msg = GlobalTranslator.render(this, player?.locale() ?: Locale.US)
     val serialized = msg.serialize()
 
-    emojy.emotes.filter { ":${it.id}(\\|.*?)?:".toRegex() in serialized && it.checkPermission(player) }.forEach { emote ->
-        val matches = ":${emote.id}(\\|(c|colorable|\\d+))*:".toRegex().findAll(serialized)
+    emojy.emotes.filter { it.baseRegex in serialized && it.checkPermission(player) }.forEach { emote ->
+        val matches = emote.fullRegex.findAll(serialized)
         matches.forEach { match ->
-            val colorable = "\\|(c|colorable)".toRegex() in match.value
-            val bitmapIndex = "\\|([0-9]+)".toRegex().find(match.value)?.groupValues?.get(1)?.toIntOrNull() ?: -1
+            val colorable = colorableRegex in match.value
+            val bitmapIndex = bitmapIndexRegex.find(match.value)?.groupValues?.get(1)?.toIntOrNull() ?: -1
 
             val replacement = emote.formattedUnicode(insert = insert, colorable = colorable, bitmapIndex = bitmapIndex)
             msg = msg.replaceText(

@@ -83,6 +83,8 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
         @EncodeDefault(NEVER) val bitmapHeight: Int = template?.bitmapHeight ?: 1,
     ) {
         val isMultiBitmap: Boolean get() = bitmapWidth > 1 || bitmapHeight > 1
+        @Transient val baseRegex = ":$id(\\|.*?)?:".toRegex()
+        @Transient val fullRegex = "::$id(\\|(c|colorable|\\d+))*:".toRegex()
 
         // Beginning of Private Use Area \uE000 -> uF8FF
         // Option: (Character.toCodePoint('\uE000', '\uFF8F')/37 + getIndex())
