@@ -40,22 +40,10 @@ class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
                         else -> emojy.gifs.joinToString(", ") { it.id }.miniMsg()
                     }
 
-                    when (emojyConfig.emojyList.type) {
-                        EmojyConfig.ListType.BOOK -> sender.openBook(
-                            Book.builder().addPage(
-                                "<green>List of emojis:<newline>".miniMsg().append(emoteList)
-                                    .append("<newline><newline><#f35444>List of gifs:<newline>".miniMsg())
-                                    .append(gifList)
-                            ).build()
-                        )
-                        EmojyConfig.ListType.BOOK2 -> EmojyBook.book(sender)
-                        EmojyConfig.ListType.CHAT -> {
-                            sender.sendRichMessage("<green>List of emojis:")
-                            sender.sendMessage(emoteList)
-                            sender.sendRichMessage("<#f35444>List of GIFs")
-                            sender.sendMessage(gifList)
-                        }
-                    }
+                    sender.sendRichMessage("<green>List of emojis:")
+                    sender.sendMessage(emoteList)
+                    sender.sendRichMessage("<#f35444>List of GIFs")
+                    sender.sendMessage(gifList)
                 }
             }
             "reload" {

@@ -52,7 +52,6 @@ data class EmojyConfig(
 
     @Serializable
     data class EmojyList(
-        val type: ListType = ListType.CHAT,
         val ignoredEmoteIds: Set<String> = mutableSetOf(),
         val ignoredGifIds: Set<String> = mutableSetOf(),
         val ignoredFonts: Set<@Serializable(KeySerializer::class) Key> = mutableSetOf()
