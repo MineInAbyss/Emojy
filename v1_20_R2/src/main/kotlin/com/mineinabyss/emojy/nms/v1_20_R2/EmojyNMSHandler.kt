@@ -106,12 +106,12 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         Bukkit.getOnlinePlayers().forEach(::inject)
     }
 
-    private fun Channel.inject() {
+    private fun Channel.inject(player: Player? = null) {
         if (this !in encoder.keys && (this.pipeline().get("encoder") as ChannelHandler) !is CustomPacketEncoder)
-            encoder[this] = this.pipeline().replace("encoder", "encoder", CustomPacketEncoder())
+            encoder[this] = this.pipeline().replace("encoder", "encoder", CustomPacketEncoder(player))
 
         if (this !in decoder.keys && (this.pipeline().get("decoder") as ChannelHandler) !is CustomPacketDecoder)
-            decoder[this] = this.pipeline().replace("decoder", "decoder", CustomPacketDecoder())
+            decoder[this] = this.pipeline().replace("decoder", "decoder", CustomPacketDecoder(player))
 
     }
 
@@ -131,13 +131,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
     override fun inject(player: Player) {
         val channel = (player as? CraftPlayer)?.handle?.connection?.connection?.channel ?: return
-        channel.eventLoop().submit { channel.inject() }
-        channel.pipeline().forEach {
-            when (val handler = it.value) {
-                is CustomPacketEncoder -> handler.setPlayer(player)
-                is CustomPacketDecoder -> handler.setPlayer(player)
-            }
-        }
+        channel.eventLoop().submit { channel.inject(player) }
     }
 
     override fun uninject(player: Player) {
@@ -201,13 +195,8 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
     }
 
-    private class CustomPacketEncoder : MessageToByteEncoder<Packet<*>>() {
+    private class CustomPacketEncoder(val player: Player? = null) : MessageToByteEncoder<Packet<*>>() {
         private val protocolDirection = PacketFlow.CLIENTBOUND
-        private var player: Player? = null
-
-        fun setPlayer(player: Player) {
-            this.player = player
-        }
 
         override fun encode(ctx: ChannelHandlerContext, msg: Packet<*>, out: ByteBuf) {
             val enumProt = ctx.channel()?.attr(Connection.ATTRIBUTE_CLIENTBOUND_PROTOCOL)?.get() ?: throw RuntimeException("ConnectionProtocol unknown: $out")
@@ -229,12 +218,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
     }
 
-    private class CustomPacketDecoder : ByteToMessageDecoder() {
-        private var player: Player? = null
-
-        fun setPlayer(player: Player) {
-            this.player = player
-        }
+    private class CustomPacketDecoder(val player: Player? = null) : ByteToMessageDecoder() {
 
         override fun decode(ctx: ChannelHandlerContext, buffer: ByteBuf, out: MutableList<Any>) {
             val bufferCopy = buffer.copy()
