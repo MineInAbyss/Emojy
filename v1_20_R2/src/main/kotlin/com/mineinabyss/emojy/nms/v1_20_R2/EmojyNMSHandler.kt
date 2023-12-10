@@ -6,9 +6,9 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
-import com.mineinabyss.emojy.replaceEmoteIds
-import com.mineinabyss.idofront.messaging.broadcast
+import com.mineinabyss.emojy.transform
 import com.mineinabyss.idofront.textcomponents.miniMsg
+import com.mineinabyss.idofront.textcomponents.serialize
 import io.netty.buffer.ByteBuf
 import io.netty.channel.*
 import io.netty.handler.codec.ByteToMessageDecoder
@@ -155,16 +155,16 @@ class EmojyNMSHandler : IEmojyNMSHandler {
                 transform(this) { string: String ->
                     runCatching {
                         val element = JsonParser.parseString(string)
-                        if (element.isJsonObject) element.asJsonObject.formatString(false)
+                        if (element.isJsonObject) element.asJsonObject.formatString()
                         else string
                     }.getOrNull() ?: string
                 }
             })
         }
 
-        private fun JsonObject.formatString(insert: Boolean = true): String {
+        private fun JsonObject.formatString(): String {
             return if (this.has("args") || this.has("text") || this.has("extra") || this.has("translate")) {
-                gson.serialize(gson.deserialize(this.toString()).replaceEmoteIds(player, insert))
+                gson.serialize(gson.deserialize(this.toString()).transform(null, true))
             } else this.toString()
         }
 
@@ -188,9 +188,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
 
         override fun readUtf(maxLength: Int): String {
-            return super.readUtf(maxLength).apply {
-                this.miniMsg().replaceEmoteIds(player, false)
-            }
+            return super.readUtf(maxLength).miniMsg().transform(player, true).serialize()
         }
 
     }
@@ -227,15 +225,17 @@ class EmojyNMSHandler : IEmojyNMSHandler {
             val customDataSerializer = CustomDataSerializer(player, buffer)
             val packetID = customDataSerializer.readVarInt()
             val attribute = ctx.channel().attr(Connection.ATTRIBUTE_SERVERBOUND_PROTOCOL)
-            var packet = attribute.get().createPacket(packetID, customDataSerializer) ?: throw IOException("Bad packet id $packetID")
+            val packet = attribute.get().createPacket(packetID, customDataSerializer) ?: throw IOException("Bad packet id $packetID")
 
-            if (customDataSerializer.readableBytes() > 0) throw IOException("Packet $packetID ($packet) was larger than I expected, found ${customDataSerializer.readableBytes()} bytes extra whilst reading packet $packetID")
-            else if (packet is ServerboundChatPacket) {
-                val serializer = FriendlyByteBuf(bufferCopy)
-                serializer.readVarInt()
-                packet = attribute.get().createPacket(packetID, serializer) ?: throw IOException("Bad packet id $packetID")
+            out += when {
+                customDataSerializer.readableBytes() > 0 -> throw IOException("Packet $packetID ($packet) was larger than I expected, found ${customDataSerializer.readableBytes()} bytes extra whilst reading packet $packetID")
+                packet is ServerboundChatPacket -> {
+                    val baseSerializer = FriendlyByteBuf(bufferCopy)
+                    val basePacketID = baseSerializer.readVarInt()
+                    attribute.get().createPacket(basePacketID, baseSerializer) ?: throw IOException("Bad packet id $basePacketID")
+                }
+                else -> packet
             }
-            out += packet
             ProtocolSwapHandler.swapProtocolIfNeeded(attribute, packet)
         }
     }

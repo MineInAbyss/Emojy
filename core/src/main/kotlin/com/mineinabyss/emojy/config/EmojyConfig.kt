@@ -83,8 +83,8 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
         @EncodeDefault(NEVER) val bitmapHeight: Int = template?.bitmapHeight ?: 1,
     ) {
         val isMultiBitmap: Boolean get() = bitmapWidth > 1 || bitmapHeight > 1
-        @Transient val baseRegex = ":$id(\\|.*?)?:".toRegex()
-        @Transient val fullRegex = ":$id(\\|(c|colorable|\\d+))*:".toRegex()
+        @Transient val baseRegex = "(?<!\\\\):$id(\\|(c|colorable|\\d+))*:".toRegex()
+        @Transient val escapedRegex = "\\\\:$id(\\|(c|colorable|\\d+))*:".toRegex()
 
         // Beginning of Private Use Area \uE000 -> uF8FF
         // Option: (Character.toCodePoint('\uE000', '\uFF8F')/37 + getIndex())
@@ -162,6 +162,8 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
         @Transient val framePath = Key.key(_framePath.asString().removeSuffix("/") + "/")
         @Transient val font = Key.key(framePath.namespace(), id)
         @Transient val permission = "emojy.gif.$id"
+        @Transient val baseRegex = "(?<!\\\\):$id:".toRegex()
+        @Transient val escapedRegex = "\\\\:$id:".toRegex()
 
         val gifFile get() = emojy.plugin.dataFolder.resolve("gifs/${id}.gif").apply { mkdirs() }
         private var aspectRatio by Delegates.notNull<Float>()

@@ -6,8 +6,10 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
-import com.mineinabyss.emojy.replaceEmoteIds
+import com.mineinabyss.emojy.transform
+import com.mineinabyss.idofront.messaging.broadcast
 import com.mineinabyss.idofront.textcomponents.miniMsg
+import com.mineinabyss.idofront.textcomponents.serialize
 import io.netty.buffer.ByteBuf
 import io.netty.channel.*
 import io.netty.handler.codec.ByteToMessageDecoder
@@ -144,7 +146,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         val gson = GsonComponentSerializer.gson()
 
         override fun writeComponent(component: net.kyori.adventure.text.Component): FriendlyByteBuf {
-            return super.writeComponent(component.replaceEmoteIds(player, false))
+            return super.writeComponent(component.transform(null, true))
         }
 
         override fun writeUtf(string: String, maxLength: Int): FriendlyByteBuf {
@@ -161,16 +163,16 @@ class EmojyNMSHandler : IEmojyNMSHandler {
                 transform(this, Function { string: String ->
                     return@Function runCatching {
                         val element = JsonParser.parseString(string)
-                        if (element.isJsonObject) element.asJsonObject.formatString(false)
+                        if (element.isJsonObject) element.asJsonObject.formatString()
                         else string
                     }.getOrNull() ?: string
                 })
             })
         }
 
-        private fun JsonObject.formatString(insert: Boolean = true): String {
+        private fun JsonObject.formatString(): String {
             return if (this.has("args") || this.has("text") || this.has("extra") || this.has("translate")) {
-                gson.serialize(gson.deserialize(this.toString()).replaceEmoteIds(player, insert))
+                gson.serialize(gson.deserialize(this.toString()).transform(null, true))
             } else this.toString()
         }
 
@@ -194,9 +196,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
 
         override fun readUtf(maxLength: Int): String {
-            return super.readUtf(maxLength).apply {
-                this.miniMsg().replaceEmoteIds(player, false)
-            }
+            return super.readUtf(maxLength).miniMsg().transform(player, false).serialize()
         }
 
     }
@@ -230,21 +230,21 @@ class EmojyNMSHandler : IEmojyNMSHandler {
             val buffferCopy = buffer.copy()
             if (buffer.readableBytes() == 0) return
 
-            val dataSerializer: FriendlyByteBuf = CustomDataSerializer(player, buffer)
-            val packetID = dataSerializer.readVarInt()
+            val customDataSerializer: FriendlyByteBuf = CustomDataSerializer(player, buffer)
+            val packetID = customDataSerializer.readVarInt()
             val protocol = ctx.channel().attr(Connection.ATTRIBUTE_PROTOCOL).get()
-            var packet = protocol.createPacket(PacketFlow.SERVERBOUND, packetID, dataSerializer) ?: throw IOException("Bad packet id $packetID")
+            val packet = protocol.createPacket(PacketFlow.SERVERBOUND, packetID, customDataSerializer) ?: throw IOException("Bad packet id $packetID")
 
-            when {
-                dataSerializer.readableBytes() > 0 -> throw IOException("Packet $packetID ($packet) was larger than I expected, found ${dataSerializer.readableBytes()} bytes extra whilst reading packet $packetID")
-                packet is ServerboundChatPacket -> {
-                    val serializer = FriendlyByteBuf(buffferCopy)
-                    serializer.readVarInt()
-                    packet = protocol.createPacket(PacketFlow.SERVERBOUND, packetID, serializer) ?: throw IOException("Bad packet id $packetID")
+            out += when {
+                customDataSerializer.readableBytes() > 0 -> throw IOException("Packet $packetID ($packet) was larger than I expected, found ${customDataSerializer.readableBytes()} bytes extra whilst reading packet $packetID")
+                packet is ServerboundChatPacket || packet is ClientboundPlayerChatPacket -> {
+                    broadcast((player?.name ?: "null") + ": " + packet.javaClass.name)
+                    val baseSerializer = FriendlyByteBuf(buffferCopy)
+                    val basePacketId = baseSerializer.readVarInt()
+                    protocol.createPacket(PacketFlow.SERVERBOUND, basePacketId, baseSerializer) ?: throw IOException("Bad packet id $basePacketId")
                 }
+                else -> packet
             }
-
-            out += packet
         }
     }
 

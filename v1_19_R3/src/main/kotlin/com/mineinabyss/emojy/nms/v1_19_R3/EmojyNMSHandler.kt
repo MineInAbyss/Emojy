@@ -8,8 +8,9 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
-import com.mineinabyss.emojy.replaceEmoteIds
+import com.mineinabyss.emojy.transform
 import com.mineinabyss.idofront.textcomponents.miniMsg
+import com.mineinabyss.idofront.textcomponents.serialize
 import io.netty.buffer.ByteBuf
 import io.netty.channel.*
 import io.netty.handler.codec.ByteToMessageDecoder
@@ -24,7 +25,6 @@ import net.minecraft.network.PacketEncoder
 import net.minecraft.network.SkipPacketException
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.PacketFlow
-import net.minecraft.network.protocol.game.ClientboundPlayerChatPacket
 import net.minecraft.network.protocol.game.ServerboundChatPacket
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.network.ServerConnectionListener
@@ -114,28 +114,22 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         Bukkit.getOnlinePlayers().forEach(::inject)
     }
 
-    private fun Channel.inject() {
-        if (this !in encoder.keys && this.pipeline().get("encoder") !is CustomPacketEncoder)
-            encoder[this] = this.pipeline().replace("encoder", "encoder", CustomPacketEncoder())
-
-        if (this !in decoder.keys && this.pipeline().get("decoder") !is CustomPacketDecoder)
-            decoder[this] = this.pipeline().replace("decoder", "decoder", CustomPacketDecoder())
-
-    }
-
     override fun inject(player: Player) {
         val channel = (player as CraftPlayer).handle.connection.connection.channel ?: return
-        channel.eventLoop().submit { channel.inject() }
-        channel.pipeline().forEach {
-            when (val handler = it.value) {
-                is CustomPacketEncoder -> handler.player = player
-                is CustomPacketDecoder -> handler.player = player
-            }
-        }
+        channel.eventLoop().submit { channel.inject(player) }
     }
 
     override fun uninject(player: Player) {
         (player as CraftPlayer).handle.connection.connection.channel.uninject()
+    }
+
+    private fun Channel.inject(player: Player? = null) {
+        if (this !in encoder.keys && this.pipeline().get("encoder") !is CustomPacketEncoder)
+            encoder[this] = this.pipeline().replace("encoder", "encoder", CustomPacketEncoder(player))
+
+        if (this !in decoder.keys && this.pipeline().get("decoder") !is CustomPacketDecoder)
+            decoder[this] = this.pipeline().replace("decoder", "decoder", CustomPacketDecoder(player))
+
     }
 
     private fun Channel.uninject() {
@@ -152,9 +146,8 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
     }
 
-    private class CustomPacketEncoder : MessageToByteEncoder<Packet<*>>() {
+    private class CustomPacketEncoder(val player: Player?) : MessageToByteEncoder<Packet<*>>() {
         private val protocolDirection = PacketFlow.CLIENTBOUND
-        var player: Player? = null
 
         override fun encode(ctx: ChannelHandlerContext, msg: Packet<*>, out: ByteBuf) {
             val enumProt = ctx.channel()?.attr(Connection.ATTRIBUTE_PROTOCOL)?.get()
@@ -178,8 +171,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
     }
 
-    private class CustomPacketDecoder : ByteToMessageDecoder() {
-        var player: Player? = null
+    private class CustomPacketDecoder(val player: Player?) : ByteToMessageDecoder() {
 
         override fun decode(ctx: ChannelHandlerContext, buffer: ByteBuf, out: MutableList<Any>) {
             val buffferCopy = buffer.copy()
@@ -223,7 +215,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
                     try {
                         val element = JsonParser.parseString(string)
                         if (element.isJsonObject)
-                            return@Function element.asJsonObject.returnFormattedString(false)
+                            return@Function element.asJsonObject.returnFormattedString()
                     } catch (ignored: Exception) {
                     }
                     string
@@ -231,9 +223,9 @@ class EmojyNMSHandler : IEmojyNMSHandler {
             })
         }
 
-        private fun JsonObject.returnFormattedString(insert: Boolean = true): String {
+        private fun JsonObject.returnFormattedString(): String {
             return if (this.has("args") || this.has("text") || this.has("extra") || this.has("translate")) {
-                gson.serialize(gson.deserialize(this.toString()).replaceEmoteIds(player, insert))
+                gson.serialize(gson.deserialize(this.toString()).transform(player, true))
             } else this.toString()
         }
 
@@ -257,9 +249,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
 
         override fun readUtf(maxLength: Int): String {
-            return super.readUtf(maxLength).apply {
-                this.miniMsg().replaceEmoteIds(player, false)
-            }
+            return super.readUtf(maxLength).miniMsg().transform(player, false).serialize()
         }
 
 
