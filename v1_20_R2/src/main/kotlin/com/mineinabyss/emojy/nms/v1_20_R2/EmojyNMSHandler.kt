@@ -7,6 +7,7 @@ import com.google.gson.JsonParser
 import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
 import com.mineinabyss.emojy.replaceEmoteIds
+import com.mineinabyss.idofront.messaging.broadcast
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import io.netty.buffer.ByteBuf
 import io.netty.channel.*
@@ -143,8 +144,8 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         (player as? CraftPlayer)?.handle?.connection?.connection?.channel?.uninject()
     }
 
-    private class CustomDataSerializer(val player: Player?, bytebuf: ByteBuf) :
-        FriendlyByteBuf(bytebuf) {
+    private class CustomDataSerializer(val player: Player?, bytebuf: ByteBuf) : FriendlyByteBuf(bytebuf) {
+        private val gson = GsonComponentSerializer.gson()
 
         override fun writeUtf(string: String, maxLength: Int): FriendlyByteBuf {
             runCatching {
@@ -168,7 +169,6 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
 
         private fun JsonObject.formatString(insert: Boolean = true): String {
-            val gson = GsonComponentSerializer.gson()
             return if (this.has("args") || this.has("text") || this.has("extra") || this.has("translate")) {
                 gson.serialize(gson.deserialize(this.toString()).replaceEmoteIds(player, insert))
             } else this.toString()
@@ -245,6 +245,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
             val attribute = ctx.channel().attr(Connection.ATTRIBUTE_SERVERBOUND_PROTOCOL)
             var packet = attribute.get().createPacket(packetID, dataSerializer) ?: throw IOException("Bad packet id $packetID")
 
+            broadcast(packet is ClientboundPlayerChatPacket)
             if (dataSerializer.readableBytes() > 0) throw IOException("Packet $packetID ($packet) was larger than I expected, found ${dataSerializer.readableBytes()} bytes extra whilst reading packet $packetID")
             else if (packet is ClientboundPlayerChatPacket) {
                 val serializer = FriendlyByteBuf(bufferCopy)

@@ -2,6 +2,7 @@ package com.mineinabyss.emojy
 
 import com.mineinabyss.emojy.config.SPACE_PERMISSION
 import com.mineinabyss.idofront.font.Space
+import com.mineinabyss.idofront.messaging.broadcast
 import com.mineinabyss.idofront.textcomponents.serialize
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
@@ -23,6 +24,11 @@ fun Component.replaceEmoteIds(player: Player? = null, insert: Boolean = true): C
     val serialized = msg.serialize()
 
     emojy.emotes.filter { it.baseRegex in serialized && it.checkPermission(player) }.forEach { emote ->
+//        if (emote.id == "survival") {
+//            broadcast(player)
+//            broadcast(emote.id)
+//            broadcast(emote.checkPermission(player))
+//        }
         val matches = emote.fullRegex.findAll(serialized)
         matches.forEach { match ->
             val colorable = colorableRegex in match.value

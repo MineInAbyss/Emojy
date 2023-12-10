@@ -145,8 +145,8 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         (player as? CraftPlayer)?.handle?.connection?.connection?.channel?.uninject()
     }
 
-    private class CustomDataSerializer(val player: Player?, bytebuf: ByteBuf) :
-        FriendlyByteBuf(bytebuf) {
+    private class CustomDataSerializer(val player: Player?, bytebuf: ByteBuf) : FriendlyByteBuf(bytebuf) {
+        val gson = GsonComponentSerializer.gson()
 
         override fun writeComponent(component: net.kyori.adventure.text.Component): FriendlyByteBuf {
             return super.writeComponent(component.replaceEmoteIds(player, false))
@@ -174,7 +174,6 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
 
         private fun JsonObject.formatString(insert: Boolean = true): String {
-            val gson = GsonComponentSerializer.gson()
             return if (this.has("args") || this.has("text") || this.has("extra") || this.has("translate")) {
                 gson.serialize(gson.deserialize(this.toString()).replaceEmoteIds(player, insert))
             } else this.toString()

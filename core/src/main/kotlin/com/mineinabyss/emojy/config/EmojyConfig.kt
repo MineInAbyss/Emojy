@@ -6,6 +6,7 @@ import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.emojyConfig
 import com.mineinabyss.emojy.space
 import com.mineinabyss.emojy.templates
+import com.mineinabyss.idofront.messaging.broadcastVal
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.serialization.KeySerializer
 import com.mineinabyss.idofront.textcomponents.miniMsg
@@ -112,9 +113,7 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
         fun appendFont(resourcePack: ResourcePack) = (resourcePack.font(font)?.toBuilder() ?: Font.font().key(font)).addProvider(fontProvider()).build()
 
         fun checkPermission(player: Player?) =
-            !emojyConfig.requirePermissions || player == null || player.hasPermission(permission) || player.hasPermission(
-                fontPermission
-            )
+            !emojyConfig.requirePermissions || player == null || (player.hasPermission(permission) && player.hasPermission(fontPermission))
         fun formattedUnicode(
             appendSpace: Boolean = false,
             insert: Boolean = true,
