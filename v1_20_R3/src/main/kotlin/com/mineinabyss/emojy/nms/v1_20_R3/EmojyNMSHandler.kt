@@ -15,6 +15,7 @@ import io.netty.buffer.ByteBuf
 import io.netty.channel.*
 import io.netty.handler.codec.ByteToMessageDecoder
 import io.netty.handler.codec.MessageToByteEncoder
+import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
@@ -141,6 +142,9 @@ class EmojyNMSHandler : IEmojyNMSHandler {
     }
 
     private class CustomDataSerializer(val player: Player?, bytebuf: ByteBuf) : FriendlyByteBuf(bytebuf) {
+        override fun writeComponent(component: Component): FriendlyByteBuf {
+            return super.writeComponent(component.transform(null, true))
+        }
 
         override fun writeUtf(string: String, maxLength: Int): FriendlyByteBuf {
             runCatching {

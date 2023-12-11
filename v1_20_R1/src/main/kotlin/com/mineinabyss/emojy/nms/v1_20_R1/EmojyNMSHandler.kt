@@ -145,8 +145,6 @@ class EmojyNMSHandler : IEmojyNMSHandler {
     }
 
     private class CustomDataSerializer(val player: Player?, bytebuf: ByteBuf) : FriendlyByteBuf(bytebuf) {
-        val gson = GsonComponentSerializer.gson()
-
         override fun writeComponent(component: net.kyori.adventure.text.Component): FriendlyByteBuf {
             return super.writeComponent(component.transform(null, true))
         }
