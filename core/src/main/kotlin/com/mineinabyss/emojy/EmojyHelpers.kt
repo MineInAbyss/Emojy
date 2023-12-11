@@ -25,6 +25,20 @@ private fun Component.replaceEmoteIds(player: Player, insert: Boolean = true): C
     var msg = GlobalTranslator.render(this, player.locale())
     val serialized = msg.serialize()
 
+    // Replace all unicodes found in default font with a random one
+    // This is to prevent use of unicodes from the font the chat is in
+    for (emote in emojy.emotes.filter { it.font == Key.key("default") }) emote.unicodes().forEach {
+        val replacement =
+            if (emote.checkPermission(player)) emote.formattedUnicode(insert = insert, colorable = false, bitmapIndex = 0)
+            else "\\:${emote.id}:".miniMsg()
+        msg = msg.replaceText(
+            TextReplacementConfig.builder()
+                .matchLiteral(it)
+                .replacement(replacement)
+                .build()
+        )
+    }
+
     for (emote in emojy.emotes) emote.baseRegex.findAll(serialized).forEach { match ->
         val colorable = colorableRegex in match.value
         val bitmapIndex = bitmapIndexRegex.find(match.value)?.groupValues?.get(1)?.toIntOrNull() ?: -1
