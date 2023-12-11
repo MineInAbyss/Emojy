@@ -25,23 +25,20 @@ private val bitmapIndexRegex: Regex = "\\|([0-9]+)".toRegex()
 // Find out why this is called 3 times
 private fun Component.replaceEmoteIds(player: Player, insert: Boolean = true): Component {
     var msg = GlobalTranslator.render(this, player.locale())
-    val serialized = msg.serialize()
 
     // Replace all unicodes found in default font with a random one
     // This is to prevent use of unicodes from the font the chat is in
-    /*for (emote in emojy.emotes.filter { it.font == Key.key("default") }) emote.unicodes().forEach {
-        val replacement =
-            if (emote.checkPermission(player)) emote.formattedUnicode(insert = insert, colorable = false, bitmapIndex = 0)
-            else "\\:${emote.id}:".miniMsg()
+    val (defaultKey, randomKey) = Key.key("default") to Key.key("random")
+    for (emote in emojy.emotes.filter { it.font == defaultKey && !it.checkPermission(player) }) emote.unicodes.forEach {
         msg = msg.replaceText(
             TextReplacementConfig.builder()
                 .matchLiteral(it)
-                .replacement(replacement)
+                .replacement(it.miniMsg().font(randomKey))
                 .build()
         )
-    }*/
+    }
 
-    for (emote in emojy.emotes) emote.baseRegex.findAll(serialized).forEach { match ->
+    for (emote in emojy.emotes) emote.baseRegex.findAll(msg.serialize()).forEach { match ->
         val colorable = colorableRegex in match.value
         val bitmapIndex = bitmapIndexRegex.find(match.value)?.groupValues?.get(1)?.toIntOrNull() ?: -1
         val replacement =
@@ -55,7 +52,7 @@ private fun Component.replaceEmoteIds(player: Player, insert: Boolean = true): C
         )
     }
 
-    for (gif in emojy.gifs) gif.baseRegex.findAll(serialized).forEach { match ->
+    for (gif in emojy.gifs) gif.baseRegex.findAll(msg.serialize()).forEach { match ->
         val replacement = if (gif.checkPermission(player)) gif.formattedUnicode(insert = insert)
         else "\\:${gif.id}:".miniMsg()
         msg = msg.replaceText(
@@ -66,7 +63,7 @@ private fun Component.replaceEmoteIds(player: Player, insert: Boolean = true): C
         )
     }
 
-    spaceRegex.findAll(serialized).forEach { match ->
+    spaceRegex.findAll(msg.serialize()).forEach { match ->
         val space = match.groupValues[1].toIntOrNull() ?: return@forEach
         val replacement = if (player.hasPermission(SPACE_PERMISSION)) buildSpaceComponents(space) else "\\:space_$space:".miniMsg()
 
@@ -91,7 +88,6 @@ private fun Component.transformEmoteIds(insert: Boolean = true): Component {
     val serialized = this.serialize()
 
     for (emote in emojy.emotes) {
-        if (emote.id == "logo") continue
         emote.baseRegex.findAll(serialized).forEach { match ->
 
             val colorable = colorableRegex in match.value

@@ -88,7 +88,7 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
         // We get this lazily so we dont need to use a function and check every time
         // but also because EmojyContext needs to be registered, so a normal vbal does not work
         //TODO Rework to be List<CharArray> instead
-        private val unicodes: MutableList<String> by lazy {
+        val unicodes: MutableList<String> by lazy {
             mutableListOf("").apply {
                 for (i in 0 until bitmapHeight) {
                     for (j in 0 until bitmapWidth) {
