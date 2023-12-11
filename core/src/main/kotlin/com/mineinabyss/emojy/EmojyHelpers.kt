@@ -3,6 +3,7 @@ package com.mineinabyss.emojy
 import com.mineinabyss.emojy.config.SPACE_PERMISSION
 import com.mineinabyss.idofront.font.Space
 import com.mineinabyss.idofront.messaging.logInfo
+import com.mineinabyss.idofront.messaging.logSuccess
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
 import net.kyori.adventure.key.Key
@@ -24,8 +25,6 @@ private fun Component.replaceEmoteIds(player: Player, insert: Boolean = true): C
     var msg = GlobalTranslator.render(this, player.locale())
     val serialized = msg.serialize()
 
-    logInfo("replace: $serialized")
-
     for (emote in emojy.emotes) emote.baseRegex.findAll(serialized).forEach { match ->
         val colorable = colorableRegex in match.value
         val bitmapIndex = bitmapIndexRegex.find(match.value)?.groupValues?.get(1)?.toIntOrNull() ?: -1
@@ -34,7 +33,7 @@ private fun Component.replaceEmoteIds(player: Player, insert: Boolean = true): C
             else "\\${match.value}".miniMsg()
         msg = msg.replaceText(
             TextReplacementConfig.builder()
-                .matchLiteral(match.value)
+                .match(emote.baseRegex.pattern)
                 .replacement(replacement)
                 .build()
         )
@@ -45,7 +44,7 @@ private fun Component.replaceEmoteIds(player: Player, insert: Boolean = true): C
         else "\\:${gif.id}:".miniMsg()
         msg = msg.replaceText(
             TextReplacementConfig.builder()
-                .matchLiteral(match.value)
+                .match(gif.baseRegex.pattern)
                 .replacement(replacement)
                 .build()
         )
@@ -57,7 +56,7 @@ private fun Component.replaceEmoteIds(player: Player, insert: Boolean = true): C
 
         msg = msg.replaceText(
             TextReplacementConfig.builder()
-                .matchLiteral(match.value)
+                .match(spaceRegex.pattern)
                 .replacement(replacement)
                 .build()
         )
@@ -75,14 +74,17 @@ private fun Component.transformEmoteIds(insert: Boolean = true): Component {
     var msg = this
     val serialized = this.serialize()
 
+    if (!serialized.contains("transform") && !serialized.contains("happyhud")) logSuccess(serialized)
+
     for (emote in emojy.emotes) {
         emote.baseRegex.findAll(serialized).forEach { match ->
+
             val colorable = colorableRegex in match.value
             val bitmapIndex = bitmapIndexRegex.find(match.value)?.groupValues?.get(1)?.toIntOrNull() ?: -1
 
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
-                    .matchLiteral(match.value)
+                    .match(emote.baseRegex.pattern)
                     .replacement(emote.formattedUnicode(insert = insert, colorable = colorable, bitmapIndex = bitmapIndex))
                     .build()
             )
@@ -91,7 +93,7 @@ private fun Component.transformEmoteIds(insert: Boolean = true): Component {
         emote.escapedRegex.findAll(serialized).forEach { match ->
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
-                    .matchLiteral(match.value)
+                    .match(emote.escapedRegex.pattern)
                     .replacement(match.value.removePrefix("\\"))
                     .build()
             )
@@ -102,7 +104,7 @@ private fun Component.transformEmoteIds(insert: Boolean = true): Component {
         gif.baseRegex.findAll(serialized).forEach { match ->
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
-                    .matchLiteral(match.value)
+                    .match(gif.baseRegex.pattern)
                     .replacement(gif.formattedUnicode(insert = insert))
                     .build()
             )
@@ -111,7 +113,7 @@ private fun Component.transformEmoteIds(insert: Boolean = true): Component {
         gif.escapedRegex.findAll(serialized).forEach { match ->
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
-                    .matchLiteral(match.value)
+                    .match(gif.escapedRegex.pattern)
                     .replacement(match.value.removePrefix("\\"))
                     .build()
             )
@@ -122,7 +124,7 @@ private fun Component.transformEmoteIds(insert: Boolean = true): Component {
         val space = match.groupValues[1].toIntOrNull() ?: return@forEach
         msg = msg.replaceText(
             TextReplacementConfig.builder()
-                .matchLiteral(match.value)
+                .match(spaceRegex.pattern)
                 .replacement(buildSpaceComponents(space))
                 .build()
         )
@@ -131,7 +133,7 @@ private fun Component.transformEmoteIds(insert: Boolean = true): Component {
     escapedSpaceRegex.findAll(serialized).forEach { match ->
         msg = msg.replaceText(
             TextReplacementConfig.builder()
-                .matchLiteral(match.value)
+                .match(escapedSpaceRegex.pattern)
                 .replacement(match.value.removePrefix("\\"))
                 .build()
         )
