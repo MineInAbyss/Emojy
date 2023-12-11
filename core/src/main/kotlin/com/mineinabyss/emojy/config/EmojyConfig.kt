@@ -6,8 +6,7 @@ import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.emojyConfig
 import com.mineinabyss.emojy.space
 import com.mineinabyss.emojy.templates
-import com.mineinabyss.idofront.messaging.broadcastVal
-import com.mineinabyss.idofront.messaging.logError
+import com.mineinabyss.idofront.messaging.*
 import com.mineinabyss.idofront.serialization.KeySerializer
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
@@ -86,8 +85,11 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
         // Beginning of Private Use Area \uE000 -> uF8FF
         // Option: (Character.toCodePoint('\uE000', '\uFF8F')/37 + getIndex())
         @Transient private val lastUsedUnicode: MutableMap<Key, Int> = mutableMapOf()
-        fun unicodes(): MutableList<String> {
-            return mutableListOf("").apply {
+        // We get this lazily so we dont need to use a function and check every time
+        // but also because EmojyContext needs to be registered, so a normal vbal does not work
+        //TODO Rework to be List<CharArray> instead
+        private val unicodes: MutableList<String> by lazy {
+            mutableListOf("").apply {
                 for (i in 0 until bitmapHeight) {
                     for (j in 0 until bitmapWidth) {
                         val lastUnicode = lastUsedUnicode[font] ?: 0
@@ -97,7 +99,7 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
                         ).firstOrNull().toString())
                         if (getOrNull(i) == null)
                             add(i, row) else set(i, row)
-                        lastUsedUnicode.put(font, lastUnicode + 1) ?: lastUsedUnicode.putIfAbsent(font, 1)
+                        lastUsedUnicode[font] = lastUnicode + 1
                     }
                 }
                 lastUsedUnicode.clear()
@@ -106,7 +108,7 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
 
         private val permission get() = "emojy.emote.$id"
         private val fontPermission get() = "emojy.font.$font"
-        private fun fontProvider() = FontProvider.bitMap(texture, height, ascent, unicodes())
+        private fun fontProvider() = FontProvider.bitMap(texture, height, ascent, unicodes.map { it.toString() })
         fun appendFont(resourcePack: ResourcePack) = (resourcePack.font(font)?.toBuilder() ?: Font.font().key(font)).addProvider(fontProvider()).build()
 
         fun checkPermission(player: Player?) =
@@ -118,16 +120,16 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
             bitmapIndex: Int = -1
         ): Component {
             var bitmap = when {
-                unicodes().size > 1 -> {
+                unicodes.map { it.map(Char::toString) }.flatten().size > 1 -> {
                     if (bitmapIndex >= 0) {
-                        val unicode = unicodes().joinToString("").toCharArray().getOrElse(maxOf(bitmapIndex, 1) - 1) { unicodes().last().last() }.toString()
+                        val unicode = unicodes.joinToString("").toCharArray().getOrElse(maxOf(bitmapIndex, 1) - 1) { unicodes.last().last() }.toString()
                         Component.text().content(unicode).build()
-                    } else Component.textOfChildren(*unicodes().map {
-                        Component.text().content(it).build().appendNewline()
+                    } else Component.textOfChildren(*unicodes.map {
+                        Component.text().content(it.toString()).build().appendNewline()
                     }.toTypedArray())
                 }
 
-                else -> Component.text().content(unicodes().first()).build()
+                else -> Component.text().content(unicodes.first().first().toString()).build()
             }.font(font)
 
             bitmap = if (colorable) bitmap else bitmap.color(NamedTextColor.WHITE)

@@ -2,6 +2,8 @@ package com.mineinabyss.emojy
 
 import com.mineinabyss.emojy.config.SPACE_PERMISSION
 import com.mineinabyss.idofront.font.Space
+import com.mineinabyss.idofront.messaging.broadcast
+import com.mineinabyss.idofront.messaging.broadcastVal
 import com.mineinabyss.idofront.messaging.logInfo
 import com.mineinabyss.idofront.messaging.logSuccess
 import com.mineinabyss.idofront.textcomponents.miniMsg
@@ -89,6 +91,7 @@ private fun Component.transformEmoteIds(insert: Boolean = true): Component {
     val serialized = this.serialize()
 
     for (emote in emojy.emotes) {
+        if (emote.id == "logo") continue
         emote.baseRegex.findAll(serialized).forEach { match ->
 
             val colorable = colorableRegex in match.value
