@@ -74,8 +74,6 @@ private fun Component.transformEmoteIds(insert: Boolean = true): Component {
     var msg = this
     val serialized = this.serialize()
 
-    if (!serialized.contains("transform") && !serialized.contains("happyhud")) logSuccess(serialized)
-
     for (emote in emojy.emotes) {
         emote.baseRegex.findAll(serialized).forEach { match ->
 
