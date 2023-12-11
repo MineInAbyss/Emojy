@@ -27,7 +27,7 @@ private fun Component.replaceEmoteIds(player: Player, insert: Boolean = true): C
 
     // Replace all unicodes found in default font with a random one
     // This is to prevent use of unicodes from the font the chat is in
-    for (emote in emojy.emotes.filter { it.font == Key.key("default") }) emote.unicodes().forEach {
+    /*for (emote in emojy.emotes.filter { it.font == Key.key("default") }) emote.unicodes().forEach {
         val replacement =
             if (emote.checkPermission(player)) emote.formattedUnicode(insert = insert, colorable = false, bitmapIndex = 0)
             else "\\:${emote.id}:".miniMsg()
@@ -37,7 +37,7 @@ private fun Component.replaceEmoteIds(player: Player, insert: Boolean = true): C
                 .replacement(replacement)
                 .build()
         )
-    }
+    }*/
 
     for (emote in emojy.emotes) emote.baseRegex.findAll(serialized).forEach { match ->
         val colorable = colorableRegex in match.value

@@ -5,6 +5,8 @@ package com.mineinabyss.emojy.nms.v1_20_R2
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.mineinabyss.emojy.emojy
+import com.mineinabyss.emojy.nms.EmojyNMSHandlers
+import com.mineinabyss.emojy.nms.EmojyNMSHandlers.formatString
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
 import com.mineinabyss.emojy.transform
 import com.mineinabyss.idofront.textcomponents.miniMsg
@@ -151,21 +153,9 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
 
         override fun writeNbt(compound: Tag?): FriendlyByteBuf {
-            return super.writeNbt(compound?.apply { this as CompoundTag
-                transform(this) { string: String ->
-                    runCatching {
-                        val element = JsonParser.parseString(string)
-                        if (element.isJsonObject) element.asJsonObject.formatString()
-                        else string
-                    }.getOrNull() ?: string
-                }
+            return super.writeNbt(compound?.apply {
+                transform(this as CompoundTag, EmojyNMSHandlers.transformer)
             })
-        }
-
-        private fun JsonObject.formatString(): String {
-            return if (this.has("args") || this.has("text") || this.has("extra") || this.has("translate")) {
-                gson.serialize(gson.deserialize(this.toString()).transform(null, true))
-            } else this.toString()
         }
 
         private fun transform(compound: CompoundTag, transformer: Function<String, String>) {

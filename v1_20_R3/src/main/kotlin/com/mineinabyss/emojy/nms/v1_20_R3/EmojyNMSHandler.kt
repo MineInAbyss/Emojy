@@ -5,6 +5,8 @@ package com.mineinabyss.emojy.nms.v1_20_R2
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.mineinabyss.emojy.emojy
+import com.mineinabyss.emojy.nms.EmojyNMSHandlers
+import com.mineinabyss.emojy.nms.EmojyNMSHandlers.formatString
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
 import com.mineinabyss.emojy.transform
 import com.mineinabyss.idofront.textcomponents.miniMsg
@@ -25,7 +27,7 @@ import net.minecraft.network.protocol.game.ServerboundChatPacket
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.network.ServerConnectionListener
 import org.bukkit.Bukkit
-import org.bukkit.craftbukkit.v1_20_R2.entity.CraftPlayer
+import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
 import java.io.IOException
@@ -139,7 +141,6 @@ class EmojyNMSHandler : IEmojyNMSHandler {
     }
 
     private class CustomDataSerializer(val player: Player?, bytebuf: ByteBuf) : FriendlyByteBuf(bytebuf) {
-        private val gson = GsonComponentSerializer.gson()
 
         override fun writeUtf(string: String, maxLength: Int): FriendlyByteBuf {
             runCatching {
@@ -153,17 +154,11 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         override fun writeNbt(compound: Tag?): FriendlyByteBuf {
             return super.writeNbt(compound?.apply {
                 when (this) {
-                    is CompoundTag -> transform(this, transform)
-                    is ListTag -> transform(this, transform)
-                    is StringTag -> transform(this, transform)
+                    is CompoundTag -> transform(this, EmojyNMSHandlers.transformer)
+                    is ListTag -> transform(this, EmojyNMSHandlers.transformer)
+                    is StringTag -> transform(this, EmojyNMSHandlers.transformer)
                 }
             })
-        }
-
-        private fun JsonObject.formatString(): String {
-            return if (this.has("args") || this.has("text") || this.has("extra") || this.has("translate")) {
-                gson.serialize(gson.deserialize(this.toString()).transform(null, true))
-            } else this.toString()
         }
 
         private fun transform(compound: CompoundTag, transformer: Function<String, String>) {
