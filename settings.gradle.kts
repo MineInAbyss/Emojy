@@ -27,7 +27,11 @@ dependencyResolutionManagement {
     }
 
     versionCatalogs {
-        create("libs").from("com.mineinabyss:catalog:$idofrontVersion")
+        create("libs"){
+            from("com.mineinabyss:catalog:$idofrontVersion")
+            version("minecraft", "1.20.4-R0.1-SNAPSHOT")
+            version("userdev", "1.5.11")
+        }
         create("emojyLibs").from(files("gradle/emojyLibs.toml"))
     }
 }
