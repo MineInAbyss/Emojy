@@ -46,10 +46,7 @@ data class EmojyConfig(
     val debug: Boolean = true,
     val emojyList: EmojyList = EmojyList(),
     val supportedLanguages: Set<String> = mutableSetOf("en_us"),
-
     ) {
-
-    enum class ListType { BOOK, BOOK2, CHAT }
 
     @Serializable
     data class EmojyList(

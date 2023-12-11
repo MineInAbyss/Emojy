@@ -120,6 +120,7 @@ private fun Component.transformEmoteIds(insert: Boolean = true): Component {
 
     spaceRegex.findAll(serialized).forEach { match ->
         val space = match.groupValues[1].toIntOrNull() ?: return@forEach
+        val spaceRegex = "(?<!\\\\):space_(-?$space+):".toRegex()
         msg = msg.replaceText(
             TextReplacementConfig.builder()
                 .match(spaceRegex.pattern)
@@ -131,7 +132,7 @@ private fun Component.transformEmoteIds(insert: Boolean = true): Component {
     escapedSpaceRegex.findAll(serialized).forEach { match ->
         msg = msg.replaceText(
             TextReplacementConfig.builder()
-                .match(escapedSpaceRegex.pattern)
+                .match(match.value)
                 .replacement(match.value.removePrefix("\\"))
                 .build()
         )
