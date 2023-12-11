@@ -110,7 +110,7 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
         fun appendFont(resourcePack: ResourcePack) = (resourcePack.font(font)?.toBuilder() ?: Font.font().key(font)).addProvider(fontProvider()).build()
 
         fun checkPermission(player: Player?) =
-            !emojyConfig.requirePermissions || player == null || (player.hasPermission(permission) && player.hasPermission(fontPermission))
+            !emojyConfig.requirePermissions || player == null || player.hasPermission(permission) || player.hasPermission(fontPermission)
         fun formattedUnicode(
             appendSpace: Boolean = false,
             insert: Boolean = true,
