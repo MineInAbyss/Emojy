@@ -125,7 +125,9 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
                         val unicode = unicodes.joinToString("").toCharArray().getOrElse(maxOf(bitmapIndex, 1) - 1) { unicodes.last().last() }.toString()
                         Component.text().content(unicode).build()
                     } else Component.textOfChildren(*unicodes.map {
-                        Component.text().content(it.toString()).build().appendNewline()
+                        // Since there is a small space between each bitmap,
+                        // join them together with a -1 space. Rarely do we want the space difference here
+                        Component.text().content(it.toCharArray().joinToString(":space_-1:")).build()
                     }.toTypedArray())
                 }
 
