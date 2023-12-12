@@ -2,7 +2,6 @@
 
 package com.mineinabyss.emojy.nms.v1_20_R1
 
-import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers
@@ -16,7 +15,6 @@ import io.netty.buffer.ByteBuf
 import io.netty.channel.*
 import io.netty.handler.codec.ByteToMessageDecoder
 import io.netty.handler.codec.MessageToByteEncoder
-import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
 import net.minecraft.nbt.StringTag
@@ -184,7 +182,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
 
         override fun readUtf(maxLength: Int): String {
-            return super.readUtf(maxLength).miniMsg().transform(player, false, true).serialize()
+            return super.readUtf(maxLength).miniMsg().transform(player, false).serialize()
         }
 
     }

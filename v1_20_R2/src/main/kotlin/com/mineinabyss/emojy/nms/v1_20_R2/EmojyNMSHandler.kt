@@ -146,7 +146,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
 
         override fun readComponent(): net.minecraft.network.chat.Component {
-            return PaperAdventure.asVanilla(PaperAdventure.asAdventure(super.readComponent()).transform(player, true, true))
+            return PaperAdventure.asVanilla(PaperAdventure.asAdventure(super.readComponent()).transform(player, true, false))
         }
 
         override fun writeUtf(string: String, maxLength: Int): FriendlyByteBuf {
@@ -159,7 +159,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
 
         override fun readUtf(maxLength: Int): String {
-            return super.readUtf(maxLength).miniMsg().transform(player, true, true).serialize()
+            return super.readUtf(maxLength).miniMsg().transform(player, true).serialize()
         }
 
         override fun writeNbt(compound: Tag?): FriendlyByteBuf {
@@ -170,7 +170,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
         override fun readNbt(): CompoundTag? {
             return super.readNbt()?.apply {
-                transform(this, EmojyNMSHandlers.transformer(player))
+                transform(this, EmojyNMSHandlers.transformer())
             }
         }
 

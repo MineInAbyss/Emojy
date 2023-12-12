@@ -11,7 +11,7 @@ import net.kyori.adventure.text.TextReplacementConfig
 import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.entity.Player
 
-fun Component.transform(player: Player?, insert: Boolean, isUtf: Boolean) = player?.let { replaceEmoteIds(it, insert) } ?: transformEmoteIds(insert, isUtf)
+fun Component.transform(player: Player?, insert: Boolean, isUtf: Boolean = true) = player?.let { replaceEmoteIds(it, insert) } ?: transformEmoteIds(insert, isUtf)
 
 private val spaceRegex: Regex = "(?<!\\\\):space_(-?\\d+):".toRegex()
 private val escapedSpaceRegex: Regex = "\\\\(:space_(-?\\d+):)".toRegex()

@@ -211,7 +211,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
         private fun JsonObject.returnFormattedString(insert: Boolean = true): String {
             return if (this.has("args") || this.has("text") || this.has("extra") || this.has("translate")) {
-                gson.serialize(gson.deserialize(this.toString()).transform(null, insert, true))
+                gson.serialize(gson.deserialize(this.toString()).transform(null, insert))
             } else this.toString()
         }
 
@@ -235,7 +235,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
 
         override fun readUtf(maxLength: Int): String {
-            return super.readUtf(maxLength).miniMsg().transform(player, false, true).serialize()
+            return super.readUtf(maxLength).miniMsg().transform(player, false).serialize()
         }
 
 

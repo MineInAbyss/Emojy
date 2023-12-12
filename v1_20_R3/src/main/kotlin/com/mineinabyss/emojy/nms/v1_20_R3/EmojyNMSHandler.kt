@@ -2,7 +2,6 @@
 
 package com.mineinabyss.emojy.nms.v1_20_R2
 
-import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers
@@ -15,8 +14,8 @@ import io.netty.buffer.ByteBuf
 import io.netty.channel.*
 import io.netty.handler.codec.ByteToMessageDecoder
 import io.netty.handler.codec.MessageToByteEncoder
+import io.papermc.paper.adventure.PaperAdventure
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
 import net.minecraft.nbt.StringTag
@@ -143,7 +142,11 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
     private class CustomDataSerializer(val player: Player?, bytebuf: ByteBuf) : FriendlyByteBuf(bytebuf) {
         override fun writeComponent(component: Component): FriendlyByteBuf {
-            return super.writeComponent(component.transform(null, true, true))
+            return super.writeComponent(component.transform(null, true, false))
+        }
+
+        override fun readComponent(): net.minecraft.network.chat.Component {
+            return PaperAdventure.asVanilla(PaperAdventure.asAdventure(super.readComponent()).transform(player, true, false))
         }
 
         override fun writeUtf(string: String, maxLength: Int): FriendlyByteBuf {
@@ -155,14 +158,20 @@ class EmojyNMSHandler : IEmojyNMSHandler {
             return super.writeUtf(string, maxLength)
         }
 
+        override fun readUtf(maxLength: Int): String {
+            return super.readUtf(maxLength).miniMsg().transform(player, true).serialize()
+        }
+
         override fun writeNbt(compound: Tag?): FriendlyByteBuf {
             return super.writeNbt(compound?.apply {
-                when (this) {
-                    is CompoundTag -> transform(this, EmojyNMSHandlers.transformer())
-                    is ListTag -> transform(this, EmojyNMSHandlers.transformer())
-                    is StringTag -> transform(this, EmojyNMSHandlers.transformer())
-                }
+                transform(this as CompoundTag, EmojyNMSHandlers.transformer())
             })
+        }
+
+        override fun readNbt(): CompoundTag? {
+            return super.readNbt()?.apply {
+                transform(this, EmojyNMSHandlers.transformer())
+            }
         }
 
         private fun transform(compound: CompoundTag, transformer: Function<String, String>) {
@@ -186,10 +195,6 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
         private fun transform(string: StringTag, transformer: Function<String, String>) {
             transformer.apply(string.asString)
-        }
-
-        override fun readUtf(maxLength: Int): String {
-            return super.readUtf(maxLength).miniMsg().transform(player, true, true).serialize()
         }
 
     }
