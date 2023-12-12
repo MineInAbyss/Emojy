@@ -3,7 +3,9 @@ package com.mineinabyss.emojy.nms
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.mineinabyss.emojy.transform
+import io.papermc.paper.text.PaperComponents
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
+import org.bukkit.entity.Player
 
 object EmojyNMSHandlers {
 
@@ -29,13 +31,13 @@ object EmojyNMSHandlers {
     }
 
     private val gson = GsonComponentSerializer.gson()
-    fun JsonObject.formatString(): String {
+    fun JsonObject.formatString(player: Player? = null): String {
         return if (this.has("args") || this.has("text") || this.has("extra") || this.has("translate")) {
-            gson.serialize(gson.deserialize(this.toString()).transform(null, true))
+            gson.serialize(gson.deserializeFromTree(this).transform(player, true))
         } else this.toString()
     }
 
-    val transformer = { string: String ->
+    fun transformer(player: Player? = null) = { string: String ->
         runCatching {
             val element = JsonParser.parseString(string)
             if (element.isJsonObject) element.asJsonObject.formatString()

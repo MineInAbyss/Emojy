@@ -2,7 +2,6 @@
 
 package com.mineinabyss.emojy.nms.v1_20_R2
 
-import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers
@@ -15,8 +14,8 @@ import io.netty.buffer.ByteBuf
 import io.netty.channel.*
 import io.netty.handler.codec.ByteToMessageDecoder
 import io.netty.handler.codec.MessageToByteEncoder
+import io.papermc.paper.adventure.PaperAdventure
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
 import net.minecraft.nbt.StringTag
@@ -146,6 +145,10 @@ class EmojyNMSHandler : IEmojyNMSHandler {
             return super.writeComponent(component.transform(null, true))
         }
 
+        override fun readComponent(): net.minecraft.network.chat.Component {
+            return PaperAdventure.asVanilla(PaperAdventure.asAdventure(super.readComponent()).transform(player, true))
+        }
+
         override fun writeUtf(string: String, maxLength: Int): FriendlyByteBuf {
             runCatching {
                 val element = JsonParser.parseString(string)
@@ -155,10 +158,20 @@ class EmojyNMSHandler : IEmojyNMSHandler {
             return super.writeUtf(string, maxLength)
         }
 
+        override fun readUtf(maxLength: Int): String {
+            return super.readUtf(maxLength).miniMsg().transform(player, true).serialize()
+        }
+
         override fun writeNbt(compound: Tag?): FriendlyByteBuf {
             return super.writeNbt(compound?.apply {
-                transform(this as CompoundTag, EmojyNMSHandlers.transformer)
+                transform(this as CompoundTag, EmojyNMSHandlers.transformer())
             })
+        }
+
+        override fun readNbt(): CompoundTag? {
+            return super.readNbt()?.apply {
+                transform(this, EmojyNMSHandlers.transformer(player))
+            }
         }
 
         private fun transform(compound: CompoundTag, transformer: Function<String, String>) {
@@ -178,10 +191,6 @@ class EmojyNMSHandler : IEmojyNMSHandler {
                     list[index] = StringTag.valueOf(transformer.apply(base.asString))
                 }
             }
-        }
-
-        override fun readUtf(maxLength: Int): String {
-            return super.readUtf(maxLength).miniMsg().transform(player, true).serialize()
         }
 
     }
