@@ -146,7 +146,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
     private class CustomDataSerializer(val player: Player?, bytebuf: ByteBuf) : FriendlyByteBuf(bytebuf) {
         override fun writeComponent(component: net.kyori.adventure.text.Component): FriendlyByteBuf {
-            return super.writeComponent(component.transform(null, true))
+            return super.writeComponent(component.transform(null, true, true))
         }
 
         override fun writeUtf(string: String, maxLength: Int): FriendlyByteBuf {
@@ -184,7 +184,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
 
         override fun readUtf(maxLength: Int): String {
-            return super.readUtf(maxLength).miniMsg().transform(player, false).serialize()
+            return super.readUtf(maxLength).miniMsg().transform(player, false, true).serialize()
         }
 
     }

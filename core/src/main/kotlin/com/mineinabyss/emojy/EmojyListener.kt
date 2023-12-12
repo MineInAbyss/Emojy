@@ -22,7 +22,7 @@ class EmojyListener : Listener {
     // Replace with result not original message to avoid borking other chat formatting
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     fun AsyncChatDecorateEvent.onPlayerChat() {
-        result(result().transform(player(), true))
+        result(result().transform(player(), true, true))
     }
 }
 

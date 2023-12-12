@@ -142,11 +142,11 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
     private class CustomDataSerializer(val player: Player?, bytebuf: ByteBuf) : FriendlyByteBuf(bytebuf) {
         override fun writeComponent(component: Component): FriendlyByteBuf {
-            return super.writeComponent(component.transform(null, true))
+            return super.writeComponent(component.transform(null, true, false))
         }
 
         override fun readComponent(): net.minecraft.network.chat.Component {
-            return PaperAdventure.asVanilla(PaperAdventure.asAdventure(super.readComponent()).transform(player, true))
+            return PaperAdventure.asVanilla(PaperAdventure.asAdventure(super.readComponent()).transform(player, true, true))
         }
 
         override fun writeUtf(string: String, maxLength: Int): FriendlyByteBuf {
@@ -159,7 +159,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
 
         override fun readUtf(maxLength: Int): String {
-            return super.readUtf(maxLength).miniMsg().transform(player, true).serialize()
+            return super.readUtf(maxLength).miniMsg().transform(player, true, true).serialize()
         }
 
         override fun writeNbt(compound: Tag?): FriendlyByteBuf {

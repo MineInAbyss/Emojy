@@ -2,10 +2,7 @@ package com.mineinabyss.emojy
 
 import com.mineinabyss.emojy.config.SPACE_PERMISSION
 import com.mineinabyss.idofront.font.Space
-import com.mineinabyss.idofront.messaging.broadcast
-import com.mineinabyss.idofront.messaging.broadcastVal
-import com.mineinabyss.idofront.messaging.logInfo
-import com.mineinabyss.idofront.messaging.logSuccess
+import com.mineinabyss.idofront.messaging.*
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
 import net.kyori.adventure.key.Key
@@ -14,7 +11,7 @@ import net.kyori.adventure.text.TextReplacementConfig
 import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.entity.Player
 
-fun Component.transform(player: Player?, insert: Boolean) = player?.let { replaceEmoteIds(it, insert) } ?: transformEmoteIds(insert)
+fun Component.transform(player: Player?, insert: Boolean, isUtf: Boolean) = player?.let { replaceEmoteIds(it, insert) } ?: transformEmoteIds(insert, isUtf)
 
 private val spaceRegex: Regex = "(?<!\\\\):space_(-?\\d+):".toRegex()
 private val escapedSpaceRegex: Regex = "\\\\(:space_(-?\\d+):)".toRegex()
@@ -42,7 +39,7 @@ private fun Component.replaceEmoteIds(player: Player, insert: Boolean = true): C
         val colorable = colorableRegex in match.value
         val bitmapIndex = bitmapIndexRegex.find(match.value)?.groupValues?.get(1)?.toIntOrNull() ?: -1
         val replacement =
-            if (emote.checkPermission(player)) emote.formattedUnicode(insert = insert, colorable = colorable, bitmapIndex = bitmapIndex)
+            if (emote.checkPermission(player)) emote.formattedUnicode(insert = false, colorable = colorable, bitmapIndex = bitmapIndex)
             else "\\${match.value}".miniMsg()
         msg = msg.replaceText(
             TextReplacementConfig.builder()
@@ -83,7 +80,7 @@ private fun Component.replaceEmoteIds(player: Player, insert: Boolean = true): C
  * This does format without a player context, but ignores escaped emote-ids.
  * This is because we handle with a player-context first, and escape that in-which should not be formatted.
  */
-private fun Component.transformEmoteIds(insert: Boolean = true): Component {
+private fun Component.transformEmoteIds(insert: Boolean = true, isUtf: Boolean): Component {
     var msg = this
     val serialized = this.serialize()
 
@@ -96,12 +93,12 @@ private fun Component.transformEmoteIds(insert: Boolean = true): Component {
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
                     .match(emote.baseRegex.pattern)
-                    .replacement(emote.formattedUnicode(insert = insert, colorable = colorable, bitmapIndex = bitmapIndex))
+                    .replacement(emote.formattedUnicode(insert = false, colorable = colorable, bitmapIndex = bitmapIndex))
                     .build()
             )
         }
 
-        emote.escapedRegex.findAll(serialized).forEach { match ->
+        if (isUtf) emote.escapedRegex.findAll(serialized).forEach { match ->
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
                     .match(emote.escapedRegex.pattern)
@@ -121,7 +118,7 @@ private fun Component.transformEmoteIds(insert: Boolean = true): Component {
             )
         }
 
-        gif.escapedRegex.findAll(serialized).forEach { match ->
+        if (isUtf) gif.escapedRegex.findAll(serialized).forEach { match ->
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
                     .match(gif.escapedRegex.pattern)
@@ -142,7 +139,7 @@ private fun Component.transformEmoteIds(insert: Boolean = true): Component {
         )
     }
 
-    escapedSpaceRegex.findAll(serialized).forEach { match ->
+    if (isUtf) escapedSpaceRegex.findAll(serialized).forEach { match ->
         msg = msg.replaceText(
             TextReplacementConfig.builder()
                 .match(match.value)

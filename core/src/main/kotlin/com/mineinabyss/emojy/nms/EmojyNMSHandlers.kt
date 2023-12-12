@@ -33,7 +33,7 @@ object EmojyNMSHandlers {
     private val gson = GsonComponentSerializer.gson()
     fun JsonObject.formatString(player: Player? = null): String {
         return if (this.has("args") || this.has("text") || this.has("extra") || this.has("translate")) {
-            gson.serialize(gson.deserializeFromTree(this).transform(player, true))
+            gson.serialize(gson.deserializeFromTree(this).transform(player, true, true))
         } else this.toString()
     }
 
