@@ -2,7 +2,6 @@ package com.mineinabyss.emojy
 
 import com.mineinabyss.emojy.config.SPACE_PERMISSION
 import com.mineinabyss.idofront.font.Space
-import com.mineinabyss.idofront.messaging.*
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
 import net.kyori.adventure.key.Key
@@ -11,7 +10,7 @@ import net.kyori.adventure.text.TextReplacementConfig
 import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.entity.Player
 
-fun Component.transform(player: Player?, insert: Boolean, isUtf: Boolean = true) = player?.let { replaceEmoteIds(it, insert) } ?: transformEmoteIds(insert, isUtf)
+fun Component.transform(player: Player?, insert: Boolean, isUtf: Boolean = true) = player?.let { escapeEmoteIDs(it) } ?: transformEmoteIDs(insert, isUtf)
 
 private val spaceRegex: Regex = "(?<!\\\\):space_(-?\\d+):".toRegex()
 private val escapedSpaceRegex: Regex = "\\\\(:space_(-?\\d+):)".toRegex()
@@ -20,7 +19,7 @@ private val bitmapIndexRegex: Regex = "\\|([0-9]+)".toRegex()
 //TODO Tags like rainbow and gradient, which split the text into multiple children, will break replacement below
 // Above is due to Adventure-issue, nothing on our end for once. https://github.com/KyoriPowered/adventure/issues/872
 // Find out why this is called 3 times
-private fun Component.replaceEmoteIds(player: Player, insert: Boolean = true): Component {
+private fun Component.escapeEmoteIDs(player: Player): Component {
     var msg = GlobalTranslator.render(this, player.locale())
 
     // Replace all unicodes found in default font with a random one
@@ -75,7 +74,7 @@ private fun Component.replaceEmoteIds(player: Player, insert: Boolean = true): C
  * Formats emote-ids in a component to their unicode representation, ignoring escaped emote-ids.
  * This is because we handle with a player-context first, and escape that in-which should not be formatted.
  */
-private fun Component.transformEmoteIds(insert: Boolean = true, isUtf: Boolean): Component {
+private fun Component.transformEmoteIDs(insert: Boolean = true, isUtf: Boolean): Component {
     var msg = this
     val serialized = this.serialize()
 
