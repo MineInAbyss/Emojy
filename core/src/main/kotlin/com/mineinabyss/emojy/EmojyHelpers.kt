@@ -36,38 +36,34 @@ private fun Component.replaceEmoteIds(player: Player, insert: Boolean = true): C
     }
 
     for (emote in emojy.emotes) emote.baseRegex.findAll(msg.serialize()).forEach { match ->
-        val colorable = colorableRegex in match.value
-        val bitmapIndex = bitmapIndexRegex.find(match.value)?.groupValues?.get(1)?.toIntOrNull() ?: -1
-        val replacement =
-            if (emote.checkPermission(player)) emote.formattedUnicode(insert = false, colorable = colorable, bitmapIndex = bitmapIndex)
-            else "\\${match.value}".miniMsg()
+        if (emote.checkPermission(player)) return@forEach
+
         msg = msg.replaceText(
             TextReplacementConfig.builder()
                 .match(emote.baseRegex.pattern)
-                .replacement(replacement)
+                .replacement("\\${match.value}".miniMsg())
                 .build()
         )
     }
 
     for (gif in emojy.gifs) gif.baseRegex.findAll(msg.serialize()).forEach { match ->
-        val replacement = if (gif.checkPermission(player)) gif.formattedUnicode(insert = insert)
-        else "\\:${gif.id}:".miniMsg()
+        if (gif.checkPermission(player)) return@forEach
         msg = msg.replaceText(
             TextReplacementConfig.builder()
                 .match(gif.baseRegex.pattern)
-                .replacement(replacement)
+                .replacement("\\${match.value}".miniMsg())
                 .build()
         )
     }
 
     spaceRegex.findAll(msg.serialize()).forEach { match ->
+        if (player.hasPermission(SPACE_PERMISSION)) return@forEach
         val space = match.groupValues[1].toIntOrNull() ?: return@forEach
-        val replacement = if (player.hasPermission(SPACE_PERMISSION)) buildSpaceComponents(space) else "\\:space_$space:".miniMsg()
 
         msg = msg.replaceText(
             TextReplacementConfig.builder()
                 .match(spaceRegex.pattern)
-                .replacement(replacement)
+                .replacement("\\:space_$space:".miniMsg())
                 .build()
         )
     }
@@ -76,8 +72,7 @@ private fun Component.replaceEmoteIds(player: Player, insert: Boolean = true): C
 }
 
 /**
- * Formats emote-ids in a component to their unicode representation.
- * This does format without a player context, but ignores escaped emote-ids.
+ * Formats emote-ids in a component to their unicode representation, ignoring escaped emote-ids.
  * This is because we handle with a player-context first, and escape that in-which should not be formatted.
  */
 private fun Component.transformEmoteIds(insert: Boolean = true, isUtf: Boolean): Component {
