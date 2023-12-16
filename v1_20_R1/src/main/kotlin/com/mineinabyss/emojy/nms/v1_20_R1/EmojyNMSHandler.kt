@@ -18,10 +18,7 @@ import io.netty.handler.codec.MessageToByteEncoder
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
 import net.minecraft.nbt.StringTag
-import net.minecraft.network.Connection
-import net.minecraft.network.FriendlyByteBuf
-import net.minecraft.network.PacketEncoder
-import net.minecraft.network.SkipPacketException
+import net.minecraft.network.*
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.network.protocol.game.ClientboundPlayerChatPacket
@@ -128,7 +125,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
         if (this in decoder.keys) {
             val prevHandler = decoder.remove(this)
-            val handler = if (prevHandler is PacketEncoder) PacketEncoder(PacketFlow.SERVERBOUND) else prevHandler
+            val handler = if (prevHandler is PacketDecoder) PacketDecoder(PacketFlow.SERVERBOUND) else prevHandler
             handler?.let { this.pipeline().replace("decoder", "decoder", handler) }
         }
     }

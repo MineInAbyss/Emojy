@@ -126,7 +126,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
         if (this in decoder.keys) {
             val prevHandler = decoder.remove(this)
-            val handler = if (prevHandler is PacketEncoder) PacketEncoder(Connection.ATTRIBUTE_SERVERBOUND_PROTOCOL) else prevHandler
+            val handler = if (prevHandler is PacketDecoder) PacketDecoder(Connection.ATTRIBUTE_SERVERBOUND_PROTOCOL) else prevHandler
             handler?.let { this.pipeline().replace("decoder", "decoder", handler) }
         }
     }

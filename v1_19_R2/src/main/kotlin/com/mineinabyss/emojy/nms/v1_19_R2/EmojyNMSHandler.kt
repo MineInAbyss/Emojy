@@ -19,10 +19,7 @@ import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
 import net.minecraft.nbt.StringTag
-import net.minecraft.network.Connection
-import net.minecraft.network.FriendlyByteBuf
-import net.minecraft.network.PacketEncoder
-import net.minecraft.network.SkipPacketException
+import net.minecraft.network.*
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.server.MinecraftServer
@@ -129,15 +126,15 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
     private fun Channel.uninject() {
         if (this in encoder.keys) {
-            val prevHandler = encoder[this]
+            val prevHandler = encoder.remove(this)
             val handler = if (prevHandler is PacketEncoder) PacketEncoder(PacketFlow.CLIENTBOUND) else prevHandler
-            handler?.let { this.pipeline().replace(prevHandler, "encoder", handler) }
+            handler?.let { this.pipeline().replace("encoder", "encoder", handler) }
         }
 
         if (this in decoder.keys) {
-            val prevHandler = decoder[this]
-            val handler = if (prevHandler is PacketEncoder) PacketEncoder(PacketFlow.SERVERBOUND) else prevHandler
-            handler?.let { this.pipeline().replace(prevHandler, "decoder", handler) }
+            val prevHandler = decoder.remove(this)
+            val handler = if (prevHandler is PacketDecoder) PacketDecoder(PacketFlow.SERVERBOUND) else prevHandler
+            handler?.let { this.pipeline().replace("decoder", "decoder", handler) }
         }
     }
 
