@@ -179,6 +179,10 @@ class EmojyNMSHandler : IEmojyNMSHandler {
             }
         }
 
+        //TODO Figure out why renaming items doesnt work
+        // Example, readUtf for §9Backpack will return <blue>Backpack cuz legacy bad
+        // readNbt seems to then be called but the Tag/CompoundTag in form of StringTag is {"text":"<blue>Backpackd"}
+        // Aka the json is not parsing the serialized component correctly even when transformer here uses GsonComponentSerializer
         private fun transform(compound: CompoundTag, transformer: Function<String, String>) {
             for (key in compound.allKeys) when (val base = compound.get(key)) {
                 is CompoundTag -> transform(base, transformer)
