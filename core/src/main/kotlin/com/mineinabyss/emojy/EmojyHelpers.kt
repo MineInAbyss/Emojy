@@ -7,11 +7,13 @@ import com.mineinabyss.idofront.textcomponents.serialize
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.entity.Player
 
 fun Component.transform(player: Player?, insert: Boolean, isUtf: Boolean = true) = player?.let { escapeEmoteIDs(it) } ?: transformEmoteIDs(insert, isUtf)
 
+val legacy = LegacyComponentSerializer.legacySection()
 private val spaceRegex: Regex = "(?<!\\\\):space_(-?\\d+):".toRegex()
 private val escapedSpaceRegex: Regex = "\\\\(:space_(-?\\d+):)".toRegex()
 private val colorableRegex: Regex = "\\|(c|colorable)".toRegex()

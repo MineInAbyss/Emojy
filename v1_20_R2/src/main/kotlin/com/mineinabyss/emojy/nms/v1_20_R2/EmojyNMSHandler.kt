@@ -4,10 +4,12 @@ package com.mineinabyss.emojy.nms.v1_20_R2
 
 import com.google.gson.JsonParser
 import com.mineinabyss.emojy.emojy
+import com.mineinabyss.emojy.legacy
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers.formatString
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
 import com.mineinabyss.emojy.transform
+import com.mineinabyss.idofront.messaging.logVal
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
 import io.netty.buffer.ByteBuf
@@ -159,7 +161,10 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
 
         override fun readUtf(maxLength: Int): String {
-            return super.readUtf(maxLength).miniMsg().transform(player, true).serialize()
+            return super.readUtf(maxLength).let { string ->
+                runCatching { string.miniMsg() }.recover { legacy.deserialize(string) }
+                    .getOrNull()?.transform(player, true)?.serialize() ?: string
+            }
         }
 
         override fun writeNbt(compound: Tag?): FriendlyByteBuf {
