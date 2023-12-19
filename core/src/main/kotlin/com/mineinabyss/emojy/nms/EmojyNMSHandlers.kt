@@ -3,7 +3,11 @@ package com.mineinabyss.emojy.nms
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.mineinabyss.emojy.transform
+import com.mineinabyss.idofront.textcomponents.miniMsg
+import com.mineinabyss.idofront.textcomponents.serialize
+import com.mineinabyss.idofront.textcomponents.toPlainText
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
+import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 
 object EmojyNMSHandlers {
@@ -32,7 +36,7 @@ object EmojyNMSHandlers {
     private val gson = GsonComponentSerializer.gson()
     fun JsonObject.formatString() : String {
         return if (this.has("args") || this.has("text") || this.has("extra") || this.has("translate")) {
-            gson.serialize(gson.deserializeFromTree(this).transform(null, true))
+            gson.serialize(gson.deserialize(this.toString()).toPlainText().miniMsg().transform(null, true))
         } else this.toString()
     }
 

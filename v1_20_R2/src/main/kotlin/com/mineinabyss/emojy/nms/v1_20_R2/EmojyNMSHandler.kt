@@ -9,7 +9,6 @@ import com.mineinabyss.emojy.nms.EmojyNMSHandlers
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers.formatString
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
 import com.mineinabyss.emojy.transform
-import com.mineinabyss.idofront.messaging.logVal
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
 import io.netty.buffer.ByteBuf
@@ -18,6 +17,8 @@ import io.netty.handler.codec.ByteToMessageDecoder
 import io.netty.handler.codec.MessageToByteEncoder
 import io.papermc.paper.adventure.PaperAdventure
 import net.kyori.adventure.text.Component
+import net.minecraft.core.IdMap
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
 import net.minecraft.nbt.StringTag
@@ -28,6 +29,8 @@ import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.network.protocol.game.ServerboundChatPacket
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.network.ServerConnectionListener
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
 import org.bukkit.Bukkit
 import org.bukkit.craftbukkit.v1_20_R2.entity.CraftPlayer
 import org.bukkit.entity.Player
@@ -179,10 +182,6 @@ class EmojyNMSHandler : IEmojyNMSHandler {
             }
         }
 
-        //TODO Figure out why renaming items doesnt work
-        // Example, readUtf for §9Backpack will return <blue>Backpack cuz legacy bad
-        // readNbt seems to then be called but the Tag/CompoundTag in form of StringTag is {"text":"<blue>Backpackd"}
-        // Aka the json is not parsing the serialized component correctly even when transformer here uses GsonComponentSerializer
         private fun transform(compound: CompoundTag, transformer: Function<String, String>) {
             for (key in compound.allKeys) when (val base = compound.get(key)) {
                 is CompoundTag -> transform(base, transformer)
