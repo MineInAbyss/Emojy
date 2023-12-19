@@ -174,7 +174,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
         override fun readNbt(): CompoundTag? {
             return super.readNbt()?.apply {
-                transform(this, EmojyNMSHandlers.transformer())
+                transform(this, EmojyNMSHandlers.transformer(player))
             }
         }
 
@@ -232,7 +232,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
             val packetID = customDataSerializer.readVarInt()
             val attribute = ctx.channel().attr(Connection.ATTRIBUTE_SERVERBOUND_PROTOCOL)
             val packet = attribute.get().createPacket(packetID, customDataSerializer) ?: throw IOException("Bad packet id $packetID")
-
+            //ObfHelper.INSTANCE.deobfClassName(packet.javaClass.name).logVal("Packet: ")
             out += when {
                 customDataSerializer.readableBytes() > 0 -> throw IOException("Packet $packetID ($packet) was larger than I expected, found ${customDataSerializer.readableBytes()} bytes extra whilst reading packet $packetID")
                 packet is ServerboundChatPacket -> {
