@@ -41,7 +41,7 @@ private fun Component.escapeEmoteIDs(player: Player): Component {
 
         msg = msg.replaceText(
             TextReplacementConfig.builder()
-                .match(emote.baseRegex.pattern)
+                .matchLiteral(match.value)
                 .replacement("\\${match.value}".miniMsg())
                 .build()
         )
@@ -51,7 +51,7 @@ private fun Component.escapeEmoteIDs(player: Player): Component {
         if (gif.checkPermission(player)) return@forEach
         msg = msg.replaceText(
             TextReplacementConfig.builder()
-                .match(gif.baseRegex.pattern)
+                .matchLiteral(match.value)
                 .replacement("\\${match.value}".miniMsg())
                 .build()
         )
@@ -63,7 +63,7 @@ private fun Component.escapeEmoteIDs(player: Player): Component {
 
         msg = msg.replaceText(
             TextReplacementConfig.builder()
-                .match(spaceRegex.pattern)
+                .matchLiteral(match.value)
                 .replacement("\\:space_$space:".miniMsg())
                 .build()
         )
@@ -88,7 +88,7 @@ private fun Component.transformEmoteIDs(insert: Boolean = true, isUtf: Boolean):
 
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
-                    .match(emote.baseRegex.pattern)
+                    .matchLiteral(match.value)
                     .replacement(emote.formattedUnicode(insert = false, colorable = colorable, bitmapIndex = bitmapIndex))
                     .build()
             )
@@ -97,7 +97,7 @@ private fun Component.transformEmoteIDs(insert: Boolean = true, isUtf: Boolean):
         if (isUtf) emote.escapedRegex.findAll(serialized).forEach { match ->
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
-                    .match(emote.escapedRegex.pattern)
+                    .matchLiteral(match.value)
                     .replacement(match.value.removePrefix("\\"))
                     .build()
             )
