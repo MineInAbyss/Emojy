@@ -17,8 +17,6 @@ import io.netty.handler.codec.ByteToMessageDecoder
 import io.netty.handler.codec.MessageToByteEncoder
 import io.papermc.paper.adventure.PaperAdventure
 import net.kyori.adventure.text.Component
-import net.minecraft.core.IdMap
-import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
 import net.minecraft.nbt.StringTag
@@ -29,8 +27,6 @@ import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.network.protocol.game.ServerboundChatPacket
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.network.ServerConnectionListener
-import net.minecraft.world.item.Item
-import net.minecraft.world.item.ItemStack
 import org.bukkit.Bukkit
 import org.bukkit.craftbukkit.v1_20_R2.entity.CraftPlayer
 import org.bukkit.entity.Player

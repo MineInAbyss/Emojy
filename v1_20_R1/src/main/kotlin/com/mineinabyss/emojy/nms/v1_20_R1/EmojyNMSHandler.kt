@@ -4,6 +4,7 @@ package com.mineinabyss.emojy.nms.v1_20_R1
 
 import com.google.gson.JsonParser
 import com.mineinabyss.emojy.emojy
+import com.mineinabyss.emojy.legacy
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers.formatString
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
@@ -179,7 +180,10 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
 
         override fun readUtf(maxLength: Int): String {
-            return super.readUtf(maxLength).miniMsg().transform(player, false).serialize()
+            return super.readUtf(maxLength).let { string ->
+                runCatching { string.miniMsg() }.recover { legacy.deserialize(string) }
+                    .getOrNull()?.transform(player, true)?.serialize() ?: string
+            }
         }
 
     }
