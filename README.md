@@ -14,10 +14,10 @@ Compared to a lot of other plugins this does not purely rely on the default font
 This will prevent players from simply copying unicodes and spamming them in chat.
 
 __Small feature-list:__
-- Replace _:id:_ in chat, books, signs, inventory titles, tablist footer/header, titles, subtitles and actionbars
-  - **Note:** Titles, tablist, actionbars and inventories require ProtocolLib
-- Support for "GIFs" which are just a series of images that rely on the obfuscation tag to make it look like a gif
-  - This is done by having every gif be its own font, but it has the downside of being in random order and way too fast
+- Replace _:id:_ in chat, books, signs, inventory titles, tablist, titles, subtitles & actionbars
+- Support for GIFs with 2 different types:
+  * **Obfuscation**: This is done by having every gif be its own font, but it has the downside of being in random order and way too fast
+  * **Shader**: This is done by a core-shader which should show the GIF as normal 
 - Automatically split gifs into images depending on specified framecount
 - Automatically generate a resourcepack with all the emotes and gifs
 
@@ -38,4 +38,4 @@ For example it lets you easily make custom menus which can be put in titles simp
 3. Add your emotes and gifs to config.yml, the bare minimum it needs is the `id: emoteid`
 4. Add all your emote textures inside `/plugins/Emojy/textures` and gifs inside `/plugins/Emojy/gifs`
 5. Restart your server or run `/emojy reload` to reload the config
-6. Copy the generated resourcepack from `/plugins/Emojy/assets` to your resourcepack folder
+6. Copy the generated resourcepack from `/plugins/Emojy/pack.zip` to your resourcepack folder
