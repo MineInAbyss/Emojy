@@ -34,7 +34,7 @@ class EmojyListener : Listener {
     @EventHandler
     fun PrepareAnvilEvent.onAnvil() {
         val inventory = inventory as? AnvilInventory ?: return
-        val displayName = (inventory.renameText?.miniMsg() ?: inventory.firstItem?.itemMeta?.displayName())?.transform(inventory.viewers.first() as? Player, false)
+        val displayName = (inventory.renameText?.miniMsg() ?: inventory.firstItem?.itemMeta?.displayName())?.transform(inventory.viewers.firstOrNull() as? Player, false)
         result = result?.editItemMeta {
             displayName(displayName)
         }
