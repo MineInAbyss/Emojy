@@ -8,6 +8,7 @@ import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
 import io.papermc.paper.event.player.AsyncChatDecorateEvent
 import io.papermc.paper.event.player.AsyncChatEvent
+import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -33,8 +34,9 @@ class EmojyListener : Listener {
 
     @EventHandler
     fun PrepareAnvilEvent.onAnvil() {
+        if (result?.itemMeta?.hasDisplayName() != true) return
         val inventory = inventory as? AnvilInventory ?: return
-        val displayName = (inventory.renameText?.miniMsg() ?: inventory.firstItem?.itemMeta?.displayName())?.transform(inventory.viewers.firstOrNull() as? Player, false)
+        val displayName = ((inventory.renameText?.miniMsg() ?: inventory.firstItem?.itemMeta?.displayName())?.transform(inventory.viewers.firstOrNull() as? Player, false))
         result = result?.editItemMeta {
             displayName(displayName)
         }
