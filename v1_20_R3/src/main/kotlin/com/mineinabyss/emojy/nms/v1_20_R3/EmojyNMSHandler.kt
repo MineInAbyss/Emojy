@@ -168,7 +168,10 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
         override fun writeNbt(compound: Tag?): FriendlyByteBuf {
             return super.writeNbt(compound?.apply {
-                transform(this as CompoundTag, EmojyNMSHandlers.transformer())
+                when (this) {
+                    is CompoundTag -> transform(this, EmojyNMSHandlers.transformer())
+                    is StringTag -> transform(this, EmojyNMSHandlers.transformer())
+                }
             })
         }
 
