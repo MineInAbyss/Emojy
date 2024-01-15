@@ -18,7 +18,7 @@ abstract class MiniMessageTranslator : Translator {
 
     override fun translate(component: TranslatableComponent, locale: Locale): Component? {
         val mmString = getMiniMessageString(component.key(), locale) ?: return null
-        val resultingComponent = mmString.miniMsg(EmojyArgumentTag(component.args()).takeIf { component.args().isNotEmpty() } ?: IdofrontTextComponents.globalResolver)
+        val resultingComponent = mmString.miniMsg(EmojyArgumentTag(component.arguments()).takeIf { component.arguments().isNotEmpty() } ?: IdofrontTextComponents.globalResolver)
         return when {
             component.children().isEmpty() -> resultingComponent
             else -> resultingComponent.children(component.children())
