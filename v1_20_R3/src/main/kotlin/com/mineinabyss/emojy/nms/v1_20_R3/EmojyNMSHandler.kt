@@ -1,6 +1,6 @@
 @file:Suppress("unused")
 
-package com.mineinabyss.emojy.nms.v1_20_R2
+package com.mineinabyss.emojy.nms.v1_20_R3
 
 import com.google.gson.JsonParser
 import com.mineinabyss.emojy.emojy
