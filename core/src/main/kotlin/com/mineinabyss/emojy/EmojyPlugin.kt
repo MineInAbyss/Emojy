@@ -63,7 +63,7 @@ class EmojyPlugin : JavaPlugin() {
             }.toSet()
         })
 
-        GlobalTranslator.translator().sources().filter { it.name() == Key.key("emojy", "localization") }.forEach(GlobalTranslator.translator()::removeSource)
+        GlobalTranslator.translator().sources().filter { it.name() == EmojyTranslator.key }.forEach(GlobalTranslator.translator()::removeSource)
         GlobalTranslator.translator().addSource(EmojyTranslator())
     }
 }

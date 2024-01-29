@@ -7,6 +7,7 @@ import com.mineinabyss.idofront.messaging.success
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import net.kyori.adventure.inventory.Book
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.TranslatableComponent
 import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
@@ -16,12 +17,15 @@ import org.bukkit.entity.Player
 class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
     override val commands = commands(emojy.plugin) {
         "emojy" {
+            "lang" {
+                emojy.languages.map { it.locale }.joinToString { it.toString() }.broadcastVal()
+                sender.sendMessage(emojy.languages.any { it.locale == (sender as Player).locale() }.toString())
+            }
             "test" {
                 action {
-                    val lang = emojy.languages.first()
-                    sender.sendMessage(GlobalTranslator.render(("<lang:mineinabyss.tutorial.welcome.1>" + " : <lang:mineinabyss.tutorial.welcome.2>").miniMsg(), lang.locale))
-                    sender.sendMessage(GlobalTranslator.render(("<lang:mineinabyss.tutorial.welcome.1>" + "</lang>" +  " : <lang:mineinabyss.tutorial.welcome.2>").miniMsg(), lang.locale))
-                    //emojy.languages.map { it.locale to it.keys }.joinToString(", ").broadcastVal()
+                    val lang = (sender as? Player)?.locale()?.takeIf { it in emojy.languages.map { it.locale } } ?: emojy.languages.last().locale
+                    sender.sendMessage(GlobalTranslator.render(("<lang:mineinabyss.tutorial.welcome.1>" + " : <lang:mineinabyss.tutorial.welcome.2>").miniMsg(), lang))
+                    sender.sendMessage(GlobalTranslator.render(("<lang:mineinabyss.tutorial.welcome.1>" + "</lang>" +  " : <lang:mineinabyss.tutorial.welcome.2>").miniMsg(), lang))
                 }
             }
             "list" {

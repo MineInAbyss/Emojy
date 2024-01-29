@@ -7,6 +7,7 @@ import com.mineinabyss.idofront.textcomponents.serialize
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
+import net.kyori.adventure.text.TranslatableComponent
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.entity.Player

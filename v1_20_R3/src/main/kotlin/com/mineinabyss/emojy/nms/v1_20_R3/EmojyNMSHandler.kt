@@ -177,7 +177,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
         override fun readNbt(): CompoundTag? {
             return super.readNbt()?.apply {
-                transform(this, EmojyNMSHandlers.transformer())
+                transform(this, EmojyNMSHandlers.transformer(player))
             }
         }
 
