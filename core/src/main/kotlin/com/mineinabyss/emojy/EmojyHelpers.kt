@@ -147,8 +147,7 @@ private fun Component.transformEmoteIDs(insert: Boolean = true, isUtf: Boolean):
     return msg
 }
 
-private fun buildSpaceComponents(space: Int) =
-    Component.textOfChildren(Component.text(Space.of(space)).font(emojyConfig.spaceFont))
+fun buildSpaceComponents(space: Int) = Component.text(Space.of(space)).font(emojyConfig.spaceFont)
 
-fun Component.space(advance: Int = 3) = this.append(buildSpaceComponents(advance))
+fun Component.space(advance: Int = 3) = Component.textOfChildren(this, buildSpaceComponents(advance))
 fun Component.space() = append(Component.text().content(" ").font(Key.key("default")))

@@ -2,10 +2,8 @@
 
 package com.mineinabyss.emojy.config
 
-import com.mineinabyss.emojy.emojy
-import com.mineinabyss.emojy.emojyConfig
-import com.mineinabyss.emojy.space
-import com.mineinabyss.emojy.templates
+import com.mineinabyss.emojy.*
+import com.mineinabyss.idofront.font.Space
 import com.mineinabyss.idofront.messaging.*
 import com.mineinabyss.idofront.serialization.KeySerializer
 import com.mineinabyss.idofront.textcomponents.miniMsg
@@ -45,7 +43,7 @@ data class EmojyConfig(
     val debug: Boolean = true,
     val emojyList: EmojyList = EmojyList(),
     val supportedLanguages: Set<String> = mutableSetOf("en_us"),
-    ) {
+) {
 
     @Serializable
     data class EmojyList(
@@ -72,19 +70,24 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
         @EncodeDefault(NEVER) val font: @Serializable(KeySerializer::class) Key =
             template?.font ?: emojyConfig.defaultFont,
         @EncodeDefault(NEVER) val texture: @Serializable(KeySerializer::class) Key =
-            template?.texture ?: Key.key("${emojyConfig.defaultNamespace}:${emojyConfig.defaultFolder}/${id.lowercase()}.png"),
+            template?.texture
+                ?: Key.key("${emojyConfig.defaultNamespace}:${emojyConfig.defaultFolder}/${id.lowercase()}.png"),
         @EncodeDefault(NEVER) val height: Int = template?.height ?: emojyConfig.defaultHeight,
         @EncodeDefault(NEVER) val ascent: Int = template?.ascent ?: emojyConfig.defaultAscent,
         @EncodeDefault(NEVER) val bitmapWidth: Int = template?.bitmapWidth ?: 1,
         @EncodeDefault(NEVER) val bitmapHeight: Int = template?.bitmapHeight ?: 1,
     ) {
         val isMultiBitmap: Boolean get() = bitmapWidth > 1 || bitmapHeight > 1
-        @Transient val baseRegex = "(?<!\\\\):$id(\\|(c|colorable|\\d+))*:".toRegex()
-        @Transient val escapedRegex = "\\\\:$id(\\|(c|colorable|\\d+))*:".toRegex()
+        @Transient
+        val baseRegex = "(?<!\\\\):$id(\\|(c|colorable|\\d+))*:".toRegex()
+        @Transient
+        val escapedRegex = "\\\\:$id(\\|(c|colorable|\\d+))*:".toRegex()
 
         // Beginning of Private Use Area \uE000 -> uF8FF
         // Option: (Character.toCodePoint('\uE000', '\uFF8F')/37 + getIndex())
-        @Transient private val lastUsedUnicode: MutableMap<Key, Int> = mutableMapOf()
+        @Transient
+        private val lastUsedUnicode: MutableMap<Key, Int> = mutableMapOf()
+
         // We get this lazily so we dont need to use a function and check every time
         // but also because EmojyContext needs to be registered, so a normal vbal does not work
         //TODO Rework to be List<CharArray> instead
@@ -109,10 +112,14 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
         private val permission get() = "emojy.emote.$id"
         private val fontPermission get() = "emojy.font.$font"
         private fun fontProvider() = FontProvider.bitMap(texture, height, ascent, unicodes.map { it.toString() })
-        fun appendFont(resourcePack: ResourcePack) = (resourcePack.font(font)?.toBuilder() ?: Font.font().key(font)).addProvider(fontProvider()).build()
+        fun appendFont(resourcePack: ResourcePack) =
+            (resourcePack.font(font)?.toBuilder() ?: Font.font().key(font)).addProvider(fontProvider()).build()
 
         fun checkPermission(player: Player?) =
-            !emojyConfig.requirePermissions || player == null || player.hasPermission(permission) || player.hasPermission(fontPermission)
+            !emojyConfig.requirePermissions || player == null || player.hasPermission(permission) || player.hasPermission(
+                fontPermission
+            )
+
         fun formattedUnicode(
             appendSpace: Boolean = false,
             insert: Boolean = true,
@@ -122,17 +129,20 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
             var bitmap = when {
                 unicodes.map { it.map(Char::toString) }.flatten().size > 1 -> {
                     if (bitmapIndex >= 0) {
-                        val unicode = unicodes.joinToString("").toCharArray().getOrElse(maxOf(bitmapIndex, 1) - 1) { unicodes.last().last() }.toString()
-                        Component.text().content(unicode).build()
+                        val unicode = unicodes.joinToString("").toCharArray()
+                            .getOrElse(maxOf(bitmapIndex, 1) - 1) { unicodes.last().last() }.toString()
+                        Component.text(unicode).font(font)
                     } else Component.textOfChildren(*unicodes.map {
-                        // Since there is a small space between each bitmap,
-                        // join them together with a -1 space. Rarely do we want the space difference here
-                        Component.text().content(it.toCharArray().joinToString(":space_-1:")).build()
-                    }.toTypedArray())
+                        listOf(
+                            Component.text(it).font(font),
+                            buildSpaceComponents(-1)
+                        )
+                    }.flatten().toTypedArray())
+
                 }
 
-                else -> Component.text().content(unicodes.first().first().toString()).build()
-            }.font(font)
+                else -> Component.text(unicodes.first().first().toString()).font(font)
+            }
 
             bitmap = if (colorable) bitmap else bitmap.color(NamedTextColor.WHITE)
 
@@ -142,7 +152,7 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
                     ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this emote").miniMsg()
                 )
             )
-            return Component.textOfChildren(if (appendSpace) bitmap.space(2) else bitmap)
+            return if (appendSpace) Component.textOfChildren(bitmap, buildSpaceComponents(2)) else bitmap
         }
     }
 }
@@ -160,11 +170,16 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
         @EncodeDefault(NEVER) val height: Int = 8,
         @EncodeDefault(NEVER) val type: GifType = GifType.SHADER
     ) {
-        @Transient val framePath = Key.key(_framePath.asString().removeSuffix("/") + "/")
-        @Transient val font = Key.key(framePath.namespace(), id)
-        @Transient val permission = "emojy.gif.$id"
-        @Transient val baseRegex = "(?<!\\\\):$id:".toRegex()
-        @Transient val escapedRegex = "\\\\:$id:".toRegex()
+        @Transient
+        val framePath = Key.key(_framePath.asString().removeSuffix("/") + "/")
+        @Transient
+        val font = Key.key(framePath.namespace(), id)
+        @Transient
+        val permission = "emojy.gif.$id"
+        @Transient
+        val baseRegex = "(?<!\\\\):$id:".toRegex()
+        @Transient
+        val escapedRegex = "\\\\:$id:".toRegex()
 
         val gifFile get() = emojy.plugin.dataFolder.resolve("gifs/${id}.gif").apply { mkdirs() }
         private var aspectRatio by Delegates.notNull<Float>()
@@ -184,6 +199,7 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
                     .decorate(TextDecoration.OBFUSCATED).font(font).color(NamedTextColor.WHITE).serialize()
             }
         }
+
         fun frameCount(): Int {
             if (frameCount <= 0) frameCount = runCatching {
                 val reader = ImageIO.getImageReadersByFormatName("gif").next()
@@ -199,9 +215,20 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
 
             return frameCount
         }
+
         fun font() = Font.font(font, fontProviders().toMutableList().also { it.add(gifAdvance()) })
-        private fun gifAdvance() = FontProvider.space().advance(unicode(frameCount() + 1).toString(), -(height * aspectRatio + 1).roundToInt()).build()
-        private fun fontProviders(): List<FontProvider> = (1..frameCount()).map { FontProvider.bitMap(Key.key("$framePath$it.png"), height, ascent, listOf(unicode(it).toString())) }
+        private fun gifAdvance() =
+            FontProvider.space().advance(unicode(frameCount() + 1).toString(), -(height * aspectRatio + 1).roundToInt())
+                .build()
+
+        private fun fontProviders(): List<FontProvider> = (1..frameCount()).map {
+            FontProvider.bitMap(
+                Key.key("$framePath$it.png"),
+                height,
+                ascent,
+                listOf(unicode(it).toString())
+            )
+        }
 
         fun checkPermission(player: Player?) =
             !emojyConfig.requirePermissions || player == null || player.hasPermission(permission)
@@ -215,7 +242,7 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
                     ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this emote").miniMsg()
                 )
             )
-            return Component.textOfChildren(if (appendSpace) bitmap.space(1) else bitmap)
+            return if (appendSpace) Component.textOfChildren(bitmap, buildSpaceComponents(2)) else bitmap
         }
     }
 }
