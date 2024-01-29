@@ -21,7 +21,7 @@ class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
                     val lang = emojy.languages.first()
                     sender.sendMessage(GlobalTranslator.render(("<lang:mineinabyss.tutorial.welcome.1>" + " : <lang:mineinabyss.tutorial.welcome.2>").miniMsg(), lang.locale))
                     sender.sendMessage(GlobalTranslator.render(("<lang:mineinabyss.tutorial.welcome.1>" + "</lang>" +  " : <lang:mineinabyss.tutorial.welcome.2>").miniMsg(), lang.locale))
-                    emojy.languages.map { it.locale to it.keys }.joinToString(", ").broadcastVal()
+                    //emojy.languages.map { it.locale to it.keys }.joinToString(", ").broadcastVal()
                 }
             }
             "list" {
