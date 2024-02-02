@@ -7,7 +7,6 @@ import com.mineinabyss.idofront.textcomponents.serialize
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
-import net.kyori.adventure.text.TranslatableComponent
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.entity.Player
@@ -131,7 +130,7 @@ private fun Component.transformEmoteIDs(insert: Boolean = true, isUtf: Boolean):
         msg = msg.replaceText(
             TextReplacementConfig.builder()
                 .match(spaceRegex.pattern)
-                .replacement(buildSpaceComponents(space))
+                .replacement(spaceComponent(space))
                 .build()
         )
     }
@@ -148,7 +147,4 @@ private fun Component.transformEmoteIDs(insert: Boolean = true, isUtf: Boolean):
     return msg
 }
 
-fun buildSpaceComponents(space: Int) = Component.text(Space.of(space)).font(emojyConfig.spaceFont)
-
-fun Component.space(advance: Int = 3) = Component.textOfChildren(this, buildSpaceComponents(advance))
-fun Component.space() = append(Component.text().content(" ").font(Key.key("default")))
+fun spaceComponent(space: Int) = Component.textOfChildren(Component.text(Space.of(space)).font(emojyConfig.spaceFont))

@@ -39,7 +39,7 @@ class EmojyCommands : IdofrontCommandExecutor(), TabCompleter {
                     }
 
                     val gifList = when (sender) {
-                        is Player -> Component.textOfChildren(*gifs.map { it.formattedUnicode(true).space() }.toTypedArray())
+                        is Player -> Component.textOfChildren(*gifs.map { it.formattedUnicode(true) }.toTypedArray())
 
                         else -> emojy.gifs.joinToString(", ") { it.id }.miniMsg()
                     }

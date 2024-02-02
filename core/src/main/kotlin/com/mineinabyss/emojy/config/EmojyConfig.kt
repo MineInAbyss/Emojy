@@ -3,7 +3,6 @@
 package com.mineinabyss.emojy.config
 
 import com.mineinabyss.emojy.*
-import com.mineinabyss.idofront.font.Space
 import com.mineinabyss.idofront.messaging.*
 import com.mineinabyss.idofront.serialization.KeySerializer
 import com.mineinabyss.idofront.textcomponents.miniMsg
@@ -135,7 +134,7 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
                     } else Component.textOfChildren(*unicodes.map {
                         listOf(
                             Component.text(it).font(font),
-                            buildSpaceComponents(-1)
+                            spaceComponent(-1)
                         )
                     }.flatten().toTypedArray())
 
@@ -152,7 +151,7 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
                     ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this emote").miniMsg()
                 )
             )
-            return if (appendSpace) Component.textOfChildren(bitmap, buildSpaceComponents(2)) else bitmap
+            return if (appendSpace) Component.textOfChildren(bitmap, spaceComponent(2)) else bitmap
         }
     }
 }
@@ -242,7 +241,7 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
                     ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this emote").miniMsg()
                 )
             )
-            return if (appendSpace) Component.textOfChildren(bitmap, buildSpaceComponents(2)) else bitmap
+            return if (appendSpace) Component.textOfChildren(bitmap, spaceComponent(2)) else bitmap
         }
     }
 }
