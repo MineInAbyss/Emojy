@@ -14,25 +14,17 @@ import org.bukkit.entity.Player
 object EmojyNMSHandlers {
 
     private val SUPPORTED_VERSION = arrayOf("v1_19_R1", "v1_19_R2", "v1_19_R3", "v1_20_R1", "v1_20_R2", "v1_20_R3")
-    private var handler: IEmojyNMSHandler? = null
 
-    fun getHandler(): IEmojyNMSHandler? {
-        when {
-            handler != null -> return handler
-            else -> setup()
-        }
-        return handler
-    }
-
-    private fun setup() {
-        if (handler != null) return
+    fun setup(): IEmojyNMSHandler {
         SUPPORTED_VERSION.forEach { version ->
             runCatching {
                 Class.forName("org.bukkit.craftbukkit.$version.entity.CraftPlayer")
-                handler = Class.forName("com.mineinabyss.emojy.nms.${version}.EmojyNMSHandler").getConstructor()
+                return Class.forName("com.mineinabyss.emojy.nms.${version}.EmojyNMSHandler").getConstructor()
                     .newInstance() as IEmojyNMSHandler
             }
         }
+
+        throw IllegalStateException("Unsupported server version")
     }
 
     private val gson = GsonComponentSerializer.gson()

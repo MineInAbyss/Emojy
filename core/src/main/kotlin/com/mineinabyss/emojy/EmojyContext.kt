@@ -4,6 +4,8 @@ import com.mineinabyss.emojy.config.EmojyConfig
 import com.mineinabyss.emojy.config.EmojyTemplates
 import com.mineinabyss.emojy.config.Emotes
 import com.mineinabyss.emojy.config.Gifs
+import com.mineinabyss.emojy.nms.EmojyNMSHandlers
+import com.mineinabyss.emojy.nms.IEmojyNMSHandler
 import com.mineinabyss.emojy.translator.EmojyLanguage
 import com.mineinabyss.idofront.di.DI
 
@@ -15,4 +17,5 @@ interface EmojyContext {
     val emotes: Set<Emotes.Emote>
     val gifs: Set<Gifs.Gif>
     val languages: Set<EmojyLanguage>
+    val handler: IEmojyNMSHandler
 }

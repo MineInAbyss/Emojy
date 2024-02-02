@@ -5,6 +5,7 @@ import com.mineinabyss.emojy.config.EmojyTemplates
 import com.mineinabyss.emojy.config.Emotes
 import com.mineinabyss.emojy.config.Gifs
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers
+import com.mineinabyss.emojy.nms.IEmojyNMSHandler
 import com.mineinabyss.emojy.translator.EmojyLanguage
 import com.mineinabyss.emojy.translator.EmojyTranslator
 import com.mineinabyss.idofront.config.config
@@ -19,20 +20,21 @@ import kotlin.io.path.div
 class EmojyPlugin : JavaPlugin() {
 
     override fun onEnable() {
+        createEmojyContext()
+
         // NMS version check
-        if (EmojyNMSHandlers.getHandler()?.supported != true) {
+        if (!emojy.handler.supported) {
             logger.severe("This version is not supported! Consider switching versions?")
             server.pluginManager.disablePlugin(this)
             return
         }
 
-        createEmojyContext()
         EmojyGenerator.generateResourcePack()
 
         listeners(EmojyListener())
 
         server.onlinePlayers.forEach {
-            EmojyNMSHandlers.getHandler()?.inject(it)
+            emojy.handler.inject(it)
         }
 
         EmojyCommands()
@@ -41,7 +43,7 @@ class EmojyPlugin : JavaPlugin() {
 
     override fun onDisable() {
         server.onlinePlayers.forEach {
-            EmojyNMSHandlers.getHandler()?.uninject(it)
+            emojy.handler.uninject(it)
         }
     }
 
@@ -61,6 +63,7 @@ class EmojyPlugin : JavaPlugin() {
                 EmojyLanguage(it.split("_").let { l -> Locale(l.first(), l.last().uppercase()) },
                     config<Map<String, String>>(it, dataFolder.toPath() / "languages", mapOf()).getOrLoad())
             }.toSet()
+            override val handler: IEmojyNMSHandler = EmojyNMSHandlers.setup()
         })
 
         GlobalTranslator.translator().sources().filter { it.name() == EmojyTranslator.key }.forEach(GlobalTranslator.translator()::removeSource)

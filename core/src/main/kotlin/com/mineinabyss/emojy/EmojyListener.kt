@@ -23,7 +23,7 @@ class EmojyListener : Listener {
 
     @EventHandler
     fun PlayerJoinEvent.injectPlayer() {
-        EmojyNMSHandlers.getHandler()?.inject(player)
+        emojy.handler.inject(player)
     }
 
     // Replace with result not original message to avoid borking other chat formatting

@@ -16,6 +16,7 @@ import io.netty.buffer.ByteBuf
 import io.netty.channel.*
 import io.netty.handler.codec.ByteToMessageDecoder
 import io.netty.handler.codec.MessageToByteEncoder
+import io.papermc.paper.adventure.AdventureComponent
 import io.papermc.paper.adventure.PaperAdventure
 import net.kyori.adventure.text.Component
 import net.minecraft.nbt.CompoundTag
@@ -148,6 +149,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
 
         override fun writeComponent(text: net.minecraft.network.chat.Component): FriendlyByteBuf {
+            if (text is AdventureComponent) return writeComponent(PaperAdventure.asAdventure(text))
             return super.writeComponent(PaperAdventure.asVanilla(PaperAdventure.asAdventure(text).transform(player, true, false)))
         }
 
@@ -162,17 +164,6 @@ class EmojyNMSHandler : IEmojyNMSHandler {
             }
 
             return super.writeUtf(string, maxLength)
-        }
-
-        override fun writeUtf(string: String): FriendlyByteBuf {
-            runCatching {
-                val element = JsonParser.parseString(string)
-                if (element.isJsonObject) return super.writeUtf(element.asJsonObject.formatString())
-            }.onFailure {
-                logError("Failed to parse json: $string")
-            }
-
-            return super.writeUtf(string)
         }
 
         override fun readUtf(maxLength: Int): String {
