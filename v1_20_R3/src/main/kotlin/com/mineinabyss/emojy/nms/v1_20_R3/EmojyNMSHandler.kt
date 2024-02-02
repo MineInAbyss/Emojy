@@ -150,7 +150,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
         override fun writeComponent(text: net.minecraft.network.chat.Component): FriendlyByteBuf {
             if (text is AdventureComponent) return writeComponent(PaperAdventure.asAdventure(text))
-            return super.writeComponent(PaperAdventure.asVanilla(PaperAdventure.asAdventure(text).transform(player, true, false)))
+            return writeComponent(PaperAdventure.asAdventure(text).transform(player, true, false))
         }
 
         override fun readComponent(): net.minecraft.network.chat.Component {

@@ -94,7 +94,7 @@ private fun Component.transformEmoteIDs(insert: Boolean = true, isUtf: Boolean):
             )
         }
 
-        if (isUtf) emote.escapedRegex.findAll(serialized).forEach { match ->
+        emote.escapedRegex.findAll(serialized).forEach { match ->
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
                     .matchLiteral(match.value)
@@ -114,7 +114,7 @@ private fun Component.transformEmoteIDs(insert: Boolean = true, isUtf: Boolean):
             )
         }
 
-        if (isUtf) gif.escapedRegex.findAll(serialized).forEach { match ->
+        gif.escapedRegex.findAll(serialized).forEach { match ->
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
                     .match(gif.escapedRegex.pattern)
@@ -135,7 +135,7 @@ private fun Component.transformEmoteIDs(insert: Boolean = true, isUtf: Boolean):
         )
     }
 
-    if (isUtf) escapedSpaceRegex.findAll(serialized).forEach { match ->
+    escapedSpaceRegex.findAll(serialized).forEach { match ->
         msg = msg.replaceText(
             TextReplacementConfig.builder()
                 .match(match.value)
