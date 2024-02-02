@@ -9,6 +9,7 @@ import com.mineinabyss.emojy.nms.EmojyNMSHandlers
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers.formatString
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
 import com.mineinabyss.emojy.transform
+import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
 import io.netty.buffer.ByteBuf
@@ -146,6 +147,10 @@ class EmojyNMSHandler : IEmojyNMSHandler {
             return super.writeComponent(component.transform(null, true, false))
         }
 
+        override fun writeComponent(text: net.minecraft.network.chat.Component): FriendlyByteBuf {
+            return super.writeComponent(PaperAdventure.asVanilla(PaperAdventure.asAdventure(text).transform(player, true, false)))
+        }
+
         override fun readComponent(): net.minecraft.network.chat.Component {
             return PaperAdventure.asVanilla(PaperAdventure.asAdventure(super.readComponent()).transform(player, true, false))
         }
@@ -157,6 +162,17 @@ class EmojyNMSHandler : IEmojyNMSHandler {
             }
 
             return super.writeUtf(string, maxLength)
+        }
+
+        override fun writeUtf(string: String): FriendlyByteBuf {
+            runCatching {
+                val element = JsonParser.parseString(string)
+                if (element.isJsonObject) return super.writeUtf(element.asJsonObject.formatString())
+            }.onFailure {
+                logError("Failed to parse json: $string")
+            }
+
+            return super.writeUtf(string)
         }
 
         override fun readUtf(maxLength: Int): String {
