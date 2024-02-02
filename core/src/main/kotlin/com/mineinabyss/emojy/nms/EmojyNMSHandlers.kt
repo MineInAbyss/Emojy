@@ -28,6 +28,7 @@ object EmojyNMSHandlers {
         if (handler != null) return
         SUPPORTED_VERSION.forEach { version ->
             runCatching {
+                Class.forName("org.bukkit.craftbukkit.$version.entity.CraftPlayer")
                 handler = Class.forName("com.mineinabyss.emojy.nms.${version}.EmojyNMSHandler").getConstructor()
                     .newInstance() as IEmojyNMSHandler
             }
