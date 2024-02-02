@@ -3,12 +3,10 @@
 package com.mineinabyss.emojy.nms.v1_20_R3
 
 import com.google.gson.JsonParser
-import com.mineinabyss.emojy.emojy
-import com.mineinabyss.emojy.legacy
+import com.mineinabyss.emojy.*
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers.formatString
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
-import com.mineinabyss.emojy.transform
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
@@ -144,17 +142,18 @@ class EmojyNMSHandler : IEmojyNMSHandler {
     }
 
     private class CustomDataSerializer(val player: Player?, bytebuf: ByteBuf) : FriendlyByteBuf(bytebuf) {
+
         override fun writeComponent(component: Component): FriendlyByteBuf {
-            return super.writeComponent(component.transform(null, true, false))
+            return super.writeComponent(component.transformEmoteIDs(player, true, false))
         }
 
         override fun writeComponent(text: net.minecraft.network.chat.Component): FriendlyByteBuf {
-            if (text is AdventureComponent) return writeComponent(PaperAdventure.asAdventure(text))
-            return writeComponent(PaperAdventure.asAdventure(text).transform(player, true, false))
+            val component = (text as? AdventureComponent)?.deepConvertedIfPresent() ?: text
+            return writeComponent(PaperAdventure.asAdventure(component).transformEmoteIDs(player, true, false))
         }
 
         override fun readComponent(): net.minecraft.network.chat.Component {
-            return PaperAdventure.asVanilla(PaperAdventure.asAdventure(super.readComponent()).transform(player, true, false))
+            return PaperAdventure.asVanilla(PaperAdventure.asAdventure(super.readComponentTrusted()).escapeEmoteIDs(player))
         }
 
         override fun writeUtf(string: String, maxLength: Int): FriendlyByteBuf {

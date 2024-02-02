@@ -35,7 +35,7 @@ object EmojyNMSHandlers {
     // anvil goes like this, inputItem -> readUtf -> renameField -> writeNbt from raw string, which is why it breaks
     fun JsonObject.formatString(player: Player? = null) : String {
         return if (this.has("args") || this.has("text") || this.has("extra") || this.has("translate")) {
-            gson.serialize(gson.deserialize(this.toString())/*.toPlainText()*/.serialize().miniMsg().transform(player, true))
+            gson.serialize(gson.deserialize(this.toString())/*.toPlainText()*/.serialize().miniMsg().transform(player, true, true))
         } else this.toString()
     }
 
