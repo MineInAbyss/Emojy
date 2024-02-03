@@ -2,13 +2,13 @@ package com.mineinabyss.emojy.nms
 
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import com.mineinabyss.emojy.escapeEmoteIDs
 import com.mineinabyss.emojy.transform
+import com.mineinabyss.emojy.transformEmoteIDs
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
-import com.mineinabyss.idofront.textcomponents.toPlainText
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 
 object EmojyNMSHandlers {
@@ -37,6 +37,26 @@ object EmojyNMSHandlers {
         return if (this.has("args") || this.has("text") || this.has("extra") || this.has("translate")) {
             gson.serialize(gson.deserializeFromTree(this)/*.toPlainText()*/.serialize().miniMsg().transform(player, true, true))
         } else this.toString()
+    }
+
+    fun writeTransformer(player: Player?, insert: Boolean, unescape: Boolean) = { string: String ->
+        runCatching {
+            val jsonObject = JsonParser.parseString(string).takeIf { it.isJsonObject }?.asJsonObject ?: return@runCatching string
+            if (jsonObject.has("args") || jsonObject.has("text") || jsonObject.has("extra") || jsonObject.has("translate")) {
+                val formatted = gson.deserializeFromTree(jsonObject).transformEmoteIDs(player, insert, unescape)
+                gson.serialize(formatted)
+            } else string
+        }.getOrNull() ?: string
+    }
+
+    fun readTransformer(player: Player?) = { string: String ->
+        runCatching {
+            val jsonObject = JsonParser.parseString(string).takeIf { it.isJsonObject }?.asJsonObject ?: return@runCatching string
+            if (jsonObject.has("args") || jsonObject.has("text") || jsonObject.has("extra") || jsonObject.has("translate")) {
+                val formatted = gson.deserializeFromTree(jsonObject).escapeEmoteIDs(player)
+                gson.serialize(formatted)
+            } else string
+        }.getOrNull() ?: string
     }
 
     fun transformer(player: Player? = null) = { string: String ->

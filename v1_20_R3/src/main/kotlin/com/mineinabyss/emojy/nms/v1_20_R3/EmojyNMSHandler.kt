@@ -2,12 +2,12 @@
 
 package com.mineinabyss.emojy.nms.v1_20_R3
 
-import com.google.gson.JsonParser
-import com.mineinabyss.emojy.*
+import com.mineinabyss.emojy.emojy
+import com.mineinabyss.emojy.escapeEmoteIDs
+import com.mineinabyss.emojy.legacy
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers
-import com.mineinabyss.emojy.nms.EmojyNMSHandlers.formatString
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
-import com.mineinabyss.idofront.messaging.logError
+import com.mineinabyss.emojy.transformEmoteIDs
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
 import io.netty.buffer.ByteBuf
@@ -157,33 +157,28 @@ class EmojyNMSHandler : IEmojyNMSHandler {
         }
 
         override fun writeUtf(string: String, maxLength: Int): FriendlyByteBuf {
-            runCatching {
-                val element = JsonParser.parseString(string)
-                if (element.isJsonObject) return super.writeUtf(element.asJsonObject.formatString(), maxLength)
-            }
-
-            return super.writeUtf(string, maxLength)
+            return EmojyNMSHandlers.writeTransformer(player, true, true).invoke(string).let { super.writeUtf(it, maxLength) }
         }
 
         override fun readUtf(maxLength: Int): String {
             return super.readUtf(maxLength).let { string ->
                 runCatching { string.miniMsg() }.recover { legacy.deserialize(string) }
-                    .getOrNull()?.transform(player, true)?.serialize() ?: string
+                    .getOrNull()?.escapeEmoteIDs(player)?.serialize() ?: string
             }
         }
 
         override fun writeNbt(compound: Tag?): FriendlyByteBuf {
             return super.writeNbt(compound?.apply {
                 when (this) {
-                    is CompoundTag -> transform(this, EmojyNMSHandlers.transformer())
-                    is StringTag -> transform(this, EmojyNMSHandlers.transformer())
+                    is CompoundTag -> transform(this, EmojyNMSHandlers.writeTransformer(player, false, true))
+                    is StringTag -> transform(this, EmojyNMSHandlers.writeTransformer(player, false,true))
                 }
             })
         }
 
         override fun readNbt(): CompoundTag? {
             return super.readNbt()?.apply {
-                transform(this, EmojyNMSHandlers.transformer(player))
+                transform(this, EmojyNMSHandlers.readTransformer(player))
             }
         }
 
