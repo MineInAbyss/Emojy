@@ -79,7 +79,8 @@ fun Component.escapeEmoteIDs(player: Player?): Component {
  * This is because we handle with a player-context first, and escape that in-which should not be formatted.
  */
 fun Component.transformEmoteIDs(player: Player?, insert: Boolean = true, unescape: Boolean): Component {
-    var msg = GlobalTranslator.render(this, player?.locale() ?: Locale.US)
+    val locale = emojy.languages.find { it.locale == player?.locale() }?.locale ?: Locale.US
+    var msg = GlobalTranslator.render(this, locale)
     val serialized = this.serialize()
 
     for (emote in emojy.emotes) {

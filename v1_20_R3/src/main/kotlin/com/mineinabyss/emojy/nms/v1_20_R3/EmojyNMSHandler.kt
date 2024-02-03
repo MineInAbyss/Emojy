@@ -144,12 +144,12 @@ class EmojyNMSHandler : IEmojyNMSHandler {
     private class CustomDataSerializer(val player: Player?, bytebuf: ByteBuf) : FriendlyByteBuf(bytebuf) {
 
         override fun writeComponent(component: Component): FriendlyByteBuf {
-            return super.writeComponent(component.transformEmoteIDs(player, true, false))
+            return super.writeComponent(component.transformEmoteIDs(player, true, true))
         }
 
         override fun writeComponent(text: net.minecraft.network.chat.Component): FriendlyByteBuf {
-            val component = (text as? AdventureComponent)?.deepConvertedIfPresent() ?: text
-            return writeComponent(PaperAdventure.asAdventure(component).transformEmoteIDs(player, true, false))
+            if (text is AdventureComponent) return writeComponent(text.deepConverted())
+            return writeComponent(PaperAdventure.asAdventure(text).transformEmoteIDs(player, true, false))
         }
 
         override fun readComponent(): net.minecraft.network.chat.Component {
