@@ -91,8 +91,8 @@ fun Component.transformEmoteIDs(player: Player?, insert: Boolean = true, unescap
 
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
-                    .match(match.value).once()
-                    .replacement(emote.formattedUnicode(insert = false, colorable = colorable, bitmapIndex = bitmapIndex))
+                    .match(emote.baseRegex.pattern).once()
+                    .replacement(emote.formattedUnicode(insert = insert, colorable = colorable, bitmapIndex = bitmapIndex))
                     .build()
             )
         }
@@ -100,7 +100,7 @@ fun Component.transformEmoteIDs(player: Player?, insert: Boolean = true, unescap
         if (unescape) emote.escapedRegex.findAll(serialized).forEach { match ->
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
-                    .matchLiteral(match.value).once()
+                    .match(emote.escapedRegex.pattern).once()
                     .replacement(match.value.removePrefix("\\"))
                     .build()
             )
@@ -111,7 +111,7 @@ fun Component.transformEmoteIDs(player: Player?, insert: Boolean = true, unescap
         gif.baseRegex.findAll(serialized).forEach { match ->
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
-                    .match(gif.baseRegex.pattern)
+                    .match(gif.baseRegex.pattern).once()
                     .replacement(gif.formattedUnicode(insert = insert))
                     .build()
             )
@@ -120,7 +120,7 @@ fun Component.transformEmoteIDs(player: Player?, insert: Boolean = true, unescap
         if (unescape) gif.escapedRegex.findAll(serialized).forEach { match ->
             msg = msg.replaceText(
                 TextReplacementConfig.builder()
-                    .match(gif.escapedRegex.pattern)
+                    .match(gif.escapedRegex.pattern).once()
                     .replacement(match.value.removePrefix("\\"))
                     .build()
             )
@@ -132,7 +132,7 @@ fun Component.transformEmoteIDs(player: Player?, insert: Boolean = true, unescap
         val spaceRegex = "(?<!\\\\):space_(-?$space+):".toRegex()
         msg = msg.replaceText(
             TextReplacementConfig.builder()
-                .match(spaceRegex.pattern)
+                .match(spaceRegex.pattern).once()
                 .replacement(spaceComponent(space))
                 .build()
         )
@@ -141,7 +141,7 @@ fun Component.transformEmoteIDs(player: Player?, insert: Boolean = true, unescap
     if (unescape) escapedSpaceRegex.findAll(serialized).forEach { match ->
         msg = msg.replaceText(
             TextReplacementConfig.builder()
-                .match(match.value)
+                .match(match.value).once()
                 .replacement(match.value.removePrefix("\\"))
                 .build()
         )
