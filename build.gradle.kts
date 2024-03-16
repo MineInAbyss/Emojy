@@ -27,11 +27,11 @@ allprojects {
 
 dependencies {
     // MineInAbyss platform
-    compileOnly(libs.bundles.idofront.core)
-    compileOnly(libs.kotlinx.serialization.json)
-    compileOnly(libs.kotlinx.serialization.kaml)
-    compileOnly(libs.kotlinx.coroutines)
-    compileOnly(libs.minecraft.mccoroutine)
+    compileOnly(idofrontLibs.bundles.idofront.core)
+    compileOnly(idofrontLibs.kotlinx.serialization.json)
+    compileOnly(idofrontLibs.kotlinx.serialization.kaml)
+    compileOnly(idofrontLibs.kotlinx.coroutines)
+    compileOnly(idofrontLibs.minecraft.mccoroutine)
 
     // Shaded
     paperweight.paperDevBundle("1.20.4-R0.1-SNAPSHOT") //NMS

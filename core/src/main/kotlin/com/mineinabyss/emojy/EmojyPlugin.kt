@@ -10,6 +10,10 @@ import com.mineinabyss.emojy.translator.EmojyLanguage
 import com.mineinabyss.emojy.translator.EmojyTranslator
 import com.mineinabyss.idofront.config.config
 import com.mineinabyss.idofront.di.DI
+import com.mineinabyss.idofront.messaging.ComponentLogger
+import com.mineinabyss.idofront.messaging.injectLogger
+import com.mineinabyss.idofront.messaging.observeLogger
+import com.mineinabyss.idofront.plugin.dataPath
 import com.mineinabyss.idofront.plugin.listeners
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.translation.GlobalTranslator
@@ -49,20 +53,23 @@ class EmojyPlugin : JavaPlugin() {
 
     fun createEmojyContext() {
         DI.remove<EmojyConfig>()
-        DI.add(config<EmojyConfig>("config", dataFolder.toPath(), EmojyConfig()).getOrLoad())
+        DI.add(config<EmojyConfig>("config", dataPath, EmojyConfig(), onLoad = {
+            this@EmojyPlugin.injectLogger(ComponentLogger.forPlugin(this@EmojyPlugin, it.logLevel))
+        }).getOrLoad())
 
         DI.remove<EmojyTemplates>()
-        DI.add(config<EmojyTemplates>("templates", dataFolder.toPath(), EmojyTemplates()).getOrLoad())
+        DI.add(config<EmojyTemplates>("templates", dataPath, EmojyTemplates()).getOrLoad())
 
         DI.remove<EmojyContext>()
         DI.add<EmojyContext>(object : EmojyContext {
             override val plugin: EmojyPlugin = this@EmojyPlugin
-            override val emotes: Set<Emotes.Emote> = config("emotes", dataFolder.toPath(), Emotes()).getOrLoad().emotes
-            override val gifs: Set<Gifs.Gif> = config("gifs", dataFolder.toPath(), Gifs()).getOrLoad().gifs
+            override val emotes: Set<Emotes.Emote> = config("emotes", dataPath, Emotes()).getOrLoad().emotes
+            override val gifs: Set<Gifs.Gif> = config("gifs", dataPath, Gifs()).getOrLoad().gifs
             override val languages: Set<EmojyLanguage> = emojyConfig.supportedLanguages.map {
                 EmojyLanguage(it.split("_").let { l -> Locale(l.first(), l.last().uppercase()) },
-                    config<Map<String, String>>(it, dataFolder.toPath() / "languages", mapOf()).getOrLoad())
+                    config<Map<String, String>>(it, dataPath / "languages", mapOf()).getOrLoad())
             }.toSet()
+            override val logger by plugin.observeLogger()
             override val handler: IEmojyNMSHandler = EmojyNMSHandlers.setup()
         })
 

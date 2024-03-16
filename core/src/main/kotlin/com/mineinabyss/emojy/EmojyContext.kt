@@ -8,6 +8,7 @@ import com.mineinabyss.emojy.nms.EmojyNMSHandlers
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
 import com.mineinabyss.emojy.translator.EmojyLanguage
 import com.mineinabyss.idofront.di.DI
+import com.mineinabyss.idofront.messaging.ComponentLogger
 
 val emojy by DI.observe<EmojyContext>()
 val emojyConfig by DI.observe<EmojyConfig>()
@@ -18,4 +19,5 @@ interface EmojyContext {
     val gifs: Set<Gifs.Gif>
     val languages: Set<EmojyLanguage>
     val handler: IEmojyNMSHandler
+    val logger: ComponentLogger
 }

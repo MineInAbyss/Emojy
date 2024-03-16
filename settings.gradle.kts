@@ -27,10 +27,9 @@ dependencyResolutionManagement {
     }
 
     versionCatalogs {
-        create("libs"){
+        create("idofrontLibs"){
             from("com.mineinabyss:catalog:$idofrontVersion")
         }
-        create("emojyLibs").from(files("gradle/emojyLibs.toml"))
     }
 }
 
