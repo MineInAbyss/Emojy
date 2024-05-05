@@ -13,12 +13,12 @@ import org.bukkit.entity.Player
 
 object EmojyNMSHandlers {
 
-    private val SUPPORTED_VERSION = arrayOf("v1_19_R1", "v1_19_R2", "v1_19_R3", "v1_20_R1", "v1_20_R2", "v1_20_R3")
+    private val SUPPORTED_VERSION = arrayOf(/*"v1_19_R1", "v1_19_R2", "v1_19_R3", "v1_20_R1", "v1_20_R2", "v1_20_R3", */"v1_20_R4")
 
     fun setup(): IEmojyNMSHandler {
         SUPPORTED_VERSION.forEach { version ->
             runCatching {
-                Class.forName("org.bukkit.craftbukkit.$version.entity.CraftPlayer")
+                //Class.forName("org.bukkit.craftbukkit.entity.CraftPlayer")
                 return Class.forName("com.mineinabyss.emojy.nms.${version}.EmojyNMSHandler").getConstructor()
                     .newInstance() as IEmojyNMSHandler
             }
