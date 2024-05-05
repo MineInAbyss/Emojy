@@ -1,6 +1,6 @@
 @file:Suppress("unused")
 
-package com.mineinabyss.emojy.nms.v1_20_R2
+package com.mineinabyss.emojy.nms.v1_20_R4
 
 import com.google.gson.JsonParser
 import com.mineinabyss.emojy.emojy
@@ -15,30 +15,76 @@ import io.netty.buffer.ByteBuf
 import io.netty.channel.*
 import io.netty.handler.codec.ByteToMessageDecoder
 import io.netty.handler.codec.MessageToByteEncoder
-import io.papermc.paper.adventure.PaperAdventure
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+import io.netty.util.Attribute
+import io.netty.util.AttributeKey
+import net.minecraft.core.RegistryAccess
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
 import net.minecraft.nbt.StringTag
 import net.minecraft.nbt.Tag
 import net.minecraft.network.*
+import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.PacketFlow
+import net.minecraft.network.protocol.PacketType
+import net.minecraft.network.protocol.game.GameProtocols
 import net.minecraft.network.protocol.game.ServerboundChatPacket
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.network.ServerConnectionListener
 import org.bukkit.Bukkit
-import org.bukkit.craftbukkit.v1_20_R2.entity.CraftPlayer
+import org.bukkit.craftbukkit.entity.CraftPlayer
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
 import java.io.IOException
 import java.util.*
 import java.util.function.Function
 
+
 class EmojyNMSHandler : IEmojyNMSHandler {
     private val encoder = Collections.synchronizedMap(WeakHashMap<Channel, ChannelHandler>())
     private val decoder = Collections.synchronizedMap(WeakHashMap<Channel, ChannelHandler>())
+
+    companion object {
+        private val CODEC_MAP: Map<PacketType<*>, ConnectionCodec> = HashMap<PacketType<*>, ConnectionCodec>()
+        private val ID_MAP: Map<PacketType<*>, Int> = HashMap()
+        private val CODEC_ATTRIBUTE_KEY: AttributeKey<ConnectionCodec> = AttributeKey.newInstance("emojy.codec.key")
+
+        private fun swapProtocolIfNeeded(protocolAttribute: Attribute<ConnectionCodec>, packet: Packet<*>) {
+            val connectionProtocol = CODEC_MAP[packet.type()]?.protocol?: return
+
+            val codecData: ConnectionCodec = protocolAttribute.get()
+            val connectionProtocol2 = codecData.protocol
+            if (connectionProtocol.id() != connectionProtocol2.id()) {
+                val codecData2 = connectionProtocol.codec() as StreamCodec<ByteBuf, Packet<*>>
+                protocolAttribute.set(ConnectionCodec(codecData2, connectionProtocol))
+            }
+        }
+    }
+
+    @JvmRecord
+    data class ConnectionCodec(val codec: StreamCodec<ByteBuf, Packet<*>>, val protocol: ProtocolInfo<*>)
+
+    class PacketProtocol(
+        private val clientboundInfo: ProtocolInfo<*>,
+        private val serverboundInfo: ProtocolInfo<*>,
+        clazz: Class<*>
+    ) {
+        private val clientbounds: MutableList<PacketType<*>> = ArrayList()
+        private val serverbounds: MutableList<PacketType<*>> = ArrayList()
+
+        init {
+            for (field in clazz.fields) {
+                try {
+                    val type = field[null] as PacketType<*>
+                    when (type.flow()) {
+                        PacketFlow.CLIENTBOUND -> clientbounds.add(type)
+                        PacketFlow.SERVERBOUND -> serverbounds.add(type)
+                    }
+                } catch (ignored: Exception) {
+                }
+            }
+        }
+    }
 
     @Suppress("unused", "UNCHECKED_CAST", "FunctionName")
     fun EmojyNMSHandler() {
@@ -112,7 +158,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
     private fun Channel.inject(player: Player? = null) {
         if (this !in encoder.keys && (this.pipeline().get("encoder") as ChannelHandler) !is CustomPacketEncoder)
-            encoder[this] = this.pipeline().replace("encoder", "encoder", CustomPacketEncoder(player))
+            encoder[this] = this.pipeline().replace("encoder", "encoder", CustomPacketEncoder(player, this))
 
         if (this !in decoder.keys && (this.pipeline().get("decoder") as ChannelHandler) !is CustomPacketDecoder)
             decoder[this] = this.pipeline().replace("decoder", "decoder", CustomPacketDecoder(player))
@@ -122,13 +168,13 @@ class EmojyNMSHandler : IEmojyNMSHandler {
     private fun Channel.uninject() {
         if (this in encoder.keys) {
             val prevHandler = encoder.remove(this)
-            val handler = if (prevHandler is PacketEncoder) PacketEncoder(Connection.ATTRIBUTE_CLIENTBOUND_PROTOCOL) else prevHandler
+            val handler = if (prevHandler is PacketEncoder<*>) PacketEncoder(GameProtocols.CLIENTBOUND.bind(RegistryFriendlyByteBuf.decorator(RegistryAccess.EMPTY))) else prevHandler
             handler?.let { this.pipeline().replace("encoder", "encoder", handler) }
         }
 
         if (this in decoder.keys) {
             val prevHandler = decoder.remove(this)
-            val handler = if (prevHandler is PacketDecoder) PacketDecoder(Connection.ATTRIBUTE_SERVERBOUND_PROTOCOL) else prevHandler
+            val handler = if (prevHandler is PacketDecoder<*>) PacketDecoder(GameProtocols.SERVERBOUND.bind(RegistryFriendlyByteBuf.decorator(RegistryAccess.EMPTY))) else prevHandler
             handler?.let { this.pipeline().replace("decoder", "decoder", handler) }
         }
     }
@@ -143,13 +189,6 @@ class EmojyNMSHandler : IEmojyNMSHandler {
     }
 
     private class CustomDataSerializer(val player: Player?, bytebuf: ByteBuf) : FriendlyByteBuf(bytebuf) {
-        override fun writeComponent(component: Component): FriendlyByteBuf {
-            return super.writeComponent(component.transform(null, true, false))
-        }
-
-        override fun readComponent(): net.minecraft.network.chat.Component {
-            return PaperAdventure.asVanilla(PaperAdventure.asAdventure(super.readComponent()).transform(player, true, false))
-        }
 
         override fun writeUtf(string: String, maxLength: Int): FriendlyByteBuf {
             runCatching {
@@ -162,7 +201,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
         override fun readUtf(maxLength: Int): String {
             return super.readUtf(maxLength).let { string ->
-                runCatching { string.miniMsg() }.recover { LegacyComponentSerializer.legacySection().deserialize(string) }
+                runCatching { string.miniMsg() }.recover { legacy.deserialize(string) }
                     .getOrNull()?.transform(player, true)?.serialize() ?: string
             }
         }
@@ -200,50 +239,56 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
     }
 
-    private class CustomPacketEncoder(val player: Player? = null) : MessageToByteEncoder<Packet<*>>() {
-        private val protocolDirection = PacketFlow.CLIENTBOUND
+    private class CustomPacketEncoder(val player: Player? = null, val channel: Channel) : MessageToByteEncoder<Packet<*>>() {
 
-        override fun encode(ctx: ChannelHandlerContext, msg: Packet<*>, out: ByteBuf) {
-            val enumProt = ctx.channel()?.attr(Connection.ATTRIBUTE_CLIENTBOUND_PROTOCOL)?.get() ?: throw RuntimeException("ConnectionProtocol unknown: $out")
-            val packetID = enumProt.protocol().codec(protocolDirection).packetId(msg)
-            val packetDataSerializer: FriendlyByteBuf = CustomDataSerializer(player, out)
-            packetDataSerializer.writeVarInt(packetID)
+        override fun write(ctx: ChannelHandlerContext?, msg: Any, promise: ChannelPromise?) {
+            if (msg is Packet<*>) CODEC_MAP[msg.type()]?.let { channel.attr(CODEC_ATTRIBUTE_KEY).set(it) }
+            super.write(ctx, msg, promise)
+        }
+
+        override fun encode(ctx: ChannelHandlerContext, packet: Packet<*>, byteBuf: ByteBuf) {
+            if (ctx.channel() == null) throw RuntimeException("Channel is null")
+            val codec = CODEC_MAP[packet.type()]?.codec ?: return
+            val packetId = ID_MAP[packet.type()] ?: return
+
+            val packetDataSerializer: FriendlyByteBuf = CustomDataSerializer(player, byteBuf)
+            packetDataSerializer.writeVarInt(packetId)
 
             runCatching {
-                val int2 = packetDataSerializer.writerIndex()
-                msg.write(packetDataSerializer)
-                val int3 = packetDataSerializer.writerIndex() - int2
-                if (int3 > 8388608) {
-                    throw IllegalArgumentException("Packet too big (is $int3, should be less than 8388608): $msg")
-                }
-            }.onFailure {
-                if (msg.isSkippable) throw SkipPacketException(it)
-                throw it
-            }
+                val integer2 = packetDataSerializer.writerIndex()
+                codec.encode(packetDataSerializer, packet)
+                val integer3 = packetDataSerializer.writerIndex() - integer2
+                require(integer3 <= 8388608) { "Packet too big (is $integer3, should be less than 8388608): $packet" }
+                swapProtocolIfNeeded(channel.attr(CODEC_ATTRIBUTE_KEY), packet)
+            }.onFailure { it.printStackTrace() }
+
+            swapProtocolIfNeeded(channel.attr(CODEC_ATTRIBUTE_KEY), packet)
         }
+
+
     }
 
     private class CustomPacketDecoder(val player: Player? = null) : ByteToMessageDecoder() {
 
         override fun decode(ctx: ChannelHandlerContext, buffer: ByteBuf, out: MutableList<Any>) {
             val bufferCopy = buffer.copy()
-            if (buffer.readableBytes() == 0) return
+            if (buffer.readableBytes() === 0) return
 
-            val customDataSerializer = CustomDataSerializer(player, buffer)
-            val packetID = customDataSerializer.readVarInt()
-            val attribute = ctx.channel().attr(Connection.ATTRIBUTE_SERVERBOUND_PROTOCOL)
-            val packet = attribute.get().createPacket(packetID, customDataSerializer) ?: throw IOException("Bad packet id $packetID")
-            //ObfHelper.INSTANCE.deobfClassName(packet.javaClass.name).logVal("Packet: ")
-            out += when {
-                customDataSerializer.readableBytes() > 0 -> throw IOException("Packet $packetID ($packet) was larger than I expected, found ${customDataSerializer.readableBytes()} bytes extra whilst reading packet $packetID")
-                packet is ServerboundChatPacket -> {
-                    val baseSerializer = FriendlyByteBuf(bufferCopy)
-                    val basePacketID = baseSerializer.readVarInt()
-                    attribute.get().createPacket(basePacketID, baseSerializer) ?: throw IOException("Bad packet id $basePacketID")
-                }
-                else -> packet
+            val dataSerializer = CustomDataSerializer(player, buffer)
+            val packetID = dataSerializer.readVarInt()
+            val attribute = ctx.channel().attr(CODEC_ATTRIBUTE_KEY)
+            val codec = attribute.get()
+            var packet = codec.codec.decode(dataSerializer)
+
+            if (dataSerializer.readableBytes() > 0) {
+                throw IOException(("Packet " + packetID + " " + packet + " was larger than expected, found " + dataSerializer.readableBytes()).toString() + " bytes extra whiløst reading the packet " + packetID)
+            } else if (packet is ServerboundChatPacket) {
+                val baseSerializer = FriendlyByteBuf(bufferCopy)
+                packet = codec.codec.decode(baseSerializer)
             }
-            ProtocolSwapHandler.swapProtocolIfNeeded(attribute, packet)
+
+            out.add(packet)
+            swapProtocolIfNeeded(attribute, packet)
         }
     }
 

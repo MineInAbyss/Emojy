@@ -8,7 +8,7 @@ plugins {
     id("com.mineinabyss.conventions.autoversion")
     id("xyz.jpenilla.run-paper") version "2.0.1" // Adds runServer and runMojangMappedServer tasks for testing
     id("net.minecrell.plugin-yml.paper") version "0.6.0"
-    id("io.papermc.paperweight.userdev") version "1.5.11"
+    id("io.papermc.paperweight.userdev") version "1.7.0"
 }
 
 allprojects {
@@ -16,11 +16,9 @@ allprojects {
 
     version = rootProject.version
 
-    dependencies {
-        compileOnly(kotlin("stdlib-jdk8"))
-    }
-
     repositories {
+        maven("https://repo.mineinabyss.com/releases")
+        maven("https://repo.mineinabyss.com/snapshots")
         mavenLocal()
     }
 }
@@ -34,14 +32,15 @@ dependencies {
     compileOnly(idofrontLibs.minecraft.mccoroutine)
 
     // Shaded
-    paperweight.paperDevBundle("1.20.4-R0.1-SNAPSHOT") //NMS
+    paperweight.paperDevBundle("1.20.6-R0.1-SNAPSHOT") //NMS
     implementation(project(path = ":core"))
-    implementation(project(path = ":v1_19_R1", configuration = "reobf"))
-    implementation(project(path = ":v1_19_R2", configuration = "reobf"))
-    implementation(project(path = ":v1_19_R3", configuration = "reobf"))
-    implementation(project(path = ":v1_20_R1", configuration = "reobf"))
-    implementation(project(path = ":v1_20_R2", configuration = "reobf"))
-    implementation(project(path = ":v1_20_R3", configuration = "reobf"))
+    //implementation(project(path = ":v1_19_R1", configuration = "reobf"))
+    //implementation(project(path = ":v1_19_R2", configuration = "reobf"))
+    //implementation(project(path = ":v1_19_R3", configuration = "reobf"))
+    //implementation(project(path = ":v1_20_R1", configuration = "reobf"))
+    //implementation(project(path = ":v1_20_R2", configuration = "reobf"))
+    //implementation(project(path = ":v1_20_R3", configuration = "reobf"))
+    implementation(project(path = ":v1_20_R4", configuration = "reobf"))
 }
 
 tasks {
@@ -52,7 +51,7 @@ tasks {
 
     compileJava {
         options.encoding = Charsets.UTF_8.name()
-        options.release.set(17)
+        options.release.set(21)
     }
 
     javadoc {
@@ -69,12 +68,13 @@ tasks {
     }
 
     shadowJar {
-        dependsOn(":v1_19_R1:reobfJar")
-        dependsOn(":v1_19_R2:reobfJar")
-        dependsOn(":v1_19_R3:reobfJar")
-        dependsOn(":v1_20_R1:reobfJar")
-        dependsOn(":v1_20_R2:reobfJar")
-        dependsOn(":v1_20_R3:reobfJar")
+        //dependsOn(":v1_19_R1:reobfJar")
+        //dependsOn(":v1_19_R2:reobfJar")
+        //dependsOn(":v1_19_R3:reobfJar")
+        //dependsOn(":v1_20_R1:reobfJar")
+        //dependsOn(":v1_20_R2:reobfJar")
+        //dependsOn(":v1_20_R3:reobfJar")
+        dependsOn(":v1_20_R4:reobfJar")
         archiveFileName.set("Emojy.jar")
     }
 
