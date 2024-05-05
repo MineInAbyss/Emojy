@@ -1,3 +1,5 @@
+import io.papermc.paperweight.userdev.ReobfArtifactConfiguration
+
 plugins {
     id("com.mineinabyss.conventions.kotlin.jvm")
     id("com.mineinabyss.conventions.autoversion")
@@ -12,6 +14,8 @@ repositories {
     google()
 }
 
+paperweight.reobfArtifactConfiguration.set(ReobfArtifactConfiguration.MOJANG_PRODUCTION)
+
 dependencies {
     // MineInAbyss platform
     compileOnly(idofrontLibs.kotlinx.serialization.json)
@@ -22,7 +26,7 @@ dependencies {
     // Shaded
     implementation(idofrontLibs.bundles.idofront.core)
     implementation(project(":core"))
-    paperweight.paperDevBundle("1.20-R0.1-SNAPSHOT") //NMS
+    paperweight.paperDevBundle("1.20.6-R0.1-SNAPSHOT") //NMS
 }
 
 tasks {

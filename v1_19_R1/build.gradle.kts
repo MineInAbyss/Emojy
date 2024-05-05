@@ -1,12 +1,13 @@
 plugins {
     id("com.mineinabyss.conventions.kotlin.jvm")
     id("com.mineinabyss.conventions.autoversion")
-    id("io.papermc.paperweight.userdev") version "1.5.11"
+    id("io.papermc.paperweight.userdev") version "1.7.1"
 }
 
 repositories {
     gradlePluginPortal()
     maven("https://repo.mineinabyss.com/releases")
+    maven("https://repo.mineinabyss.com/snapshots")
     maven("https://repo.papermc.io/repository/maven-public/")
     google()
 }
@@ -32,7 +33,7 @@ tasks {
 
     compileJava {
         options.encoding = Charsets.UTF_8.name()
-        options.release.set(17)
+        options.release.set(21)
     }
     javadoc {
         options.encoding = Charsets.UTF_8.name()
