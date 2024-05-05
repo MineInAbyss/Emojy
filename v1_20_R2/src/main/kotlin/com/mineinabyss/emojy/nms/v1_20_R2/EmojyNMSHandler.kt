@@ -17,6 +17,7 @@ import io.netty.handler.codec.ByteToMessageDecoder
 import io.netty.handler.codec.MessageToByteEncoder
 import io.papermc.paper.adventure.PaperAdventure
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
 import net.minecraft.nbt.StringTag
@@ -161,7 +162,7 @@ class EmojyNMSHandler : IEmojyNMSHandler {
 
         override fun readUtf(maxLength: Int): String {
             return super.readUtf(maxLength).let { string ->
-                runCatching { string.miniMsg() }.recover { legacy.deserialize(string) }
+                runCatching { string.miniMsg() }.recover { LegacyComponentSerializer.legacySection().deserialize(string) }
                     .getOrNull()?.transform(player, true)?.serialize() ?: string
             }
         }
