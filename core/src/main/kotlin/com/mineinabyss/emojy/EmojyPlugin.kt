@@ -35,20 +35,8 @@ class EmojyPlugin : JavaPlugin() {
 
         EmojyGenerator.generateResourcePack()
 
-        listeners(EmojyListener())
-
-        server.onlinePlayers.forEach {
-            emojy.handler.inject(it)
-        }
-
         EmojyCommands()
 
-    }
-
-    override fun onDisable() {
-        server.onlinePlayers.forEach {
-            emojy.handler.uninject(it)
-        }
     }
 
     fun createEmojyContext() {
@@ -70,7 +58,7 @@ class EmojyPlugin : JavaPlugin() {
                     config<Map<String, String>>(it, dataPath / "languages", mapOf()).getOrLoad())
             }.toSet()
             override val logger by plugin.observeLogger()
-            override val handler: IEmojyNMSHandler = EmojyNMSHandlers.setup()
+            override val handler: IEmojyNMSHandler = EmojyNMSHandlers.setup(this@EmojyPlugin)
         })
 
         GlobalTranslator.translator().sources().filter { it.name() == EmojyTranslator.key }.forEach(GlobalTranslator.translator()::removeSource)

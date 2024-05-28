@@ -17,8 +17,8 @@ fun Component.transform(player: Player?, insert: Boolean, unescape: Boolean = tr
 val legacy = LegacyComponentSerializer.legacySection()
 private val spaceRegex: Regex = "(?<!\\\\):space_(-?\\d+):".toRegex()
 private val escapedSpaceRegex: Regex = "\\\\(:space_(-?\\d+):)".toRegex()
-private val colorableRegex: Regex = "\\|(c|colorable)".toRegex()
-private val bitmapIndexRegex: Regex = "\\|([0-9]+)".toRegex()
+val colorableRegex: Regex = "\\|(c|colorable)".toRegex()
+val bitmapIndexRegex: Regex = "\\|([0-9]+)".toRegex()
 //TODO Tags like rainbow and gradient, which split the text into multiple children, will break replacement below
 // Above is due to Adventure-issue, nothing on our end for once. https://github.com/KyoriPowered/adventure/issues/872
 // Find out why this is called 3 times
