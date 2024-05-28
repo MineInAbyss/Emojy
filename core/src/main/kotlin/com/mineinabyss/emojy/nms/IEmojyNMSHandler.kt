@@ -1,12 +1,13 @@
 package com.mineinabyss.emojy.nms
 
 import org.bukkit.entity.Player
+import java.util.Locale
 
 interface IEmojyNMSHandler {
 
-    fun inject(player: Player)
+    val locals: MutableSet<Locale>
 
-    fun uninject(player: Player)
+    fun addLocaleCodec(locale: Locale)
 
     val supported get() = false
 }

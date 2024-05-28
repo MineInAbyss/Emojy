@@ -1,6 +1,9 @@
-package com.mineinabyss.emojy
+package com.mineinabyss.emojy.nms.v1_20_R4
 
+import com.mineinabyss.emojy.emojy
+import com.mineinabyss.emojy.escapeEmoteIDs
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers
+import com.mineinabyss.emojy.transform
 import com.mineinabyss.idofront.items.editItemMeta
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.messaging.logVal
@@ -22,14 +25,14 @@ import org.bukkit.inventory.AnvilInventory
 class EmojyListener : Listener {
 
     @EventHandler
-    fun PlayerJoinEvent.injectPlayer() {
-        emojy.handler.inject(player)
+    fun PlayerJoinEvent.onJoin() {
+        emojy.handler.addLocaleCodec(player.locale())
     }
 
     // Replace with result not original message to avoid borking other chat formatting
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     fun AsyncChatDecorateEvent.onPlayerChat() {
-        result(result().transform(player(), true, true))
+        result(result().escapeEmoteIDs(player()))
     }
 
     @EventHandler
