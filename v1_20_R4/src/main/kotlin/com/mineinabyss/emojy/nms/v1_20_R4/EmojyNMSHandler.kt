@@ -43,7 +43,7 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
         for (locale in Locale.getAvailableLocales()) {
             codecs[locale] = AdventureCodecs.COMPONENT_CODEC.xmap(
                 { component -> component },  // decode
-                { component -> GlobalTranslator.render(component.transformEmotes(), locale) }  // encode
+                { component -> GlobalTranslator.render(component, locale) }  // encode
             )
         }
 
@@ -56,6 +56,8 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                 override fun write(ctx: ChannelHandlerContext, packet: Any, promise: ChannelPromise) {
                     ctx.write(
                         when (packet) {
+                            is ClientboundDisguisedChatPacket -> ClientboundDisguisedChatPacket(packet.message.transformEmotes(connection.locale()), packet.chatType)
+                            is ClientboundSystemChatPacket -> ClientboundSystemChatPacket(packet.content.transformEmotes(connection.locale()), packet.overlay)
                             is ClientboundSetTitleTextPacket -> ClientboundSetTitleTextPacket(packet.text.transformEmotes(connection.locale()))
                             is ClientboundSetSubtitleTextPacket -> ClientboundSetSubtitleTextPacket(packet.text.transformEmotes(connection.locale()))
                             is ClientboundSetActionBarTextPacket -> ClientboundSetActionBarTextPacket(packet.text.transformEmotes(connection.locale()))
@@ -103,6 +105,7 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                 override fun channelRead(ctx: ChannelHandlerContext, packet: Any) {
                     ctx.fireChannelRead(when (packet) {
                         is ServerboundRenameItemPacket -> ServerboundRenameItemPacket(packet.name.broadcastVal().miniMsg().escapeEmoteIDs(connection.player.bukkitEntity).serialize())
+                        is ServerboundChatPacket -> ServerboundChatPacket(packet.message, packet.timeStamp, packet.salt, packet.signature, packet.lastSeenMessages)
                         else -> packet
                     })
                 }
