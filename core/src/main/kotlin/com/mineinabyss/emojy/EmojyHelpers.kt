@@ -15,7 +15,7 @@ import java.util.*
 fun Component.transform(player: Player?, insert: Boolean, unescape: Boolean = true) = player?.let { escapeEmoteIDs(it) } ?: transformEmoteIDs(player, insert, unescape)
 
 val legacy = LegacyComponentSerializer.legacySection()
-private val spaceRegex: Regex = "(?<!\\\\):space_(-?\\d+):".toRegex()
+val spaceRegex: Regex = "(?<!\\\\):space_(-?\\d+):".toRegex()
 private val escapedSpaceRegex: Regex = "\\\\(:space_(-?\\d+):)".toRegex()
 val colorableRegex: Regex = "\\|(c|colorable)".toRegex()
 val bitmapIndexRegex: Regex = "\\|([0-9]+)".toRegex()

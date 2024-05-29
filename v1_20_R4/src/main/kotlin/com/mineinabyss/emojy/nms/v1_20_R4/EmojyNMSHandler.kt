@@ -114,6 +114,17 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                 )
             }
 
+            spaceRegex.findAll(serialized).forEach { match ->
+                val space = match.groupValues[1].toIntOrNull() ?: return@forEach
+                val spaceRegex = "(?<!\\\\):space_(-?$space+):".toRegex()
+                component = component.replaceText(
+                    TextReplacementConfig.builder()
+                        .match(spaceRegex.pattern).once()
+                        .replacement(spaceComponent(space))
+                        .build()
+                )
+            }
+
             return component
         }
     }
