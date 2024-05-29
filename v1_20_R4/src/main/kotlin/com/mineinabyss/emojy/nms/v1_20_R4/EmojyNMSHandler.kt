@@ -12,17 +12,16 @@ import io.netty.channel.ChannelDuplexHandler
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelPromise
 import io.papermc.paper.adventure.AdventureCodecs
+import io.papermc.paper.adventure.AdventureComponent
 import io.papermc.paper.adventure.PaperAdventure
 import io.papermc.paper.network.ChannelInitializeListenerHolder
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
 import net.kyori.adventure.translation.GlobalTranslator
 import net.minecraft.network.Connection
-import net.minecraft.network.protocol.common.ServerboundResourcePackPacket
-import net.minecraft.network.protocol.configuration.ClientboundFinishConfigurationPacket
-import net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket
-import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket
-import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket
+import net.minecraft.network.protocol.game.*
+import net.minecraft.network.syncher.EntityDataSerializer
+import net.minecraft.network.syncher.SynchedEntityData
 import org.bukkit.NamespacedKey
 import java.util.*
 
@@ -54,6 +53,16 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                             is ClientboundSetTitleTextPacket -> ClientboundSetTitleTextPacket(packet.text.transformEmotes())
                             is ClientboundSetSubtitleTextPacket -> ClientboundSetSubtitleTextPacket(packet.text.transformEmotes())
                             is ClientboundSetActionBarTextPacket -> ClientboundSetActionBarTextPacket(packet.text.transformEmotes())
+                            is ClientboundOpenScreenPacket -> ClientboundOpenScreenPacket(packet.containerId, packet.type, packet.title.transformEmotes())
+                            is ClientboundSetEntityDataPacket -> ClientboundSetEntityDataPacket(packet.id, packet.packedItems.map {
+                                when (val value = it.value) {
+                                    is AdventureComponent ->
+                                        SynchedEntityData.DataValue(it.id, it.serializer as EntityDataSerializer<AdventureComponent>,
+                                            AdventureComponent(PaperAdventure.asAdventure(value.transformEmotes()))
+                                        )
+                                    else -> it
+                                }
+                            })
                             else -> packet
                         }, promise
                     )
