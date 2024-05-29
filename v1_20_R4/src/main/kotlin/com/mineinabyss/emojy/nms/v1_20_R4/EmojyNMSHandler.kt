@@ -4,6 +4,7 @@ package com.mineinabyss.emojy.nms.v1_20_R4
 
 import com.mineinabyss.emojy.*
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
+import com.mineinabyss.idofront.messaging.broadcastVal
 import com.mineinabyss.idofront.plugin.listeners
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
@@ -50,9 +51,9 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
         ChannelInitializeListenerHolder.addListener(key!!) { channel: Channel ->
             channel.pipeline().addBefore("packet_handler", key.toString(), object : ChannelDuplexHandler() {
                 private val connection = channel.pipeline()["packet_handler"] as Connection
+                fun Connection.locale() = player.bukkitEntity.locale()
 
                 override fun write(ctx: ChannelHandlerContext, packet: Any, promise: ChannelPromise) {
-                    fun Connection.locale() = player.bukkitEntity.locale()
                     ctx.write(
                         when (packet) {
                             is ClientboundSetTitleTextPacket -> ClientboundSetTitleTextPacket(packet.text.transformEmotes(connection.locale()))
@@ -99,18 +100,12 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                     )
                 }
 
-                /*override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-                    if (msg is ServerboundResourcePackPacket && msg.id() == OraxenPlugin.get().packServer()
-                            .packInfo().id()
-                    ) {
-                        if (!finishConfigPhase(msg.action())) return@addListener
-                        ctx.pipeline()
-                            .remove(this) // We no longer need to listen or process ClientboundFinishConfigurationPacket that we send ourselves
-                        connection.send(ClientboundFinishConfigurationPacket.INSTANCE)
-                        return@addListener
-                    }
-                    ctx.fireChannelRead(msg)
-                }*/
+                override fun channelRead(ctx: ChannelHandlerContext, packet: Any) {
+                    ctx.fireChannelRead(when (packet) {
+                        is ServerboundRenameItemPacket -> ServerboundRenameItemPacket(packet.name.broadcastVal().miniMsg().escapeEmoteIDs(connection.player.bukkitEntity).serialize())
+                        else -> packet
+                    })
+                }
             }
             )
         }
