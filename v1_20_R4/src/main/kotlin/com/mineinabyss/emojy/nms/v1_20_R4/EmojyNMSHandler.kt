@@ -4,7 +4,9 @@ package com.mineinabyss.emojy.nms.v1_20_R4
 
 import com.mineinabyss.emojy.*
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
+import com.mineinabyss.idofront.messaging.broadcastVal
 import com.mineinabyss.idofront.plugin.listeners
+import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
 import com.mojang.serialization.Codec
 import io.netty.channel.Channel
@@ -18,10 +20,13 @@ import io.papermc.paper.network.ChannelInitializeListenerHolder
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
 import net.kyori.adventure.translation.GlobalTranslator
+import net.minecraft.nbt.ListTag
+import net.minecraft.nbt.StringTag
 import net.minecraft.network.Connection
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.syncher.EntityDataSerializer
 import net.minecraft.network.syncher.SynchedEntityData
+import net.minecraft.world.level.block.entity.BlockEntityType
 import org.bukkit.NamespacedKey
 import java.util.*
 
@@ -42,27 +47,53 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
             )
         }
 
-        val key = NamespacedKey.fromString("configuration_listener", emojy)
+        val key = NamespacedKey.fromString("packet_listener", emojy)
         ChannelInitializeListenerHolder.addListener(key!!) { channel: Channel ->
             channel.pipeline().addBefore("packet_handler", key.toString(), object : ChannelDuplexHandler() {
                 private val connection = channel.pipeline()["packet_handler"] as Connection
 
                 override fun write(ctx: ChannelHandlerContext, packet: Any, promise: ChannelPromise) {
+                    fun Connection.locale() = player.bukkitEntity.locale()
                     ctx.write(
                         when (packet) {
-                            is ClientboundSetTitleTextPacket -> ClientboundSetTitleTextPacket(packet.text.transformEmotes())
-                            is ClientboundSetSubtitleTextPacket -> ClientboundSetSubtitleTextPacket(packet.text.transformEmotes())
-                            is ClientboundSetActionBarTextPacket -> ClientboundSetActionBarTextPacket(packet.text.transformEmotes())
-                            is ClientboundOpenScreenPacket -> ClientboundOpenScreenPacket(packet.containerId, packet.type, packet.title.transformEmotes())
+                            is ClientboundSetTitleTextPacket -> ClientboundSetTitleTextPacket(packet.text.transformEmotes(connection.locale()))
+                            is ClientboundSetSubtitleTextPacket -> ClientboundSetSubtitleTextPacket(packet.text.transformEmotes(connection.locale()))
+                            is ClientboundSetActionBarTextPacket -> ClientboundSetActionBarTextPacket(packet.text.transformEmotes(connection.locale()))
+                            is ClientboundOpenScreenPacket -> ClientboundOpenScreenPacket(packet.containerId, packet.type, packet.title.transformEmotes(connection.locale()))
                             is ClientboundSetEntityDataPacket -> ClientboundSetEntityDataPacket(packet.id, packet.packedItems.map {
                                 when (val value = it.value) {
                                     is AdventureComponent ->
                                         SynchedEntityData.DataValue(it.id, it.serializer as EntityDataSerializer<AdventureComponent>,
-                                            AdventureComponent(PaperAdventure.asAdventure(value.transformEmotes()))
+                                            AdventureComponent(PaperAdventure.asAdventure(value).transformEmotes(connection.locale()))
                                         )
                                     else -> it
                                 }
                             })
+                            is ClientboundBlockEntityDataPacket -> when (packet.type) {
+                                BlockEntityType.SIGN -> ClientboundBlockEntityDataPacket(packet.pos, packet.type, packet.tag.apply {
+                                    val locale = connection.locale()
+                                    val frontText = getCompound("front_text").apply {
+                                        put("messages", ListTag()
+                                            .apply { addAll(getList("messages", StringTag.TAG_STRING.toInt())
+                                                .map { it.asString.drop(1).dropLast(1).miniMsg().transformEmotes(locale) }
+                                                .map { m -> StringTag.valueOf(PaperAdventure.asJsonString(m, locale)) })
+                                            }
+                                        )
+                                    }
+                                    val backText = getCompound("back_text").apply {
+                                        put("messages", ListTag()
+                                            .apply { addAll(getList("messages", StringTag.TAG_STRING.toInt())
+                                                .map { it.asString.drop(1).dropLast(1).miniMsg().transformEmotes(locale) }
+                                                .map { m -> StringTag.valueOf(PaperAdventure.asJsonString(m, locale)) })
+                                            }
+                                        )
+                                    }
+
+                                    put("front_text", frontText)
+                                    put("back_text", backText)
+                                })
+                                else -> packet
+                            }
                             else -> packet
                         }, promise
                     )
@@ -87,12 +118,12 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
 
     companion object {
 
-        fun net.minecraft.network.chat.Component.transformEmotes(): net.minecraft.network.chat.Component {
-            return PaperAdventure.asVanilla(PaperAdventure.asAdventure(this).transformEmotes())
+        fun net.minecraft.network.chat.Component.transformEmotes(locale: Locale? = null): net.minecraft.network.chat.Component {
+            return PaperAdventure.asVanilla(PaperAdventure.asAdventure(this).transformEmotes(locale))
         }
 
-        fun Component.transformEmotes(): Component {
-            var component = this
+        fun Component.transformEmotes(locale: Locale? = null): Component {
+            var component = GlobalTranslator.render(this, locale ?: Locale.US)
             val serialized = this.serialize()
 
             for (emote in emojy.emotes) emote.baseRegex.findAll(serialized).forEach { match ->
