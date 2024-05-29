@@ -22,7 +22,12 @@ allprojects {
     repositories {
         maven("https://repo.mineinabyss.com/releases")
         maven("https://repo.mineinabyss.com/snapshots")
+        maven("https://hub.jeff-media.com/nexus/repository/jeff-media-public/")
         mavenLocal()
+    }
+
+    dependencies {
+        implementation("com.jeff_media:MorePersistentDataTypes:2.4.0")
     }
 }
 
@@ -78,6 +83,9 @@ tasks {
         //dependsOn(":v1_20_R2:reobfJar")
         //dependsOn(":v1_20_R3:reobfJar")
         dependsOn(":v1_20_R4:reobfJar")
+
+        //relocate("com.jeff_media.morepersistentdatatypes", "com.mineinabyss.shaded.morepersistentdatatypes")
+
         archiveFileName.set("Emojy.jar")
     }
 

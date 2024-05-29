@@ -3,8 +3,8 @@
 package com.mineinabyss.emojy.nms.v1_20_R4
 
 import com.mineinabyss.emojy.*
+import com.mineinabyss.emojy.config.SPACE_PERMISSION
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
-import com.mineinabyss.idofront.messaging.broadcastVal
 import com.mineinabyss.idofront.plugin.listeners
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
@@ -17,22 +17,20 @@ import io.papermc.paper.adventure.AdventureCodecs
 import io.papermc.paper.adventure.AdventureComponent
 import io.papermc.paper.adventure.PaperAdventure
 import io.papermc.paper.network.ChannelInitializeListenerHolder
+import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
 import net.kyori.adventure.translation.GlobalTranslator
-import net.minecraft.nbt.ListTag
-import net.minecraft.nbt.StringTag
 import net.minecraft.network.Connection
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.syncher.EntityDataSerializer
 import net.minecraft.network.syncher.SynchedEntityData
-import net.minecraft.world.level.block.entity.BlockEntityType
 import org.bukkit.NamespacedKey
+import org.bukkit.entity.Player
 import java.util.*
 
 class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
 
-    override val locals: MutableSet<Locale> = mutableSetOf()
 
     init {
         emojy.listeners(EmojyListener())
@@ -64,39 +62,12 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                             is ClientboundOpenScreenPacket -> ClientboundOpenScreenPacket(packet.containerId, packet.type, packet.title.transformEmotes(connection.locale()))
                             is ClientboundTabListPacket -> ClientboundTabListPacket(packet.header.transformEmotes(connection.locale()), packet.footer.transformEmotes(connection.locale()))
                             is ClientboundSetEntityDataPacket -> ClientboundSetEntityDataPacket(packet.id, packet.packedItems.map {
-                                when (val value = it.value) {
-                                    is AdventureComponent ->
-                                        SynchedEntityData.DataValue(it.id, it.serializer as EntityDataSerializer<AdventureComponent>,
-                                            AdventureComponent(PaperAdventure.asAdventure(value).transformEmotes(connection.locale()))
-                                        )
-                                    else -> it
-                                }
+                                (it.value as? AdventureComponent)?.let { value ->
+                                    SynchedEntityData.DataValue(it.id, it.serializer as EntityDataSerializer<AdventureComponent>,
+                                        AdventureComponent(PaperAdventure.asAdventure(value).transformEmotes(connection.locale()))
+                                    )
+                                } ?: it
                             })
-                            is ClientboundBlockEntityDataPacket -> when (packet.type) {
-                                BlockEntityType.SIGN -> ClientboundBlockEntityDataPacket(packet.pos, packet.type, packet.tag.apply {
-                                    val locale = connection.locale()
-                                    val frontText = getCompound("front_text").apply {
-                                        put("messages", ListTag()
-                                            .apply { addAll(getList("messages", StringTag.TAG_STRING.toInt())
-                                                .map { it.asString.drop(1).dropLast(1).miniMsg().transformEmotes(locale) }
-                                                .map { m -> StringTag.valueOf(PaperAdventure.asJsonString(m, locale)) })
-                                            }
-                                        )
-                                    }
-                                    val backText = getCompound("back_text").apply {
-                                        put("messages", ListTag()
-                                            .apply { addAll(getList("messages", StringTag.TAG_STRING.toInt())
-                                                .map { it.asString.drop(1).dropLast(1).miniMsg().transformEmotes(locale) }
-                                                .map { m -> StringTag.valueOf(PaperAdventure.asJsonString(m, locale)) })
-                                            }
-                                        )
-                                    }
-
-                                    put("front_text", frontText)
-                                    put("back_text", backText)
-                                })
-                                else -> packet
-                            }
                             else -> packet
                         }, promise
                     )
@@ -104,8 +75,7 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
 
                 override fun channelRead(ctx: ChannelHandlerContext, packet: Any) {
                     ctx.fireChannelRead(when (packet) {
-                        is ServerboundRenameItemPacket -> ServerboundRenameItemPacket(packet.name.broadcastVal().miniMsg().escapeEmoteIDs(connection.player.bukkitEntity).serialize())
-                        is ServerboundChatPacket -> ServerboundChatPacket(packet.message, packet.timeStamp, packet.salt, packet.signature, packet.lastSeenMessages)
+                        is ServerboundRenameItemPacket -> ServerboundRenameItemPacket(packet.name.escapeEmoteIDs(connection.player.bukkitEntity))
                         else -> packet
                     })
                 }
@@ -115,6 +85,73 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
     }
 
     companion object {
+
+        val ORIGINAL_SIGN_FRONT_LINES = NamespacedKey.fromString("emojy:original_front_lines")!!
+        val ORIGINAL_SIGN_BACK_LINES = NamespacedKey.fromString("emojy:original_back_lines")!!
+
+        fun String.escapeEmoteIDs(player: Player?): String {
+            return miniMsg().escapeEmoteIDs(player).serialize()
+        }
+
+        fun net.minecraft.network.chat.Component.escapeEmoteIDs(player: Player?): net.minecraft.network.chat.Component {
+            return PaperAdventure.asVanilla((PaperAdventure.asAdventure(this)).escapeEmoteIDs(player))
+        }
+
+        fun Component.escapeEmoteIDs(player: Player?): Component {
+            var msg = this
+            val serialized = msg.serialize()
+
+            // Replace all unicodes found in default font with a random one
+            // This is to prevent use of unicodes from the font the chat is in
+            val (defaultKey, randomKey) = Key.key("default") to Key.key("random")
+            for (emote in emojy.emotes.filter { it.font == defaultKey && !it.checkPermission(player) }) emote.unicodes.forEach {
+                msg = msg.replaceText(
+                    TextReplacementConfig.builder()
+                        .matchLiteral(it)
+                        .replacement(it.miniMsg().font(randomKey))
+                        .build()
+                )
+            }
+
+            for (emote in emojy.emotes) emote.baseRegex.findAll(serialized).forEach { match ->
+                if (emote.checkPermission(player)) return@forEach
+
+                msg = msg.replaceText(
+                    TextReplacementConfig.builder()
+                        .matchLiteral(match.value).once()
+                        .replacement("\\${match.value}".miniMsg())
+                        .build()
+                )
+            }
+
+            for (gif in emojy.gifs) gif.baseRegex.findAll(serialized).forEach { match ->
+                if (gif.checkPermission(player)) return@forEach
+                msg = msg.replaceText(
+                    TextReplacementConfig.builder()
+                        .matchLiteral(match.value).once()
+                        .replacement("\\${match.value}".miniMsg())
+                        .build()
+                )
+            }
+
+            spaceRegex.findAll(serialized).forEach { match ->
+                if (player?.hasPermission(SPACE_PERMISSION) != false) return@forEach
+                val space = match.groupValues[1].toIntOrNull() ?: return@forEach
+
+                msg = msg.replaceText(
+                    TextReplacementConfig.builder()
+                        .matchLiteral(match.value).once()
+                        .replacement("\\:space_$space:".miniMsg())
+                        .build()
+                )
+            }
+
+            return msg
+        }
+
+        fun String.transformEmotes(locale: Locale? = null): String {
+            return miniMsg().transformEmotes(locale).serialize()
+        }
 
         fun net.minecraft.network.chat.Component.transformEmotes(locale: Locale? = null): net.minecraft.network.chat.Component {
             return PaperAdventure.asVanilla(PaperAdventure.asAdventure(this).transformEmotes(locale))
