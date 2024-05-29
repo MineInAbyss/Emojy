@@ -16,7 +16,7 @@ fun Component.transform(player: Player?, insert: Boolean, unescape: Boolean = tr
 
 val legacy = LegacyComponentSerializer.legacySection()
 val spaceRegex: Regex = "(?<!\\\\):space_(-?\\d+):".toRegex()
-private val escapedSpaceRegex: Regex = "\\\\(:space_(-?\\d+):)".toRegex()
+val escapedSpaceRegex: Regex = "\\\\(:space_(-?\\d+):)".toRegex()
 val colorableRegex: Regex = "\\|(c|colorable)".toRegex()
 val bitmapIndexRegex: Regex = "\\|([0-9]+)".toRegex()
 //TODO Tags like rainbow and gradient, which split the text into multiple children, will break replacement below

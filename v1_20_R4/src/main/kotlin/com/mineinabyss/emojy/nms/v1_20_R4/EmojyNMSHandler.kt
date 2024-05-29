@@ -43,12 +43,12 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
         val codecs = (PaperAdventure::class.java.getDeclaredField("LOCALIZED_CODECS").apply { isAccessible = true }
             .get(null) as MutableMap<Locale, Codec<Component>>)
 
-        for (locale in Locale.getAvailableLocales()) {
+        /*for (locale in Locale.getAvailableLocales()) {
             codecs[locale] = AdventureCodecs.COMPONENT_CODEC.xmap(
                 { component -> component },  // decode
                 { component -> GlobalTranslator.render(component, locale) }  // encode
             )
-        }
+        }*/
 
         val key = NamespacedKey.fromString("packet_listener", emojy)
         ChannelInitializeListenerHolder.addListener(key!!) { channel: Channel ->
@@ -59,8 +59,8 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                 override fun write(ctx: ChannelHandlerContext, packet: Any, promise: ChannelPromise) {
                     ctx.write(
                         when (packet) {
-                            is ClientboundDisguisedChatPacket -> ClientboundDisguisedChatPacket(packet.message.transformEmotes(connection.locale()), packet.chatType)
-                            is ClientboundSystemChatPacket -> ClientboundSystemChatPacket(packet.content.transformEmotes(connection.locale()), packet.overlay)
+                            is ClientboundDisguisedChatPacket -> ClientboundDisguisedChatPacket(packet.message.transformEmotes(connection.locale()).unescapeEmoteIds(), packet.chatType)
+                            is ClientboundSystemChatPacket -> ClientboundSystemChatPacket(packet.content.transformEmotes(connection.locale()).unescapeEmoteIds(), packet.overlay)
                             is ClientboundSetTitleTextPacket -> ClientboundSetTitleTextPacket(packet.text.transformEmotes(connection.locale()))
                             is ClientboundSetSubtitleTextPacket -> ClientboundSetSubtitleTextPacket(packet.text.transformEmotes(connection.locale()))
                             is ClientboundSetActionBarTextPacket -> ClientboundSetActionBarTextPacket(packet.text.transformEmotes(connection.locale()))
@@ -104,66 +104,6 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
         val ORIGINAL_SIGN_FRONT_LINES = NamespacedKey.fromString("emojy:original_front_lines")!!
         val ORIGINAL_SIGN_BACK_LINES = NamespacedKey.fromString("emojy:original_back_lines")!!
         val ORIGINAL_ITEM_RENAME_TEXT = NamespacedKey.fromString("emojy:original_item_rename")!!
-
-        fun String.escapeEmoteIDs(player: Player?): String {
-            return miniMsg().escapeEmoteIDs(player).serialize()
-        }
-
-        fun net.minecraft.network.chat.Component.escapeEmoteIDs(player: Player?): net.minecraft.network.chat.Component {
-            return PaperAdventure.asVanilla((PaperAdventure.asAdventure(this)).escapeEmoteIDs(player))
-        }
-
-        fun Component.escapeEmoteIDs(player: Player?): Component {
-            var msg = this
-            val serialized = msg.serialize()
-
-            // Replace all unicodes found in default font with a random one
-            // This is to prevent use of unicodes from the font the chat is in
-            val (defaultKey, randomKey) = Key.key("default") to Key.key("random")
-            for (emote in emojy.emotes.filter { it.font == defaultKey && !it.checkPermission(player) }) emote.unicodes.forEach {
-                msg = msg.replaceText(
-                    TextReplacementConfig.builder()
-                        .matchLiteral(it)
-                        .replacement(it.miniMsg().font(randomKey))
-                        .build()
-                )
-            }
-
-            for (emote in emojy.emotes) emote.baseRegex.findAll(serialized).forEach { match ->
-                if (emote.checkPermission(player)) return@forEach
-
-                msg = msg.replaceText(
-                    TextReplacementConfig.builder()
-                        .matchLiteral(match.value).once()
-                        .replacement("\\${match.value}".miniMsg())
-                        .build()
-                )
-            }
-
-            for (gif in emojy.gifs) gif.baseRegex.findAll(serialized).forEach { match ->
-                if (gif.checkPermission(player)) return@forEach
-                msg = msg.replaceText(
-                    TextReplacementConfig.builder()
-                        .matchLiteral(match.value).once()
-                        .replacement("\\${match.value}".miniMsg())
-                        .build()
-                )
-            }
-
-            spaceRegex.findAll(serialized).forEach { match ->
-                if (player?.hasPermission(SPACE_PERMISSION) != false) return@forEach
-                val space = match.groupValues[1].toIntOrNull() ?: return@forEach
-
-                msg = msg.replaceText(
-                    TextReplacementConfig.builder()
-                        .matchLiteral(match.value).once()
-                        .replacement("\\:space_$space:".miniMsg())
-                        .build()
-                )
-            }
-
-            return msg
-        }
 
         fun String.transformEmotes(locale: Locale? = null): String {
             return miniMsg().transformEmotes(locale).serialize()
@@ -212,6 +152,104 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                     TextReplacementConfig.builder()
                         .match(spaceRegex.pattern).once()
                         .replacement(spaceComponent(space))
+                        .build()
+                )
+            }
+
+            return component
+        }
+
+        fun String.escapeEmoteIDs(player: Player?): String {
+            return miniMsg().escapeEmoteIDs(player).serialize()
+        }
+
+        fun net.minecraft.network.chat.Component.escapeEmoteIDs(player: Player?): net.minecraft.network.chat.Component {
+            return PaperAdventure.asVanilla((PaperAdventure.asAdventure(this)).escapeEmoteIDs(player))
+        }
+
+        fun Component.escapeEmoteIDs(player: Player?): Component {
+            var component = this
+            val serialized = component.serialize()
+
+            // Replace all unicodes found in default font with a random one
+            // This is to prevent use of unicodes from the font the chat is in
+            val (defaultKey, randomKey) = Key.key("default") to Key.key("random")
+            for (emote in emojy.emotes.filter { it.font == defaultKey && !it.checkPermission(player) }) emote.unicodes.forEach {
+                component = component.replaceText(
+                    TextReplacementConfig.builder()
+                        .matchLiteral(it)
+                        .replacement(it.miniMsg().font(randomKey))
+                        .build()
+                )
+            }
+
+            for (emote in emojy.emotes) emote.baseRegex.findAll(serialized).forEach { match ->
+                if (emote.checkPermission(player)) return@forEach
+
+                component = component.replaceText(
+                    TextReplacementConfig.builder()
+                        .matchLiteral(match.value).once()
+                        .replacement("\\${match.value}".miniMsg())
+                        .build()
+                )
+            }
+
+            for (gif in emojy.gifs) gif.baseRegex.findAll(serialized).forEach { match ->
+                if (gif.checkPermission(player)) return@forEach
+                component = component.replaceText(
+                    TextReplacementConfig.builder()
+                        .matchLiteral(match.value).once()
+                        .replacement("\\${match.value}".miniMsg())
+                        .build()
+                )
+            }
+
+            spaceRegex.findAll(serialized).forEach { match ->
+                if (player?.hasPermission(SPACE_PERMISSION) != false) return@forEach
+                val space = match.groupValues[1].toIntOrNull() ?: return@forEach
+
+                component = component.replaceText(
+                    TextReplacementConfig.builder()
+                        .matchLiteral(match.value).once()
+                        .replacement("\\:space_$space:".miniMsg())
+                        .build()
+                )
+            }
+
+            return component
+        }
+
+        fun net.minecraft.network.chat.Component.unescapeEmoteIds(): net.minecraft.network.chat.Component {
+            return PaperAdventure.asVanilla(PaperAdventure.asAdventure(this).unescapeEmoteIds())
+        }
+
+        fun Component.unescapeEmoteIds(): Component {
+            var component = this
+            val serialized = this.serialize()
+
+            for (emote in emojy.emotes) emote.escapedRegex.findAll(serialized).forEach { match ->
+                component = component.replaceText(
+                    TextReplacementConfig.builder()
+                        .match(emote.escapedRegex.pattern).once()
+                        .replacement(match.value.removePrefix("\\"))
+                        .build()
+                )
+            }
+
+            for (gif in emojy.gifs) gif.escapedRegex.findAll(serialized).forEach { match ->
+                component = component.replaceText(
+                    TextReplacementConfig.builder()
+                        .match(gif.escapedRegex.pattern).once()
+                        .replacement(match.value.removePrefix("\\"))
+                        .build()
+                )
+            }
+
+            escapedSpaceRegex.findAll(serialized).forEach { match ->
+                component = component.replaceText(
+                    TextReplacementConfig.builder()
+                        .match(match.value).once()
+                        .replacement(match.value.removePrefix("\\"))
                         .build()
                 )
             }
