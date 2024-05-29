@@ -2,9 +2,11 @@
 
 package com.mineinabyss.emojy.nms.v1_20_R4
 
+import com.jeff_media.morepersistentdatatypes.DataType
 import com.mineinabyss.emojy.*
 import com.mineinabyss.emojy.config.SPACE_PERMISSION
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
+import com.mineinabyss.idofront.items.editItemMeta
 import com.mineinabyss.idofront.plugin.listeners
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
@@ -21,12 +23,15 @@ import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
 import net.kyori.adventure.translation.GlobalTranslator
+import net.minecraft.core.NonNullList
 import net.minecraft.network.Connection
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.syncher.EntityDataSerializer
 import net.minecraft.network.syncher.SynchedEntityData
 import org.bukkit.NamespacedKey
+import org.bukkit.craftbukkit.inventory.CraftItemStack
 import org.bukkit.entity.Player
+import org.bukkit.inventory.AnvilInventory
 import java.util.*
 
 class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
@@ -68,6 +73,16 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                                     )
                                 } ?: it
                             })
+                            is ClientboundContainerSetContentPacket -> {
+                                (connection.player.bukkitEntity.openInventory.topInventory as? AnvilInventory)?.let {
+                                    ClientboundContainerSetContentPacket(packet.containerId, packet.stateId,
+                                        NonNullList.of(packet.items.first(), *packet.items.map {
+                                            CraftItemStack.asNMSCopy(CraftItemStack.asBukkitCopy(it.copy()).editItemMeta {
+                                                setDisplayName(persistentDataContainer.get(ORIGINAL_ITEM_RENAME_TEXT, DataType.STRING) ?: return@editItemMeta)
+                                            })
+                                        }.toTypedArray()), packet.carriedItem)
+                                } ?: packet
+                            }
                             else -> packet
                         }, promise
                     )
@@ -88,6 +103,7 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
 
         val ORIGINAL_SIGN_FRONT_LINES = NamespacedKey.fromString("emojy:original_front_lines")!!
         val ORIGINAL_SIGN_BACK_LINES = NamespacedKey.fromString("emojy:original_back_lines")!!
+        val ORIGINAL_ITEM_RENAME_TEXT = NamespacedKey.fromString("emojy:original_item_rename")!!
 
         fun String.escapeEmoteIDs(player: Player?): String {
             return miniMsg().escapeEmoteIDs(player).serialize()

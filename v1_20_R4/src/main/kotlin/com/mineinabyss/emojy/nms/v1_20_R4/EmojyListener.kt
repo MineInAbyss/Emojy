@@ -5,6 +5,7 @@ import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.jeff_media.morepersistentdatatypes.DataType
 import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.escapeEmoteIDs
+import com.mineinabyss.emojy.nms.v1_20_R4.EmojyNMSHandler.Companion.ORIGINAL_ITEM_RENAME_TEXT
 import com.mineinabyss.emojy.nms.v1_20_R4.EmojyNMSHandler.Companion.transformEmotes
 import com.mineinabyss.emojy.transformEmoteIDs
 import com.mineinabyss.idofront.items.editItemMeta
@@ -73,9 +74,17 @@ class EmojyListener : Listener {
 
     @EventHandler
     fun PrepareAnvilEvent.onAnvil() {
-        if (result?.itemMeta?.hasDisplayName() != true) return
-        val displayName = (inventory.renameText?.miniMsg() ?: inventory.firstItem?.itemMeta?.displayName())?.transformEmoteIDs(null, false, true)
+        if (result?.itemMeta?.hasDisplayName() != true || inventory.renameText == null) {
+            result?.editItemMeta { persistentDataContainer.remove(ORIGINAL_ITEM_RENAME_TEXT) }
+            return
+        }
+        val displayName = inventory.renameText?.miniMsg()?.transformEmoteIDs(null, false, true) ?: run {
+            result?.editItemMeta { persistentDataContainer.remove(ORIGINAL_ITEM_RENAME_TEXT) }
+            return
+        }
+
         result = result?.editItemMeta {
+            persistentDataContainer.set(ORIGINAL_ITEM_RENAME_TEXT, DataType.STRING, inventory.renameText!!)
             displayName(displayName)
         }
     }
