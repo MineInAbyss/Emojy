@@ -4,31 +4,27 @@ package com.mineinabyss.emojy.nms.v1_20_R4
 
 import com.mineinabyss.emojy.*
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
-import com.mineinabyss.idofront.messaging.idofrontLogger
-import com.mineinabyss.idofront.messaging.logVal
 import com.mineinabyss.idofront.plugin.listeners
 import com.mineinabyss.idofront.textcomponents.serialize
 import com.mojang.serialization.Codec
-import com.mojang.serialization.DataResult
-import io.netty.buffer.ByteBuf
-import io.netty.handler.codec.DecoderException
-import io.netty.handler.codec.EncoderException
+import io.netty.channel.Channel
+import io.netty.channel.ChannelDuplexHandler
+import io.netty.channel.ChannelHandlerContext
+import io.netty.channel.ChannelPromise
 import io.papermc.paper.adventure.AdventureCodecs
 import io.papermc.paper.adventure.PaperAdventure
+import io.papermc.paper.network.ChannelInitializeListenerHolder
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
 import net.kyori.adventure.translation.GlobalTranslator
-import net.minecraft.nbt.NbtAccounter
-import net.minecraft.nbt.NbtOps
-import net.minecraft.nbt.Tag
-import net.minecraft.network.RegistryFriendlyByteBuf
-import net.minecraft.network.chat.ComponentSerialization
-import net.minecraft.network.codec.ByteBufCodecs
-import net.minecraft.network.codec.StreamCodec
-import java.lang.reflect.Field
-import java.lang.reflect.Modifier
+import net.minecraft.network.Connection
+import net.minecraft.network.protocol.common.ServerboundResourcePackPacket
+import net.minecraft.network.protocol.configuration.ClientboundFinishConfigurationPacket
+import net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket
+import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket
+import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket
+import org.bukkit.NamespacedKey
 import java.util.*
-import java.util.function.Supplier
 
 class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
 
@@ -44,6 +40,38 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
             codecs[locale] = AdventureCodecs.COMPONENT_CODEC.xmap(
                 { component -> component },  // decode
                 { component -> GlobalTranslator.render(component.transformEmotes(), locale) }  // encode
+            )
+        }
+
+        val key = NamespacedKey.fromString("configuration_listener", emojy)
+        ChannelInitializeListenerHolder.addListener(key!!) { channel: Channel ->
+            channel.pipeline().addBefore("packet_handler", key.toString(), object : ChannelDuplexHandler() {
+                private val connection = channel.pipeline()["packet_handler"] as Connection
+
+                override fun write(ctx: ChannelHandlerContext, packet: Any, promise: ChannelPromise) {
+                    ctx.write(
+                        when (packet) {
+                            is ClientboundSetTitleTextPacket -> ClientboundSetTitleTextPacket(packet.text.transformEmotes())
+                            is ClientboundSetSubtitleTextPacket -> ClientboundSetSubtitleTextPacket(packet.text.transformEmotes())
+                            is ClientboundSetActionBarTextPacket -> ClientboundSetActionBarTextPacket(packet.text.transformEmotes())
+                            else -> packet
+                        }, promise
+                    )
+                }
+
+                /*override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
+                    if (msg is ServerboundResourcePackPacket && msg.id() == OraxenPlugin.get().packServer()
+                            .packInfo().id()
+                    ) {
+                        if (!finishConfigPhase(msg.action())) return@addListener
+                        ctx.pipeline()
+                            .remove(this) // We no longer need to listen or process ClientboundFinishConfigurationPacket that we send ourselves
+                        connection.send(ClientboundFinishConfigurationPacket.INSTANCE)
+                        return@addListener
+                    }
+                    ctx.fireChannelRead(msg)
+                }*/
+            }
             )
         }
     }
