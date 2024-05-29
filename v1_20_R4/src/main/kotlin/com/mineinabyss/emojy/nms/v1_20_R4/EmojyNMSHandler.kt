@@ -4,7 +4,6 @@ package com.mineinabyss.emojy.nms.v1_20_R4
 
 import com.mineinabyss.emojy.*
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
-import com.mineinabyss.idofront.messaging.broadcastVal
 import com.mineinabyss.idofront.plugin.listeners
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
@@ -60,6 +59,7 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                             is ClientboundSetSubtitleTextPacket -> ClientboundSetSubtitleTextPacket(packet.text.transformEmotes(connection.locale()))
                             is ClientboundSetActionBarTextPacket -> ClientboundSetActionBarTextPacket(packet.text.transformEmotes(connection.locale()))
                             is ClientboundOpenScreenPacket -> ClientboundOpenScreenPacket(packet.containerId, packet.type, packet.title.transformEmotes(connection.locale()))
+                            is ClientboundTabListPacket -> ClientboundTabListPacket(packet.header.transformEmotes(connection.locale()), packet.footer.transformEmotes(connection.locale()))
                             is ClientboundSetEntityDataPacket -> ClientboundSetEntityDataPacket(packet.id, packet.packedItems.map {
                                 when (val value = it.value) {
                                     is AdventureComponent ->
