@@ -1,17 +1,6 @@
 package com.mineinabyss.emojy.nms
 
-import com.google.gson.JsonObject
-import com.google.gson.JsonParser
 import com.mineinabyss.emojy.EmojyPlugin
-import com.mineinabyss.emojy.escapeEmoteIDs
-import com.mineinabyss.emojy.transform
-import com.mineinabyss.emojy.transformEmoteIDs
-import com.mineinabyss.idofront.textcomponents.miniMsg
-import com.mineinabyss.idofront.textcomponents.serialize
-import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-import org.bukkit.Bukkit
-import org.bukkit.entity.Player
 
 object EmojyNMSHandlers {
 

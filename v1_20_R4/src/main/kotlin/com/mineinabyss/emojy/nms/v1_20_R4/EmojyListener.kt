@@ -3,15 +3,12 @@ package com.mineinabyss.emojy.nms.v1_20_R4
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.jeff_media.morepersistentdatatypes.DataType
-import com.mineinabyss.emojy.emojy
-import com.mineinabyss.emojy.escapeEmoteIDs
-import com.mineinabyss.emojy.nms.v1_20_R4.EmojyNMSHandler.Companion.ORIGINAL_ITEM_RENAME_TEXT
-import com.mineinabyss.emojy.nms.v1_20_R4.EmojyNMSHandler.Companion.transformEmotes
-import com.mineinabyss.emojy.transformEmoteIDs
+import com.mineinabyss.emojy.*
 import com.mineinabyss.idofront.items.editItemMeta
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
 import io.papermc.paper.event.player.AsyncChatDecorateEvent
+import io.papermc.paper.event.player.AsyncChatEvent
 import io.papermc.paper.event.player.PlayerOpenSignEvent
 import kotlinx.coroutines.delay
 import net.minecraft.core.BlockPos
@@ -39,11 +36,11 @@ class EmojyListener : Listener {
         val state = (block.state as Sign)
         val type = DataType.asList(DataType.STRING)
         val sideLines = lines().map { it.serialize() }.toList()
-        val frontLines = if (side == Side.FRONT) sideLines else state.persistentDataContainer.getOrDefault(EmojyNMSHandler.ORIGINAL_SIGN_FRONT_LINES, type, mutableListOf("", "", "", ""))
-        val backLines = if (side == Side.BACK) sideLines else state.persistentDataContainer.getOrDefault(EmojyNMSHandler.ORIGINAL_SIGN_BACK_LINES, type, mutableListOf("", "", "", ""))
+        val frontLines = if (side == Side.FRONT) sideLines else state.persistentDataContainer.getOrDefault(ORIGINAL_SIGN_FRONT_LINES, type, mutableListOf("", "", "", ""))
+        val backLines = if (side == Side.BACK) sideLines else state.persistentDataContainer.getOrDefault(ORIGINAL_SIGN_BACK_LINES, type, mutableListOf("", "", "", ""))
 
-        state.persistentDataContainer.set(EmojyNMSHandler.ORIGINAL_SIGN_FRONT_LINES, type, frontLines)
-        state.persistentDataContainer.set(EmojyNMSHandler.ORIGINAL_SIGN_BACK_LINES, type, backLines)
+        state.persistentDataContainer.set(ORIGINAL_SIGN_FRONT_LINES, type, frontLines)
+        state.persistentDataContainer.set(ORIGINAL_SIGN_BACK_LINES, type, backLines)
         state.update(true)
 
         lines().forEachIndexed { index, s ->
@@ -56,8 +53,8 @@ class EmojyListener : Listener {
         if (cause == PlayerOpenSignEvent.Cause.PLACE) return
 
         sign.persistentDataContainer.get(when (sign.getInteractableSideFor(player)) {
-            Side.FRONT -> EmojyNMSHandler.ORIGINAL_SIGN_FRONT_LINES
-            Side.BACK -> EmojyNMSHandler.ORIGINAL_SIGN_BACK_LINES
+            Side.FRONT -> ORIGINAL_SIGN_FRONT_LINES
+            Side.BACK -> ORIGINAL_SIGN_BACK_LINES
         }, DataType.asList(DataType.STRING))?.forEachIndexed { index, s ->
             sign.getSide(side).line(index, s.miniMsg())
         }
@@ -78,7 +75,7 @@ class EmojyListener : Listener {
             result?.editItemMeta { persistentDataContainer.remove(ORIGINAL_ITEM_RENAME_TEXT) }
             return
         }
-        val displayName = inventory.renameText?.miniMsg()?.transformEmoteIDs(null, false, true) ?: run {
+        val displayName = inventory.renameText?.miniMsg()?.transformEmotes(null, false)?.unescapeEmoteIds() ?: run {
             result?.editItemMeta { persistentDataContainer.remove(ORIGINAL_ITEM_RENAME_TEXT) }
             return
         }
