@@ -42,12 +42,6 @@ dependencies {
     // Shaded
     paperweight.paperDevBundle("1.20.6-R0.1-SNAPSHOT") //NMS
     implementation(project(path = ":core"))
-    //implementation(project(path = ":v1_19_R1", configuration = "reobf"))
-    //implementation(project(path = ":v1_19_R2", configuration = "reobf"))
-    //implementation(project(path = ":v1_19_R3", configuration = "reobf"))
-    //implementation(project(path = ":v1_20_R1", configuration = "reobf"))
-    //implementation(project(path = ":v1_20_R2", configuration = "reobf"))
-    //implementation(project(path = ":v1_20_R3", configuration = "reobf"))
     implementation(project(path = ":v1_20_R4"))
 }
 
@@ -76,15 +70,9 @@ tasks {
     }
 
     shadowJar {
-        //dependsOn(":v1_19_R1:reobfJar")
-        //dependsOn(":v1_19_R2:reobfJar")
-        //dependsOn(":v1_19_R3:reobfJar")
-        //dependsOn(":v1_20_R1:reobfJar")
-        //dependsOn(":v1_20_R2:reobfJar")
-        //dependsOn(":v1_20_R3:reobfJar")
         dependsOn(":v1_20_R4:reobfJar")
 
-        //relocate("com.jeff_media.morepersistentdatatypes", "com.mineinabyss.shaded.morepersistentdatatypes")
+        relocate("com.jeff_media.morepersistentdatatypes", "com.mineinabyss.shaded.morepersistentdatatypes")
 
         archiveFileName.set("Emojy.jar")
     }
