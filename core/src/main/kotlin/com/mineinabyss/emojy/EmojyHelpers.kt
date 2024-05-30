@@ -26,7 +26,7 @@ fun spaceComponent(space: Int) = Component.textOfChildren(Component.text(Space.o
 
 fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): Component {
     var component = GlobalTranslator.render(this, locale ?: Locale.US)
-    val serialized = this.serialize()
+    val serialized = component.serialize()
 
     for (emote in emojy.emotes) emote.baseRegex.findAll(serialized).forEach { match ->
 

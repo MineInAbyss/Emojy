@@ -71,7 +71,7 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                             is ClientboundSetEntityDataPacket -> ClientboundSetEntityDataPacket(packet.id, packet.packedItems.map {
                                 (it.value as? AdventureComponent)?.let { value ->
                                     SynchedEntityData.DataValue(it.id, it.serializer as EntityDataSerializer<AdventureComponent>,
-                                        AdventureComponent(PaperAdventure.asAdventure(value).transformEmotes(connection.locale()))
+                                        AdventureComponent(value.`adventure$component`().transformEmotes(connection.locale()))
                                     )
                                 } ?: it
                             })
