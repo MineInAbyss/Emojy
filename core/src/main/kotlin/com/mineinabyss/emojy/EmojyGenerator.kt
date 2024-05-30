@@ -33,13 +33,13 @@ object EmojyGenerator {
                     resourcePack.font(font.toBuilder().addProvider(FontProvider.space().advance("\uE101", -1).build()).build())
                 // If the font has already added an entry for the emote, skip it
                 font.providers().any { it is BitMapFontProvider && it.file() == emote.texture } ->
-                    return@forEach if (emojyConfig.debug) logWarn("Skipping ${emote.id}-font because it is a bitmap and already added")  else {}
+                    return@forEach emojy.logger.d("Skipping ${emote.id}-font because it is a bitmap and already added")
             }
 
             resourcePack.font(emote.appendFont(resourcePack))
             emotesFolder.listFiles()?.find { f -> f.nameWithoutExtension == emote.texture.value().substringAfterLast("/").removeSuffix(".png") }?.let {
                 resourcePack.texture(Texture.texture(emote.texture, Writable.file(it)))
-            } ?: if (emojyConfig.debug) logWarn("Could not find texture for ${emote.id}") else {}
+            } ?: emojy.logger.d("Could not find texture for ${emote.id}")
         }
         emojy.gifs.forEach {
             it.generateSplitGif(resourcePack)
@@ -58,7 +58,7 @@ object EmojyGenerator {
                 Texture.texture(Key.key("${framePath.asString()}${it.name}"), Writable.file(it))
             }?.forEach(resourcePack::texture)
         }.onFailure {
-            if (emojyConfig.debug) logError("Could not generate split gif for ${id}.gif: ${it.message}")
+            emojy.logger.d("Could not generate split gif for ${id}.gif: ${it.message}")
         }
     }
 }

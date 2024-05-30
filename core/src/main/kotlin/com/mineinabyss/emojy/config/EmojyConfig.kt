@@ -2,6 +2,7 @@
 
 package com.mineinabyss.emojy.config
 
+import co.touchlab.kermit.Severity
 import com.mineinabyss.emojy.*
 import com.mineinabyss.idofront.messaging.*
 import com.mineinabyss.idofront.serialization.KeySerializer
@@ -39,7 +40,7 @@ data class EmojyConfig(
 
     val requirePermissions: Boolean = true,
     val supportForceUnicode: Boolean = true,
-    val debug: Boolean = true,
+    val logLevel: Severity = Severity.Debug,
     val emojyList: EmojyList = EmojyList(),
     val supportedLanguages: Set<String> = mutableSetOf("en_us"),
 ) {
@@ -206,7 +207,7 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
                 aspectRatio = reader.getAspectRatio(0)
                 reader.getNumImages(true)
             }.onFailure {
-                if (emojyConfig.debug) logError("Could not get frame count for ${id}.gif")
+                emojy.logger.d("Could not get frame count for ${id}.gif")
             }.getOrNull() ?: run {
                 aspectRatio = 1f
                 0
