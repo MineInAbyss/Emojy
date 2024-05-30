@@ -4,11 +4,8 @@ package com.mineinabyss.emojy.nms.v1_20_R4
 
 import com.jeff_media.morepersistentdatatypes.DataType
 import com.mineinabyss.emojy.*
-import com.mineinabyss.emojy.config.SPACE_PERMISSION
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
 import com.mineinabyss.idofront.items.editItemMeta
-import com.mineinabyss.idofront.messaging.broadcastVal
-import com.mineinabyss.idofront.messaging.logVal
 import com.mineinabyss.idofront.plugin.listeners
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
@@ -17,21 +14,16 @@ import io.netty.channel.Channel
 import io.netty.channel.ChannelDuplexHandler
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelPromise
-import io.papermc.paper.adventure.AdventureCodecs
 import io.papermc.paper.adventure.AdventureComponent
 import io.papermc.paper.adventure.PaperAdventure
 import io.papermc.paper.network.ChannelInitializeListenerHolder
-import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.TextReplacementConfig
-import net.kyori.adventure.translation.GlobalTranslator
 import net.minecraft.core.NonNullList
 import net.minecraft.network.Connection
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.syncher.EntityDataSerializer
 import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.world.item.ItemStack
-import org.bukkit.Bukkit
 import org.bukkit.NamespacedKey
 import org.bukkit.craftbukkit.inventory.CraftItemStack
 import org.bukkit.entity.Player

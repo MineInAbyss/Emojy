@@ -72,7 +72,7 @@ tasks {
     shadowJar {
         dependsOn(":v1_20_R4:reobfJar")
 
-        relocate("com.jeff_media.morepersistentdatatypes", "com.mineinabyss.shaded.morepersistentdatatypes")
+        //relocate("com.jeff_media.morepersistentdatatypes", "com.mineinabyss.shaded.morepersistentdatatypes")
 
         archiveFileName.set("Emojy.jar")
     }
