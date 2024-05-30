@@ -71,18 +71,10 @@ class EmojyListener : Listener {
 
     @EventHandler
     fun PrepareAnvilEvent.onAnvil() {
-        if (result?.itemMeta?.hasDisplayName() != true || inventory.renameText == null) {
-            result?.editItemMeta { persistentDataContainer.remove(ORIGINAL_ITEM_RENAME_TEXT) }
-            return
-        }
-        val displayName = inventory.renameText?.miniMsg()?.transformEmotes(null, false)?.unescapeEmoteIds() ?: run {
-            result?.editItemMeta { persistentDataContainer.remove(ORIGINAL_ITEM_RENAME_TEXT) }
-            return
-        }
-
         result = result?.editItemMeta {
-            persistentDataContainer.set(ORIGINAL_ITEM_RENAME_TEXT, DataType.STRING, inventory.renameText!!)
-            displayName(displayName)
+            if (inventory.renameText == null || result?.itemMeta?.hasDisplayName() != true) {
+                persistentDataContainer.remove(ORIGINAL_ITEM_RENAME_TEXT) }
+            else persistentDataContainer.set(ORIGINAL_ITEM_RENAME_TEXT, DataType.STRING, inventory.renameText!!)
         }
     }
 }

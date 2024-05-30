@@ -79,19 +79,21 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                                 } ?: it
                             })
                             is ClientboundContainerSetSlotPacket -> ClientboundContainerSetSlotPacket(packet.containerId, packet.stateId, packet.slot, packet.item.transformItemNameLore())
-                            is ClientboundContainerSetContentPacket -> {
-                                val player = connection.player.bukkitEntity
-                                (player.openInventory.topInventory as? AnvilInventory)?.let {
-                                    ClientboundContainerSetContentPacket(packet.containerId, packet.stateId,
-                                        NonNullList.of(packet.items.first(), *packet.items.map {
-                                            CraftItemStack.asNMSCopy(CraftItemStack.asBukkitCopy(it).editItemMeta {
-                                                setDisplayName(persistentDataContainer.get(ORIGINAL_ITEM_RENAME_TEXT, DataType.STRING) ?: return@editItemMeta)
-                                            })
-                                        }.toTypedArray()), packet.carriedItem)
-                                } ?: ClientboundContainerSetContentPacket(packet.containerId, packet.stateId,
-                                    NonNullList.of(packet.items.first(), *packet.items.map { it.transformItemNameLore() }.toTypedArray()),
-                                    packet.carriedItem)
-                            }
+                            is ClientboundContainerSetContentPacket -> ClientboundContainerSetContentPacket(
+                                packet.containerId, packet.stateId, NonNullList.of(packet.items.first(),
+                                    *packet.items.map {
+                                        val inv = connection.player.bukkitEntity.openInventory.topInventory
+                                        val bukkit = CraftItemStack.asBukkitCopy(it)
+
+                                        // If item is firstItem in AnvilInventory we want to set it to have the plain-text displayname
+                                        if (inv is AnvilInventory && inv.firstItem == bukkit)
+                                            bukkit.itemMeta?.persistentDataContainer?.get(ORIGINAL_ITEM_RENAME_TEXT, DataType.STRING)?.let { og ->
+                                                CraftItemStack.asNMSCopy(bukkit.editItemMeta {
+                                                    setDisplayName(og)
+                                                })
+                                            } ?: it.transformItemNameLore()
+                                        else it.transformItemNameLore()
+                                    }.toTypedArray()), packet.carriedItem)
                             else -> packet
                         }, promise
                     )
@@ -105,10 +107,14 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                 }
 
                 private fun ItemStack.transformItemNameLore(): ItemStack {
-                    val locale = connection.locale()
+                    val player = connection.player.bukkitEntity
+                    val locale = player.locale()
                     return CraftItemStack.asNMSCopy(CraftItemStack.asBukkitCopy(this).editItemMeta {
                         itemName(if (hasItemName()) itemName().transformEmotes(locale) else null)
                         lore(lore()?.map { l -> l.transformEmotes(locale) })
+                        persistentDataContainer.get(ORIGINAL_ITEM_RENAME_TEXT, DataType.STRING)?.let {
+                            displayName(it.miniMsg().escapeEmoteIDs(player).transformEmotes(locale).unescapeEmoteIds())
+                        }
                     })
                 }
             }
