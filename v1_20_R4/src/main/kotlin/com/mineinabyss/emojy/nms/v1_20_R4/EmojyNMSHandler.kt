@@ -59,8 +59,8 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                 override fun write(ctx: ChannelHandlerContext, packet: Any, promise: ChannelPromise) {
                     ctx.write(
                         when (packet) {
-                            is ClientboundDisguisedChatPacket -> ClientboundDisguisedChatPacket(packet.message.transformEmotes(connection.locale()).unescapeEmoteIds(), packet.chatType)
-                            is ClientboundSystemChatPacket -> ClientboundSystemChatPacket(packet.content.transformEmotes(connection.locale()).unescapeEmoteIds(), packet.overlay)
+                            is ClientboundDisguisedChatPacket -> ClientboundDisguisedChatPacket(packet.message.transformEmotes(connection.locale(), true).unescapeEmoteIds(), packet.chatType)
+                            is ClientboundSystemChatPacket -> ClientboundSystemChatPacket(packet.content.transformEmotes(connection.locale(), true).unescapeEmoteIds(), packet.overlay)
                             is ClientboundSetTitleTextPacket -> ClientboundSetTitleTextPacket(packet.text.transformEmotes(connection.locale()))
                             is ClientboundSetSubtitleTextPacket -> ClientboundSetSubtitleTextPacket(packet.text.transformEmotes(connection.locale()))
                             is ClientboundSetActionBarTextPacket -> ClientboundSetActionBarTextPacket(packet.text.transformEmotes(connection.locale()))
@@ -105,15 +105,15 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
         val ORIGINAL_SIGN_BACK_LINES = NamespacedKey.fromString("emojy:original_back_lines")!!
         val ORIGINAL_ITEM_RENAME_TEXT = NamespacedKey.fromString("emojy:original_item_rename")!!
 
-        fun String.transformEmotes(locale: Locale? = null): String {
-            return miniMsg().transformEmotes(locale).serialize()
+        fun String.transformEmotes(locale: Locale? = null, insert: Boolean = false): String {
+            return miniMsg().transformEmotes(locale, insert).serialize()
         }
 
-        fun net.minecraft.network.chat.Component.transformEmotes(locale: Locale? = null): net.minecraft.network.chat.Component {
-            return PaperAdventure.asVanilla(PaperAdventure.asAdventure(this).transformEmotes(locale))
+        fun net.minecraft.network.chat.Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): net.minecraft.network.chat.Component {
+            return PaperAdventure.asVanilla(PaperAdventure.asAdventure(this).transformEmotes(locale, insert))
         }
 
-        fun Component.transformEmotes(locale: Locale? = null): Component {
+        fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): Component {
             var component = GlobalTranslator.render(this, locale ?: Locale.US)
             val serialized = this.serialize()
 
@@ -127,7 +127,7 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                         .match(emote.baseRegex.pattern).once()
                         .replacement(
                             emote.formattedUnicode(
-                                insert = false,
+                                insert = insert,
                                 colorable = colorable,
                                 bitmapIndex = bitmapIndex
                             )
