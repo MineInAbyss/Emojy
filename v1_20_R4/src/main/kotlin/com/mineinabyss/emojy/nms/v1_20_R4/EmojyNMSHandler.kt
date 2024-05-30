@@ -7,6 +7,7 @@ import com.mineinabyss.emojy.*
 import com.mineinabyss.emojy.config.SPACE_PERMISSION
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
 import com.mineinabyss.idofront.items.editItemMeta
+import com.mineinabyss.idofront.messaging.broadcastVal
 import com.mineinabyss.idofront.messaging.logVal
 import com.mineinabyss.idofront.plugin.listeners
 import com.mineinabyss.idofront.textcomponents.miniMsg
@@ -29,6 +30,8 @@ import net.minecraft.network.Connection
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.syncher.EntityDataSerializer
 import net.minecraft.network.syncher.SynchedEntityData
+import net.minecraft.world.item.ItemStack
+import org.bukkit.Bukkit
 import org.bukkit.NamespacedKey
 import org.bukkit.craftbukkit.inventory.CraftItemStack
 import org.bukkit.entity.Player
@@ -75,15 +78,19 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                                     )
                                 } ?: it
                             })
+                            is ClientboundContainerSetSlotPacket -> ClientboundContainerSetSlotPacket(packet.containerId, packet.stateId, packet.slot, packet.item.transformItemNameLore())
                             is ClientboundContainerSetContentPacket -> {
-                                (connection.player.bukkitEntity.openInventory.topInventory as? AnvilInventory)?.let {
+                                val player = connection.player.bukkitEntity
+                                (player.openInventory.topInventory as? AnvilInventory)?.let {
                                     ClientboundContainerSetContentPacket(packet.containerId, packet.stateId,
                                         NonNullList.of(packet.items.first(), *packet.items.map {
-                                            CraftItemStack.asNMSCopy(CraftItemStack.asBukkitCopy(it.copy()).editItemMeta {
+                                            CraftItemStack.asNMSCopy(CraftItemStack.asBukkitCopy(it).editItemMeta {
                                                 setDisplayName(persistentDataContainer.get(ORIGINAL_ITEM_RENAME_TEXT, DataType.STRING) ?: return@editItemMeta)
                                             })
                                         }.toTypedArray()), packet.carriedItem)
-                                } ?: packet
+                                } ?: ClientboundContainerSetContentPacket(packet.containerId, packet.stateId,
+                                    NonNullList.of(packet.items.first(), *packet.items.map { it.transformItemNameLore() }.toTypedArray()),
+                                    packet.carriedItem)
                             }
                             else -> packet
                         }, promise
@@ -94,6 +101,14 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                     ctx.fireChannelRead(when (packet) {
                         is ServerboundRenameItemPacket -> ServerboundRenameItemPacket(packet.name.escapeEmoteIDs(connection.player.bukkitEntity))
                         else -> packet
+                    })
+                }
+
+                private fun ItemStack.transformItemNameLore(): ItemStack {
+                    val locale = connection.locale()
+                    return CraftItemStack.asNMSCopy(CraftItemStack.asBukkitCopy(this).editItemMeta {
+                        itemName(if (hasItemName()) itemName().transformEmotes(locale) else null)
+                        lore(lore()?.map { l -> l.transformEmotes(locale) })
                     })
                 }
             }
