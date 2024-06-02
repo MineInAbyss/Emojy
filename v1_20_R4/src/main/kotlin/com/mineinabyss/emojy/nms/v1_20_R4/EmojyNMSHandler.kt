@@ -44,6 +44,7 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                 override fun write(ctx: ChannelHandlerContext, packet: Any, promise: ChannelPromise) {
                     ctx.write(
                         when (packet) {
+                            is ClientboundSetScorePacket -> ClientboundSetScorePacket(packet.owner, packet.objectiveName, packet.score, packet.display.map { it.transformEmotes(connection.locale()) }, packet.numberFormat)
                             is ClientboundServerDataPacket -> ClientboundServerDataPacket(packet.motd.transformEmotes(connection.locale()), packet.iconBytes)
                             is ClientboundPlayerChatPacket -> ClientboundPlayerChatPacket(packet.sender, packet.index, packet.signature, packet.body, packet.unsignedContent?.transformEmotes(connection.locale(), true)?.unescapeEmoteIds(), packet.filterMask, packet.chatType)
                             is ClientboundDisguisedChatPacket -> ClientboundDisguisedChatPacket(packet.message.transformEmotes(connection.locale(), true).unescapeEmoteIds(), packet.chatType)
