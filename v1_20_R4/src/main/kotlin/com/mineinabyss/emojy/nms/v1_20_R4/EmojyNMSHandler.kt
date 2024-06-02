@@ -9,7 +9,6 @@ import com.mineinabyss.idofront.items.editItemMeta
 import com.mineinabyss.idofront.plugin.listeners
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
-import com.mojang.serialization.Codec
 import io.netty.channel.Channel
 import io.netty.channel.ChannelDuplexHandler
 import io.netty.channel.ChannelHandlerContext
@@ -17,9 +16,9 @@ import io.netty.channel.ChannelPromise
 import io.papermc.paper.adventure.AdventureComponent
 import io.papermc.paper.adventure.PaperAdventure
 import io.papermc.paper.network.ChannelInitializeListenerHolder
-import net.kyori.adventure.text.Component
 import net.minecraft.core.NonNullList
 import net.minecraft.network.Connection
+import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.syncher.EntityDataSerializer
 import net.minecraft.network.syncher.SynchedEntityData
@@ -35,16 +34,6 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
 
     init {
         emojy.listeners(EmojyListener())
-
-        val codecs = (PaperAdventure::class.java.getDeclaredField("LOCALIZED_CODECS").apply { isAccessible = true }
-            .get(null) as MutableMap<Locale, Codec<Component>>)
-
-        /*for (locale in Locale.getAvailableLocales()) {
-            codecs[locale] = AdventureCodecs.COMPONENT_CODEC.xmap(
-                { component -> component },  // decode
-                { component -> GlobalTranslator.render(component, locale) }  // encode
-            )
-        }*/
 
         val key = NamespacedKey.fromString("packet_listener", emojy)
         ChannelInitializeListenerHolder.addListener(key!!) { channel: Channel ->
@@ -86,6 +75,43 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                                             } ?: it.transformItemNameLore()
                                         else it.transformItemNameLore()
                                     }.toTypedArray()), packet.carriedItem)
+                            is ClientboundBossEventPacket -> {
+                                // Access the private field 'operation'
+                                val operationField = ClientboundBossEventPacket::class.java.getDeclaredField("operation").apply { isAccessible = true }
+                                val operation = operationField.get(packet)
+
+                                when (operation::class.java.simpleName) {
+                                    "AddOperation" -> {
+                                        val nameField = operation::class.java.getDeclaredField("name").apply { isAccessible = true }
+                                        // Get the component, serialize it and replace "\\<" as it might be escaped if not an AdventureBossbar
+                                        val name = PaperAdventure.asAdventure(nameField.get(operation) as Component).serialize().replace("\\<", "<").miniMsg()
+                                        nameField.set(operation, PaperAdventure.asVanilla(name.transformEmotes(connection.locale())))
+                                    }
+                                    "UpdateNameOperation" -> {
+                                        val accessorMethod = operation::class.java.methods.find { it.name == "name" }
+                                        accessorMethod?.isAccessible = true
+                                        if (accessorMethod != null) {
+                                            val name = PaperAdventure.asAdventure(accessorMethod.invoke(operation) as Component)
+                                                .serialize().replace("\\<", "<")
+                                                .miniMsg().transformEmotes(connection.locale())
+
+                                            val updateNameOperationClass = operation::class.java.enclosingClass.declaredClasses.find {
+                                                it.simpleName == "UpdateNameOperation"
+                                            } ?: throw IllegalStateException("UpdateNameOperation class not found")
+
+                                            val constructor = updateNameOperationClass.getDeclaredConstructor(Component::class.java).apply { isAccessible = true }
+                                            // Create a new instance of UpdateNameOperation with the modified name
+
+                                            val updatedOperation = constructor.newInstance(PaperAdventure.asVanilla(name))
+
+                                            // Set the updated operation in the packet
+                                            operationField.set(packet, updatedOperation)
+                                        }
+                                    }
+                                }
+
+                                packet
+                            }
                             else -> packet
                         }, promise
                     )
@@ -120,7 +146,7 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
             return miniMsg().transformEmotes(locale, insert).serialize()
         }
 
-        fun net.minecraft.network.chat.Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): net.minecraft.network.chat.Component {
+        fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): Component {
             return PaperAdventure.asVanilla(PaperAdventure.asAdventure(this).transformEmotes(locale, insert))
         }
 
@@ -128,11 +154,11 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
             return miniMsg().escapeEmoteIDs(player).serialize()
         }
 
-        fun net.minecraft.network.chat.Component.escapeEmoteIDs(player: Player?): net.minecraft.network.chat.Component {
+        fun Component.escapeEmoteIDs(player: Player?): Component {
             return PaperAdventure.asVanilla((PaperAdventure.asAdventure(this)).escapeEmoteIDs(player))
         }
 
-        fun net.minecraft.network.chat.Component.unescapeEmoteIds(): net.minecraft.network.chat.Component {
+        fun Component.unescapeEmoteIds(): Component {
             return PaperAdventure.asVanilla(PaperAdventure.asAdventure(this).unescapeEmoteIds())
         }
 
