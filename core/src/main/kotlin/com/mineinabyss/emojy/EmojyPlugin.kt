@@ -35,8 +35,7 @@ class EmojyPlugin : JavaPlugin() {
 
         EmojyGenerator.generateResourcePack()
 
-        EmojyCommands()
-
+        EmojyBrigadierCommands.registerCommands()
     }
 
     fun createEmojyContext() {
