@@ -114,6 +114,13 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
 
                                 packet
                             }
+                            is ClientboundPlayerInfoUpdatePacket -> {
+                                ClientboundPlayerInfoUpdatePacket(packet.actions(), packet.newEntries().map {
+                                    ClientboundPlayerInfoUpdatePacket.Entry(it.profileId, it.profile, it.listed, it.latency,
+                                        it.gameMode, it.displayName?.transformEmotes(connection.locale()), it.chatSession
+                                    )
+                                }).takeIf { packet.newEntries().isNotEmpty() } ?: packet
+                            }
                             else -> packet
                         }, promise
                     )
