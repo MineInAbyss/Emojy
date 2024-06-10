@@ -9,12 +9,12 @@
 
 ## Overview
 Emojy is a plugin that lets you make custom emotes and gifs to use just about anywhere.\
-It works by replacing :id: with the assigned unicode.\
+It works by replacing `:id:` with the assigned unicode.\
 Compared to a lot of other plugins this does not purely rely on the default font.\
 This will prevent players from simply copying unicodes and spamming them in chat.
 
 __Small feature-list:__
-- Replace _:id:_ in chat, books, signs, inventory titles, tablist, titles, subtitles & actionbars
+- Replace `:id:` in chat, books, signs, inventory titles, tablist, titles, subtitles & actionbars
 - Support for GIFs with 2 different types:
   * **Obfuscation**: This is done by having every gif be its own font, but it has the downside of being in random order and way too fast
   * **Shader**: This is done by a core-shader which should show the GIF as normal 
@@ -22,12 +22,11 @@ __Small feature-list:__
 - Automatically generate a resourcepack with all the emotes and gifs
 
 Whilst this is primarily for emojis and gifs, it is also a useful tool for everything else related to unicodes.\
-For example it lets you easily make custom menus which can be put in titles simply by doing :id:
+For example it lets you easily make custom menus which can be put in titles simply by doing `:id:`
 
 
 ## Requirements
 - [Idofront Platform](https://github.com/MineInAbyss/Idofront)
-- [ProtocolLib](https://ci.dmulloy2.net/job/ProtocolLib/lastBuild/) (Optional, but recommended)
 
 ## Recommended Plugins
 - [Chatty](https://github.com/MineInAbyss/Chatty) - Highly customizable chat plugin with optional support for 1.19 Chat Signing
@@ -35,7 +34,7 @@ For example it lets you easily make custom menus which can be put in titles simp
 ## Setup
 1. Download the latest version of Emojy
 2. Put it in `server/plugins` and start your server
-3. Add your emotes and gifs to config.yml, the bare minimum it needs is the `id: emoteid`
+3. Add your emotes to `emotes.yml` and gifs to `gifs.yml`, the bare minimum it needs is the `id: emoteid`
 4. Add all your emote textures inside `/plugins/Emojy/textures` and gifs inside `/plugins/Emojy/gifs`
 5. Restart your server or run `/emojy reload` to reload the config
 6. Copy the generated resourcepack from `/plugins/Emojy/pack.zip` to your resourcepack folder
