@@ -43,6 +43,7 @@ dependencies {
     paperweight.paperDevBundle("1.20.6-R0.1-SNAPSHOT") //NMS
     implementation(project(path = ":core"))
     implementation(project(path = ":v1_20_R4"))
+    implementation(project(path = ":v1_21_R1"))
 }
 
 tasks {

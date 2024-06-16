@@ -4,7 +4,7 @@ import com.mineinabyss.emojy.EmojyPlugin
 
 object EmojyNMSHandlers {
 
-    private val SUPPORTED_VERSION = arrayOf("v1_20_R4")
+    private val SUPPORTED_VERSION = arrayOf("v1_20_R4", "v1_21_R1")
 
     fun setup(emojy: EmojyPlugin): IEmojyNMSHandler {
         SUPPORTED_VERSION.forEach { version ->
