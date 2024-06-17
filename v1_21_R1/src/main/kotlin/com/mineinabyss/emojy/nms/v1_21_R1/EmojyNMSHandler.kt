@@ -22,11 +22,13 @@ import net.minecraft.network.chat.ChatType
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.MessageSignature
 import net.minecraft.network.chat.SignedMessageBody
+import net.minecraft.network.protocol.common.ClientboundServerLinksPacket
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.syncher.EntityDataSerializer
 import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.world.item.ItemStack
 import org.bukkit.NamespacedKey
+import org.bukkit.ServerLinks
 import org.bukkit.craftbukkit.inventory.CraftItemStack
 import org.bukkit.entity.Player
 import org.bukkit.inventory.AnvilInventory
@@ -47,6 +49,7 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                 override fun write(ctx: ChannelHandlerContext, packet: Any, promise: ChannelPromise) {
                     ctx.write(
                         when (packet) {
+                            is ClientboundServerLinksPacket -> ClientboundServerLinksPacket(packet.links.map { net.minecraft.server.ServerLinks.UntrustedEntry(it.type.mapRight { it.transformEmotes(connection.locale()) }, it.link) })
                             is ClientboundSetScorePacket -> ClientboundSetScorePacket(packet.owner, packet.objectiveName, packet.score, packet.display.map { it.transformEmotes(connection.locale()) }, packet.numberFormat)
                             is ClientboundServerDataPacket -> ClientboundServerDataPacket(packet.motd.transformEmotes(connection.locale()), packet.iconBytes)
                             is ClientboundDisguisedChatPacket -> ClientboundDisguisedChatPacket(packet.message.transformEmotes(connection.locale(), true).unescapeEmoteIds(), packet.chatType)
