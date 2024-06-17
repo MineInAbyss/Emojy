@@ -22,6 +22,8 @@ import net.minecraft.network.chat.ChatType
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.MessageSignature
 import net.minecraft.network.chat.SignedMessageBody
+import net.minecraft.network.protocol.common.ClientboundDisconnectPacket
+import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
 import net.minecraft.network.protocol.common.ClientboundServerLinksPacket
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.syncher.EntityDataSerializer
@@ -60,6 +62,8 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                             is ClientboundSetActionBarTextPacket -> ClientboundSetActionBarTextPacket(packet.text.transformEmotes(connection.locale()))
                             is ClientboundOpenScreenPacket -> ClientboundOpenScreenPacket(packet.containerId, packet.type, packet.title.transformEmotes(connection.locale()))
                             is ClientboundTabListPacket -> ClientboundTabListPacket(packet.header.transformEmotes(connection.locale()), packet.footer.transformEmotes(connection.locale()))
+                            is ClientboundResourcePackPushPacket -> ClientboundResourcePackPushPacket(packet.id, packet.url, packet.hash, packet.required, packet.prompt.map { it.transformEmotes(connection.locale()) })
+                            is ClientboundDisconnectPacket -> ClientboundDisconnectPacket(packet.reason.transformEmotes(connection.locale()))
                             is ClientboundSetEntityDataPacket -> ClientboundSetEntityDataPacket(packet.id, packet.packedItems.map {
                                 (it.value as? AdventureComponent)?.let { value ->
                                     SynchedEntityData.DataValue(it.id, it.serializer as EntityDataSerializer<AdventureComponent>,
