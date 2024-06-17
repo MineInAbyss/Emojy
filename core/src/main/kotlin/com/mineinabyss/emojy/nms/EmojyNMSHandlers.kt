@@ -1,18 +1,20 @@
 package com.mineinabyss.emojy.nms
 
 import com.mineinabyss.emojy.EmojyPlugin
+import org.bukkit.Bukkit
 
 object EmojyNMSHandlers {
 
-    private val SUPPORTED_VERSION = arrayOf("v1_20_R4", "v1_21_R1")
-
     fun setup(emojy: EmojyPlugin): IEmojyNMSHandler {
-        SUPPORTED_VERSION.forEach { version ->
-            runCatching {
-                return Class.forName("com.mineinabyss.emojy.nms.${version}.EmojyNMSHandler").getConstructor(EmojyPlugin::class.java)
-                    .newInstance(emojy) as IEmojyNMSHandler
-            }.onFailure { it.printStackTrace() }
+        val nmsPackage = when (Bukkit.getMinecraftVersion()) {
+            "1.20.5", "1.20.6" -> "v1_20_R4"
+            "1.21" -> "v1_21_R1"
+            else -> throw IllegalStateException("Unsupported server version")
         }
+        runCatching {
+            return Class.forName("com.mineinabyss.emojy.nms.${nmsPackage}.EmojyNMSHandler").getConstructor(EmojyPlugin::class.java)
+                .newInstance(emojy) as IEmojyNMSHandler
+        }.onFailure { it.printStackTrace() }
 
         throw IllegalStateException("Unsupported server version")
     }
