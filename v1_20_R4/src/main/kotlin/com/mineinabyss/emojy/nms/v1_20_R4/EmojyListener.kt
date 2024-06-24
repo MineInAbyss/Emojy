@@ -21,6 +21,7 @@ import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.block.SignChangeEvent
 import org.bukkit.event.inventory.PrepareAnvilEvent
+import org.bukkit.event.player.PlayerEditBookEvent
 
 @Suppress("UnstableApiUsage")
 class EmojyListener : Listener {
@@ -75,6 +76,15 @@ class EmojyListener : Listener {
             if (inventory.renameText == null || result?.itemMeta?.hasDisplayName() != true) {
                 persistentDataContainer.remove(ORIGINAL_ITEM_RENAME_TEXT) }
             else persistentDataContainer.set(ORIGINAL_ITEM_RENAME_TEXT, DataType.STRING, inventory.renameText!!)
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    fun PlayerEditBookEvent.onBookEdit() {
+        if (isSigning) newBookMeta = newBookMeta.apply {
+            pages(pages().map {
+                it.escapeEmoteIDs(player).transformEmotes().unescapeEmoteIds()
+            })
         }
     }
 }
