@@ -7,7 +7,6 @@ import com.mineinabyss.idofront.textcomponents.serialize
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
@@ -37,11 +36,11 @@ fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): 
             TextReplacementConfig.builder()
                 .match(emote.baseRegex.pattern).once()
                 .replacement(
-                    emote.formattedUnicode(
+                    Component.textOfChildren(emote.formattedUnicode(
                         insert = insert,
                         colorable = colorable,
                         bitmapIndex = bitmapIndex
-                    )
+                    ))
                 )
                 .build()
         )
@@ -91,8 +90,8 @@ fun Component.escapeEmoteIDs(player: Player?): Component {
 
         component = component.replaceText(
             TextReplacementConfig.builder()
-                .matchLiteral(match.value).once()
-                .replacement("\\${match.value}".miniMsg())
+                .match("(?<!\\\\)${match.value}")
+                .replacement(Component.text("\\${match.value}"))
                 .build()
         )
     }
@@ -101,7 +100,7 @@ fun Component.escapeEmoteIDs(player: Player?): Component {
         if (gif.checkPermission(player)) return@forEach
         component = component.replaceText(
             TextReplacementConfig.builder()
-                .matchLiteral(match.value).once()
+                .match("(?<!\\\\)${match.value}")
                 .replacement("\\${match.value}".miniMsg())
                 .build()
         )
@@ -113,7 +112,7 @@ fun Component.escapeEmoteIDs(player: Player?): Component {
 
         component = component.replaceText(
             TextReplacementConfig.builder()
-                .matchLiteral(match.value).once()
+                .match("(?<!\\\\)${match.value}")
                 .replacement("\\:space_$space:".miniMsg())
                 .build()
         )

@@ -3,14 +3,15 @@
 package com.mineinabyss.emojy.config
 
 import co.touchlab.kermit.Severity
-import com.mineinabyss.emojy.*
-import com.mineinabyss.idofront.messaging.*
+import com.mineinabyss.emojy.emojy
+import com.mineinabyss.emojy.emojyConfig
+import com.mineinabyss.emojy.spaceComponent
+import com.mineinabyss.emojy.templates
 import com.mineinabyss.idofront.serialization.KeySerializer
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
 import kotlinx.serialization.*
 import kotlinx.serialization.EncodeDefault.Mode.NEVER
-import kotlinx.serialization.Transient
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
@@ -111,7 +112,7 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
 
         private val permission get() = "emojy.emote.$id"
         private val fontPermission get() = "emojy.font.$font"
-        private fun fontProvider() = FontProvider.bitMap(texture, height, ascent, unicodes.map { it.toString() })
+        private fun fontProvider() = FontProvider.bitMap(texture, height, ascent, unicodes)
         fun appendFont(resourcePack: ResourcePack) =
             (resourcePack.font(font)?.toBuilder() ?: Font.font().key(font)).addProvider(fontProvider()).build()
 
@@ -152,7 +153,10 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
                     ("<red>Type <i>:</i>$id<i>:</i> or <i><u>Shift + Click</i> this to use this emote").miniMsg()
                 )
             )
-            return if (appendSpace) Component.textOfChildren(bitmap, spaceComponent(2)) else bitmap
+
+            if (appendSpace) bitmap.append(spaceComponent(2))
+
+            return bitmap
         }
     }
 }
