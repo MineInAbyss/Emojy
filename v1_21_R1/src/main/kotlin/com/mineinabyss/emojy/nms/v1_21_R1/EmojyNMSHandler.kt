@@ -16,6 +16,7 @@ import io.netty.channel.ChannelPromise
 import io.papermc.paper.adventure.AdventureComponent
 import io.papermc.paper.adventure.PaperAdventure
 import io.papermc.paper.network.ChannelInitializeListenerHolder
+import net.minecraft.core.NonNullList
 import net.minecraft.network.Connection
 import net.minecraft.network.chat.ChatType
 import net.minecraft.network.chat.Component
@@ -29,6 +30,7 @@ import net.minecraft.world.item.ItemStack
 import org.bukkit.NamespacedKey
 import org.bukkit.craftbukkit.inventory.CraftItemStack
 import org.bukkit.entity.Player
+import org.bukkit.inventory.AnvilInventory
 import java.util.*
 
 class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
@@ -67,21 +69,21 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                                 } ?: it
                             })
                             is ClientboundContainerSetSlotPacket -> ClientboundContainerSetSlotPacket(packet.containerId, packet.stateId, packet.slot, packet.item.transformItemNameLore())
-                            //is ClientboundContainerSetContentPacket -> ClientboundContainerSetContentPacket(
-                            //    packet.containerId, packet.stateId, NonNullList.of(packet.items.first(),
-                            //        *packet.items.map {
-                            //            val inv = connection.player.bukkitEntity.openInventory.topInventory
-                            //            val bukkit = CraftItemStack.asBukkitCopy(it)
+                            is ClientboundContainerSetContentPacket -> ClientboundContainerSetContentPacket(
+                                packet.containerId, packet.stateId, NonNullList.of(packet.items.first(),
+                                    *packet.items.map {
+                                        val inv = connection.player.bukkitEntity.openInventory.topInventory
+                                        val bukkit = CraftItemStack.asBukkitCopy(it)
 
-                            //            // If item is firstItem in AnvilInventory we want to set it to have the plain-text displayname
-                            //            if (inv is AnvilInventory && inv.firstItem == bukkit)
-                            //                bukkit.itemMeta?.persistentDataContainer?.get(ORIGINAL_ITEM_RENAME_TEXT, DataType.STRING)?.let { og ->
-                            //                    CraftItemStack.asNMSCopy(bukkit.editItemMeta {
-                            //                        setDisplayName(og)
-                            //                    })
-                            //                } ?: it.transformItemNameLore()
-                            //            else it.transformItemNameLore()
-                            //        }.toTypedArray()), packet.carriedItem)
+                                        // If item is firstItem in AnvilInventory we want to set it to have the plain-text displayname
+                                        if (inv is AnvilInventory && inv.firstItem == bukkit)
+                                            bukkit.itemMeta?.persistentDataContainer?.get(ORIGINAL_ITEM_RENAME_TEXT, DataType.STRING)?.let { og ->
+                                                CraftItemStack.asNMSCopy(bukkit.editItemMeta {
+                                                    setDisplayName(og)
+                                                })
+                                            } ?: it.transformItemNameLore()
+                                        else it.transformItemNameLore()
+                                    }.toTypedArray()), packet.carriedItem)
                             is ClientboundBossEventPacket -> {
                                 // Access the private field 'operation'
                                 val operationField = ClientboundBossEventPacket::class.java.getDeclaredField("operation").apply { isAccessible = true }

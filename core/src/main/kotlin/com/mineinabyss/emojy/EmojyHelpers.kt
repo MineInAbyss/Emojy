@@ -6,6 +6,7 @@ import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.TextComponent
 import net.kyori.adventure.text.TextReplacementConfig
 import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.NamespacedKey
@@ -23,9 +24,21 @@ val ORIGINAL_ITEM_RENAME_TEXT = NamespacedKey.fromString("emojy:original_item_re
 
 fun spaceComponent(space: Int) = Component.textOfChildren(Component.text(Space.of(space)).font(emojyConfig.spaceFont))
 
+private fun Component.asFlatTextContent(): String {
+    return buildString {
+        append((this@asFlatTextContent as? TextComponent)?.content())
+        append(this@asFlatTextContent.children().joinToString("") { it.asFlatTextContent() })
+        append(this@asFlatTextContent.children().joinToString("") { it.asFlatTextContent() })
+        (this@asFlatTextContent.hoverEvent()?.value() as? Component)?.let {
+            append((it as? TextComponent)?.content())
+            append(it.children().joinToString("") { it.asFlatTextContent() })
+        }
+    }
+}
+
 fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): Component {
     var component = GlobalTranslator.render(this, locale ?: Locale.US)
-    val serialized = component.serialize()
+    val serialized = component.asFlatTextContent()
 
     for (emote in emojy.emotes) emote.baseRegex.findAll(serialized).forEach { match ->
 
@@ -71,7 +84,7 @@ fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): 
 
 fun Component.escapeEmoteIDs(player: Player?): Component {
     var component = this
-    val serialized = component.serialize()
+    val serialized = component.asFlatTextContent()
 
     // Replace all unicodes found in default font with a random one
     // This is to prevent use of unicodes from the font the chat is in
@@ -123,7 +136,7 @@ fun Component.escapeEmoteIDs(player: Player?): Component {
 
 fun Component.unescapeEmoteIds(): Component {
     var component = this
-    val serialized = this.serialize()
+    val serialized = component.asFlatTextContent()
 
     for (emote in emojy.emotes) emote.escapedRegex.findAll(serialized).forEach { match ->
         component = component.replaceText(
