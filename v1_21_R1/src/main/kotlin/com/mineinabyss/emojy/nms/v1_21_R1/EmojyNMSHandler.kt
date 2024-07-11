@@ -92,28 +92,20 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                                 when (operation::class.java.simpleName) {
                                     "AddOperation" -> {
                                         val nameField = operation::class.java.getDeclaredField("name").apply { isAccessible = true }
-                                        // Get the component, serialize it and replace "\\<" as it might be escaped if not an AdventureBossbar
-                                        val name = PaperAdventure.asAdventure(nameField.get(operation) as Component).serialize().replace("\\<", "<").miniMsg()
-                                        nameField.set(operation, PaperAdventure.asVanilla(name.transformEmotes(connection.locale())))
+                                        nameField.set(operation, (nameField.get(operation) as Component).transformEmotes(connection.locale()))
                                     }
                                     "UpdateNameOperation" -> {
                                         val accessorMethod = operation::class.java.methods.find { it.name == "name" }
                                         accessorMethod?.isAccessible = true
                                         if (accessorMethod != null) {
-                                            val name = PaperAdventure.asAdventure(accessorMethod.invoke(operation) as Component)
-                                                .serialize().replace("\\<", "<")
-                                                .miniMsg().transformEmotes(connection.locale())
-
                                             val updateNameOperationClass = operation::class.java.enclosingClass.declaredClasses.find {
                                                 it.simpleName == "UpdateNameOperation"
                                             } ?: throw IllegalStateException("UpdateNameOperation class not found")
 
                                             val constructor = updateNameOperationClass.getDeclaredConstructor(Component::class.java).apply { isAccessible = true }
-                                            // Create a new instance of UpdateNameOperation with the modified name
+                                            val name = (accessorMethod.invoke(operation) as Component).transformEmotes(connection.locale())
+                                            val updatedOperation = constructor.newInstance(name)
 
-                                            val updatedOperation = constructor.newInstance(PaperAdventure.asVanilla(name))
-
-                                            // Set the updated operation in the packet
                                             operationField.set(packet, updatedOperation)
                                         }
                                     }
@@ -147,7 +139,7 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                         itemName(if (hasItemName()) itemName().transformEmotes(locale) else null)
                         lore(lore()?.map { l -> l.transformEmotes(locale) })
                         persistentDataContainer.get(ORIGINAL_ITEM_RENAME_TEXT, DataType.STRING)?.let {
-                            displayName(it.miniMsg().escapeEmoteIDs(player).transformEmotes(locale).unescapeEmoteIds())
+                            displayName(it.escapeEmoteIDs(player).transformEmotes().unescapeEmoteIds().miniMsg())
                         }
                     })
                 }
@@ -158,16 +150,8 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
 
     companion object {
 
-        fun String.transformEmotes(locale: Locale? = null, insert: Boolean = false): String {
-            return miniMsg().transformEmotes(locale, insert).serialize()
-        }
-
         fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): Component {
             return PaperAdventure.asVanilla(PaperAdventure.asAdventure(this).transformEmotes(locale, insert))
-        }
-
-        fun String.escapeEmoteIDs(player: Player?): String {
-            return miniMsg().escapeEmoteIDs(player).serialize()
         }
 
         fun Component.escapeEmoteIDs(player: Player?): Component {

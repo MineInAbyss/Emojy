@@ -18,10 +18,14 @@ val escapedSpaceRegex: Regex = "\\\\(:space_(-?\\d+):)".toRegex()
 val colorableRegex: Regex = "\\|(c|colorable)".toRegex()
 val bitmapIndexRegex: Regex = "\\|([0-9]+)".toRegex()
 
+private val defaultKey = Key.key("default")
+private val randomKey = Key.key("random")
+
 val ORIGINAL_SIGN_FRONT_LINES = NamespacedKey.fromString("emojy:original_front_lines")!!
 val ORIGINAL_SIGN_BACK_LINES = NamespacedKey.fromString("emojy:original_back_lines")!!
 val ORIGINAL_ITEM_RENAME_TEXT = NamespacedKey.fromString("emojy:original_item_rename")!!
 
+fun spaceString(space: Int) = "<font:${emojyConfig.spaceFont.asMinimalString()}>${Space.of(space)}</font>"
 fun spaceComponent(space: Int) = Component.textOfChildren(Component.text(Space.of(space)).font(emojyConfig.spaceFont))
 
 private fun Component.asFlatTextContent(): String {
@@ -34,6 +38,37 @@ private fun Component.asFlatTextContent(): String {
             append(it.children().joinToString("") { it.asFlatTextContent() })
         }
     }
+}
+
+fun String.transformEmotes(insert: Boolean = false): String {
+    var content = this
+
+    for (emote in emojy.emotes) emote.baseRegex.findAll(this).forEach { match ->
+
+        val colorable = colorableRegex in match.value
+        val bitmapIndex = bitmapIndexRegex.find(match.value)?.groupValues?.get(1)?.toIntOrNull() ?: -1
+
+        content = content.replaceFirst(
+            emote.baseRegex, emote.formattedUnicode(
+                insert = insert,
+                colorable = colorable,
+                bitmapIndex = bitmapIndex
+            ).serialize()
+        )
+    }
+
+    for (gif in emojy.gifs) gif.baseRegex.findAll(this).forEach { _ ->
+        content = content.replaceFirst(gif.baseRegex, gif.formattedUnicode(insert = insert).serialize())
+    }
+
+    spaceRegex.findAll(this).forEach { match ->
+        val space = match.groupValues[1].toIntOrNull() ?: return@forEach
+        val spaceRegex = "(?<!\\\\):space_(-?$space+):".toRegex()
+
+        content = content.replaceFirst(spaceRegex, spaceString(space))
+    }
+
+    return content
 }
 
 fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): Component {
@@ -49,11 +84,13 @@ fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): 
             TextReplacementConfig.builder()
                 .match(emote.baseRegex.pattern).once()
                 .replacement(
-                    Component.textOfChildren(emote.formattedUnicode(
-                        insert = insert,
-                        colorable = colorable,
-                        bitmapIndex = bitmapIndex
-                    ))
+                    Component.textOfChildren(
+                        emote.formattedUnicode(
+                            insert = insert,
+                            colorable = colorable,
+                            bitmapIndex = bitmapIndex
+                        )
+                    )
                 )
                 .build()
         )
@@ -82,13 +119,39 @@ fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): 
     return component
 }
 
+fun String.escapeEmoteIDs(player: Player?): String {
+    var content = this
+    for (emote in emojy.emotes.filter { it.font == defaultKey && !it.checkPermission(player) }) emote.unicodes.forEach {
+        content = content.replaceFirst(it, "<font:random>$it</font>")
+    }
+
+    for (emote in emojy.emotes) emote.baseRegex.findAll(this).forEach { match ->
+        if (emote.checkPermission(player)) return@forEach
+
+        content = content.replaceFirst("(?<!\\\\)${match.value}", "\\${match.value}")
+    }
+
+    for (gif in emojy.gifs) gif.baseRegex.findAll(this).forEach { match ->
+        if (gif.checkPermission(player)) return@forEach
+        content = content.replaceFirst("(?<!\\\\)${match.value}", "\\${match.value}")
+    }
+
+    spaceRegex.findAll(this).forEach { match ->
+        if (player?.hasPermission(SPACE_PERMISSION) != false) return@forEach
+        val space = match.groupValues[1].toIntOrNull() ?: return@forEach
+
+        content = content.replaceFirst("(?<!\\\\)${match.value}", "\\:space_$space:")
+    }
+
+    return content
+}
+
 fun Component.escapeEmoteIDs(player: Player?): Component {
     var component = this
     val serialized = component.asFlatTextContent()
 
     // Replace all unicodes found in default font with a random one
     // This is to prevent use of unicodes from the font the chat is in
-    val (defaultKey, randomKey) = Key.key("default") to Key.key("random")
     for (emote in emojy.emotes.filter { it.font == defaultKey && !it.checkPermission(player) }) emote.unicodes.forEach {
         component = component.replaceText(
             TextReplacementConfig.builder()
@@ -132,6 +195,24 @@ fun Component.escapeEmoteIDs(player: Player?): Component {
     }
 
     return component
+}
+
+fun String.unescapeEmoteIds(): String {
+    var content = this
+
+    for (emote in emojy.emotes) emote.escapedRegex.findAll(this).forEach { match ->
+        content = content.replaceFirst(emote.escapedRegex, match.value.removePrefix("\\"))
+    }
+
+    for (gif in emojy.gifs) gif.escapedRegex.findAll(this).forEach { match ->
+        content = content.replaceFirst(gif.escapedRegex, match.value.removePrefix("\\"))
+    }
+
+    escapedSpaceRegex.findAll(this).forEach { match ->
+        content = content.replaceFirst(match.value, match.value.removePrefix("\\"))
+    }
+
+    return content
 }
 
 fun Component.unescapeEmoteIds(): Component {

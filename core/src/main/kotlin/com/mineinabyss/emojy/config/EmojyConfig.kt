@@ -3,10 +3,7 @@
 package com.mineinabyss.emojy.config
 
 import co.touchlab.kermit.Severity
-import com.mineinabyss.emojy.emojy
-import com.mineinabyss.emojy.emojyConfig
-import com.mineinabyss.emojy.spaceComponent
-import com.mineinabyss.emojy.templates
+import com.mineinabyss.emojy.*
 import com.mineinabyss.idofront.serialization.KeySerializer
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
