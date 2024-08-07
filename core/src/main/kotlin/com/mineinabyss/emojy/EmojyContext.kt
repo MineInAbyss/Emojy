@@ -12,7 +12,7 @@ import com.mineinabyss.idofront.messaging.ComponentLogger
 
 val emojy by DI.observe<EmojyContext>()
 val emojyConfig by DI.observe<EmojyConfig>()
-val templates get() = DI.observe<EmojyTemplates>().getOrNull()?.templates ?: emptySet()
+val templates get() = DI.observe<EmojyTemplates>().getOrNull() ?: EmojyTemplates()
 interface EmojyContext {
     val plugin: EmojyPlugin
     val emotes: Set<Emotes.Emote>
