@@ -8,7 +8,7 @@ object EmojyNMSHandlers {
     fun setup(emojy: EmojyPlugin): IEmojyNMSHandler {
         val nmsPackage = when (Bukkit.getMinecraftVersion()) {
             "1.20.5", "1.20.6" -> "v1_20_R4"
-            "1.21" -> "v1_21_R1"
+            "1.21", "1.21.1" -> "v1_21_R1"
             else -> throw IllegalStateException("Unsupported server version")
         }
         runCatching {
