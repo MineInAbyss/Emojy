@@ -62,6 +62,7 @@ class EmojyPlugin : JavaPlugin() {
 
         GlobalTranslator.translator().sources().filter { it.name() == EmojyTranslator.key }.forEach(GlobalTranslator.translator()::removeSource)
         GlobalTranslator.translator().addSource(EmojyTranslator())
+        EmojyPlaceholders().register()
     }
 }
 

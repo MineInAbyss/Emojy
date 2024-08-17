@@ -29,9 +29,7 @@ dependencyResolutionManagement {
     }
 
     versionCatalogs {
-        create("idofrontLibs"){
-            from("com.mineinabyss:catalog:$idofrontVersion")
-        }
+        create("idofrontLibs").from("com.mineinabyss:catalog:$idofrontVersion")
     }
 }
 
