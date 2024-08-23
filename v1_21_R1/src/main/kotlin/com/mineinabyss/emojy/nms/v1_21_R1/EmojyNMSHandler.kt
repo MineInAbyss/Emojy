@@ -6,6 +6,7 @@ import com.jeff_media.morepersistentdatatypes.DataType
 import com.mineinabyss.emojy.*
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
 import com.mineinabyss.idofront.items.editItemMeta
+import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.plugin.listeners
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
@@ -20,12 +21,14 @@ import net.minecraft.core.NonNullList
 import net.minecraft.network.Connection
 import net.minecraft.network.chat.ChatType
 import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.MutableComponent
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.ClientboundDisconnectPacket
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
 import net.minecraft.network.protocol.common.ClientboundServerLinksPacket
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.syncher.EntityDataSerializer
+import net.minecraft.network.syncher.EntityDataSerializers
 import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.world.item.ItemStack
 import org.bukkit.NamespacedKey
@@ -79,11 +82,15 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                 is ClientboundResourcePackPushPacket -> ClientboundResourcePackPushPacket(packet.id, packet.url, packet.hash, packet.required, packet.prompt.map { it.transformEmotes(connection.locale()) })
                 is ClientboundDisconnectPacket -> ClientboundDisconnectPacket(packet.reason.transformEmotes(connection.locale()))
                 is ClientboundSetEntityDataPacket -> ClientboundSetEntityDataPacket(packet.id, packet.packedItems.map {
-                    (it.value as? AdventureComponent)?.let { value ->
-                        SynchedEntityData.DataValue(it.id, it.serializer as EntityDataSerializer<AdventureComponent>,
+                    when (val value = it.value) {
+                        is AdventureComponent -> SynchedEntityData.DataValue(it.id, it.serializer as EntityDataSerializer<AdventureComponent>,
                             AdventureComponent(value.`adventure$component`().transformEmotes(connection.locale()))
                         )
-                    } ?: it
+                        is Component -> SynchedEntityData.DataValue(it.id, EntityDataSerializers.COMPONENT,
+                            value.transformEmotes(connection.locale())
+                        )
+                        else -> it
+                    }
                 })
                 is ClientboundContainerSetSlotPacket -> ClientboundContainerSetSlotPacket(packet.containerId, packet.stateId, packet.slot, packet.item.transformItemNameLore(connection.player.bukkitEntity))
                 is ClientboundContainerSetContentPacket -> ClientboundContainerSetContentPacket(
