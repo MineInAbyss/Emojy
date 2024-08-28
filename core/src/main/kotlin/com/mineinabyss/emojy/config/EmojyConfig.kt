@@ -49,10 +49,8 @@ data class EmojyConfig(
         val ignoredGifIds: Set<String> = mutableSetOf(),
         val ignoredFonts: Set<@Serializable(KeySerializer::class) Key> = mutableSetOf()
     ) {
-        val ignoredEmotes: Set<Emotes.Emote>
-            get() = emojy.emotes.filter { it.id in ignoredEmoteIds || it.font in ignoredFonts }.toSet()
-        val ignoredGifs: Set<Gifs.Gif>
-            get() = emojy.gifs.filter { it.id in ignoredGifIds || it.font in ignoredFonts }.toSet()
+        val ignoredEmotes by lazy { emojy.emotes.filter { it.id in ignoredEmoteIds || it.font in ignoredFonts }.toSet() }
+        val ignoredGifs by lazy { emojy.gifs.filter { it.id in ignoredGifIds || it.font in ignoredFonts }.toSet() }
     }
 }
 
@@ -75,31 +73,29 @@ data class Emotes(val emotes: Set<Emote> = mutableSetOf()) {
         @EncodeDefault(NEVER) val bitmapWidth: Int = template?.bitmapWidth ?: 1,
         @EncodeDefault(NEVER) val bitmapHeight: Int = template?.bitmapHeight ?: 1,
     ) {
-        val isMultiBitmap: Boolean get() = bitmapWidth > 1 || bitmapHeight > 1
-        @Transient
-        val baseRegex = "(?<!\\\\):$id(\\|(c|colorable|\\d+))*:".toRegex()
-        @Transient
-        val escapedRegex = "\\\\:$id(\\|(c|colorable|\\d+))*:".toRegex()
+        @Transient val isMultiBitmap = bitmapWidth > 1 || bitmapHeight > 1
+        @Transient val baseRegex = "(?<!\\\\):$id(\\|(c|colorable|\\d+))*:".toRegex()
+        @Transient val escapedRegex = "\\\\:$id(\\|(c|colorable|\\d+))*:".toRegex()
 
         // Beginning of Private Use Area \uE000 -> uF8FF
         // Option: (Character.toCodePoint('\uE000', '\uFF8F')/37 + getIndex())
-        @Transient
-        private val lastUsedUnicode: MutableMap<Key, Int> = mutableMapOf()
+        @Transient private val lastUsedUnicode: MutableMap<Key, Int> = mutableMapOf()
 
         // We get this lazily so we dont need to use a function and check every time
-        // but also because EmojyContext needs to be registered, so a normal vbal does not work
+        // but also because EmojyContext needs to be registered, so a normal val does not work
         //TODO Rework to be List<CharArray> instead
         val unicodes: MutableList<String> by lazy {
             mutableListOf("").apply {
                 for (i in 0 until bitmapHeight) {
                     for (j in 0 until bitmapWidth) {
                         val lastUnicode = lastUsedUnicode[font] ?: 0
-                        val row = ((getOrNull(i) ?: "") + Character.toChars(
+                        val index = getOrNull(i)
+                        val row = (index ?: "") + Character.toChars(
                             PRIVATE_USE_FIRST + lastUnicode + emojy.emotes
                                 .filter { it.font == font }.map { it }.indexOf(this@Emote)
-                        ).firstOrNull().toString())
-                        if (getOrNull(i) == null)
-                            add(i, row) else set(i, row)
+                        ).firstOrNull().toString()
+
+                        if (index == null) add(i, row) else set(i, row)
                         lastUsedUnicode[font] = lastUnicode + 1
                     }
                 }

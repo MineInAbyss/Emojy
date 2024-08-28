@@ -6,7 +6,7 @@ import com.mineinabyss.idofront.textcomponents.miniMsg
 import net.kyori.adventure.text.Component
 import org.bukkit.entity.Player
 
-object EmojyBrigadierCommands {
+object EmojyCommands {
 
     fun registerCommands() {
         emojy.plugin.commands {

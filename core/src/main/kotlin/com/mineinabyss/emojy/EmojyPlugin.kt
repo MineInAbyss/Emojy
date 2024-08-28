@@ -13,9 +13,6 @@ import com.mineinabyss.idofront.di.DI
 import com.mineinabyss.idofront.messaging.ComponentLogger
 import com.mineinabyss.idofront.messaging.injectLogger
 import com.mineinabyss.idofront.messaging.observeLogger
-import com.mineinabyss.idofront.plugin.dataPath
-import com.mineinabyss.idofront.plugin.listeners
-import net.kyori.adventure.key.Key
 import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.*
@@ -35,7 +32,7 @@ class EmojyPlugin : JavaPlugin() {
 
         EmojyGenerator.generateResourcePack()
 
-        EmojyBrigadierCommands.registerCommands()
+        EmojyCommands.registerCommands()
     }
 
     fun createEmojyContext() {
