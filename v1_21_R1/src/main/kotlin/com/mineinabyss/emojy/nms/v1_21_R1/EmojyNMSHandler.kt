@@ -5,6 +5,8 @@ package com.mineinabyss.emojy.nms.v1_21_R1
 import com.jeff_media.morepersistentdatatypes.DataType
 import com.mineinabyss.emojy.*
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
+import com.mineinabyss.emojy.nms.v1_21_R1.EmojyNMSHandler.Companion.locale
+import com.mineinabyss.emojy.nms.v1_21_R1.EmojyNMSHandler.Companion.transformEmotes
 import com.mineinabyss.idofront.items.editItemMeta
 import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.plugin.listeners
@@ -22,6 +24,7 @@ import net.minecraft.network.Connection
 import net.minecraft.network.chat.ChatType
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.MutableComponent
+import net.minecraft.network.chat.contents.PlainTextContents.LiteralContents
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.ClientboundDisconnectPacket
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
@@ -161,7 +164,10 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
         }
 
         fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): Component {
-            return PaperAdventure.asVanilla(PaperAdventure.asAdventure(this).transformEmotes(locale, insert))
+            return PaperAdventure.asVanilla(when (val contents = contents) {
+                is LiteralContents -> contents.text.miniMsg()
+                else -> PaperAdventure.asAdventure(this)
+            }.transformEmotes(locale, insert))
         }
 
         fun Component.escapeEmoteIDs(player: Player?): Component {

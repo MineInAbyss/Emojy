@@ -22,12 +22,11 @@ allprojects {
     repositories {
         maven("https://repo.mineinabyss.com/releases")
         maven("https://repo.mineinabyss.com/snapshots")
-        maven("https://hub.jeff-media.com/nexus/repository/jeff-media-public/")
         mavenLocal()
     }
 
     dependencies {
-        implementation("com.jeff_media:MorePersistentDataTypes:2.4.0")
+        implementation("com.jeff-media:MorePersistentDataTypes:2.4.0")
     }
 }
 
@@ -67,7 +66,7 @@ tasks {
     }
 
     runServer {
-        minecraftVersion("1.20.6")
+        minecraftVersion("1.21")
     }
 
     shadowJar {
