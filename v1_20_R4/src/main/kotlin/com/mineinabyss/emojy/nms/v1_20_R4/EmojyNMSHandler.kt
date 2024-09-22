@@ -20,6 +20,7 @@ import net.minecraft.core.NonNullList
 import net.minecraft.network.Connection
 import net.minecraft.network.chat.ChatType
 import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.contents.PlainTextContents.LiteralContents
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.ClientboundDisconnectPacket
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
@@ -153,7 +154,11 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
         }
 
         fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): Component {
-            return PaperAdventure.asVanilla(PaperAdventure.asAdventure(this).transformEmotes(locale, insert))
+            return when {
+                // Sometimes a NMS component is partially Literal, so ensure entire thing is just one LiteralContent with no extra data
+                contents is LiteralContents && style.isEmpty && siblings.isEmpty() -> (contents as LiteralContents).text.miniMsg()
+                else -> PaperAdventure.asAdventure(this)
+            }.transformEmotes(locale, insert).let(PaperAdventure::asVanilla)
         }
 
         fun Component.escapeEmoteIDs(player: Player?): Component {

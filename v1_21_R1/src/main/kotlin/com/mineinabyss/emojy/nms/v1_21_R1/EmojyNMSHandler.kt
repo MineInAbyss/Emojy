@@ -164,10 +164,11 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
         }
 
         fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): Component {
-            return PaperAdventure.asVanilla(when (val contents = contents) {
-                is LiteralContents -> contents.text.miniMsg()
+            return when {
+                // Sometimes a NMS component is partially Literal, so ensure entire thing is just one LiteralContent with no extra data
+                contents is LiteralContents && style.isEmpty && siblings.isEmpty() -> (contents as LiteralContents).text.miniMsg()
                 else -> PaperAdventure.asAdventure(this)
-            }.transformEmotes(locale, insert))
+            }.transformEmotes(locale, insert).let(PaperAdventure::asVanilla)
         }
 
         fun Component.escapeEmoteIDs(player: Player?): Component {
