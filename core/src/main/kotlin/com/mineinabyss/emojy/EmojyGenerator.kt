@@ -18,6 +18,7 @@ import team.unnamed.creative.texture.Texture
 object EmojyGenerator {
     private val gifFolder = emojy.plugin.dataFolder.resolve("gifs").apply { mkdirs() }
     private val emotesFolder = emojy.plugin.dataFolder.resolve("emotes").apply { mkdirs() }
+    private val spaceProvider = FontProvider.space(Space.entries.asSequence().filterNot(Space.NULL::equals).associate { it.unicode to it.toNumber() })
 
     fun generateResourcePack() {
         val resourcePack = ResourcePack.resourcePack()
@@ -25,7 +26,7 @@ object EmojyGenerator {
 
         val textureFiles = emotesFolder.walkTopDown().filter { it.isFile }.associateBy { it.name }
         val fontSpaceProvider = FontProvider.space().advance("\uE101", -1).build()
-        emojy.emotes.mapNotNull { emote ->
+        emojy.emotes.forEach { emote ->
             resourcePack.font(emote.font)?.takeIf { emote.isMultiBitmap }?.let { font ->
                 when {
                     // Add a -1 advance to the font for ease of use
@@ -34,7 +35,7 @@ object EmojyGenerator {
                         resourcePack.font(font.toBuilder().addProvider(fontSpaceProvider).build())
                     // If the font has already added an entry for the emote, skip it
                     font.providers().any { it is BitMapFontProvider && it.file() == emote.texture } ->
-                        return@mapNotNull emojy.logger.w("Skipping ${emote.id}-font because it is a bitmap and already added").let { null }
+                        return@forEach emojy.logger.w("Skipping ${emote.id}-font because it is a bitmap and already added").let { null }
                 }
             }
 
@@ -49,8 +50,7 @@ object EmojyGenerator {
             it.generateSplitGif(resourcePack)
             it.font().addTo(resourcePack)
         }
-        Font.font(emojyConfig.spaceFont, FontProvider.space(Space.entries.filterNot(Space.NULL::equals)
-            .associate { it.unicode to it.toNumber() })).addTo(resourcePack)
+        Font.font(emojyConfig.spaceFont, spaceProvider).addTo(resourcePack)
 
         MinecraftResourcePackWriter.minecraft().writeToZipFile(emojy.plugin.dataFolder.resolve("pack.zip"), resourcePack)
     }

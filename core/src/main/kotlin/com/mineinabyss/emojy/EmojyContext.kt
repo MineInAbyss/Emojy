@@ -15,9 +15,9 @@ val emojyConfig by DI.observe<EmojyConfig>()
 val templates get() = DI.observe<EmojyTemplates>().getOrNull() ?: EmojyTemplates()
 interface EmojyContext {
     val plugin: EmojyPlugin
-    val emotes: Set<Emotes.Emote>
-    val gifs: Set<Gifs.Gif>
-    val languages: Set<EmojyLanguage>
+    val emotes: Array<Emotes.Emote>
+    val gifs: Array<Gifs.Gif>
+    val languages: Array<EmojyLanguage>
     val handler: IEmojyNMSHandler
     val logger: ComponentLogger
 }

@@ -47,12 +47,12 @@ class EmojyPlugin : JavaPlugin() {
         DI.remove<EmojyContext>()
         DI.add<EmojyContext>(object : EmojyContext {
             override val plugin: EmojyPlugin = this@EmojyPlugin
-            override val emotes: Set<Emotes.Emote> = config("emotes", dataPath, Emotes()).getOrLoad().emotes
-            override val gifs: Set<Gifs.Gif> = config("gifs", dataPath, Gifs()).getOrLoad().gifs
-            override val languages: Set<EmojyLanguage> = emojyConfig.supportedLanguages.map {
+            override val emotes: Array<Emotes.Emote> = config("emotes", dataPath, Emotes()).getOrLoad().emotes.toTypedArray()
+            override val gifs: Array<Gifs.Gif> = config("gifs", dataPath, Gifs()).getOrLoad().gifs.toTypedArray()
+            override val languages: Array<EmojyLanguage> = emojyConfig.supportedLanguages.map {
                 EmojyLanguage(it.split("_").let { l -> Locale(l.first(), l.last().uppercase()) },
                     config<Map<String, String>>(it, dataPath / "languages", mapOf()).getOrLoad())
-            }.toSet()
+            }.toTypedArray()
             override val logger by plugin.observeLogger()
             override val handler: IEmojyNMSHandler = EmojyNMSHandlers.setup(this@EmojyPlugin)
         })
