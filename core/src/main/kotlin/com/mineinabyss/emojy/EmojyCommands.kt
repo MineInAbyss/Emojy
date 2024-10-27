@@ -12,6 +12,7 @@ object EmojyCommands {
         emojy.plugin.commands {
             "emojy" {
                 "list" {
+                    requiresPermission("")
                     executes {
                         val emotes = emojy.emotes.filter { it.checkPermission(sender as? Player) && it !in emojyConfig.emojyList.ignoredEmotes }.toSet()
                         val gifs = emojy.gifs.filter { it.checkPermission(sender as? Player) && it !in emojyConfig.emojyList.ignoredGifs }.toSet()
