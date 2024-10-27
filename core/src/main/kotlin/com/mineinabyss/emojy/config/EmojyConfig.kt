@@ -173,7 +173,7 @@ data class Gifs(val gifs: Set<Gif> = mutableSetOf()) {
         @Transient val baseRegex = "(?<!\\\\):$id:".toRegex()
         @Transient val escapedRegex = "\\\\:$id:".toRegex()
 
-        @Transient val gifFile = emojy.plugin.dataFolder.resolve("gifs/${id}.gif").apply { mkdirs() }
+        val gifFile by lazy { emojy.plugin.dataFolder.resolve("gifs/${id}.gif").apply { mkdirs() } }
         private var aspectRatio by Delegates.notNull<Float>()
 
         enum class GifType {
