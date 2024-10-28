@@ -65,9 +65,6 @@ object EmojyGenerator {
 
         resourcePack.packMeta(48, "")
 
-        File("C:\\Users\\Sivert\\AppData\\Roaming\\ModrinthApp\\profiles\\MineInAbyss - 1.21\\resourcepacks\\pack").deleteRecursively()
-        MinecraftResourcePackWriter.minecraft().writeToDirectory(File("C:\\Users\\Sivert\\AppData\\Roaming\\ModrinthApp\\profiles\\MineInAbyss - 1.21\\resourcepacks\\pack"), resourcePack)
-
         MinecraftResourcePackWriter.minecraft().writeToZipFile(emojy.plugin.dataFolder.resolve("pack.zip"), resourcePack)
     }
 
