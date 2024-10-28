@@ -5,6 +5,7 @@ import com.mineinabyss.emojy.EmojyGenerator.gifFolder
 import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.emojyConfig
 import com.mineinabyss.emojy.spaceComponent
+import com.mineinabyss.idofront.messaging.*
 import com.mineinabyss.idofront.serialization.KeySerializer
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
@@ -26,6 +27,7 @@ import team.unnamed.creative.base.Writable
 import team.unnamed.creative.font.Font
 import team.unnamed.creative.font.FontProvider
 import team.unnamed.creative.texture.Texture
+import java.awt.AlphaComposite
 import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
@@ -61,15 +63,15 @@ data class Gif(
         SHADER, OBFUSCATION
     }
 
-    private fun unicode(index: Int): Char = Character.toChars(PRIVATE_USE_FIRST + index).first()
+    private fun unicode(index: Int): String = Character.toChars(PRIVATE_USE_FIRST + index).first().toString()
 
     private fun unicode(): String {
         return when (type) {
-            GifType.SHADER -> (0 until frameCount).joinToString("") { unicode(it).toString() }
-                .miniMsg().font(font).color(TextColor.fromHexString("#FEFEFE")).serialize()
+            GifType.SHADER -> Component.text((0 until frameCount).joinToString(unicode(frameCount)) { unicode(it) })
+                .font(font).color(TextColor.fromHexString("#FEFEFE")).serialize()
 
-            GifType.OBFUSCATION -> unicode(0).toString().miniMsg()
-                .decorate(TextDecoration.OBFUSCATED).font(font).color(NamedTextColor.WHITE).serialize()
+            GifType.OBFUSCATION -> Component.text(unicode(0), NamedTextColor.WHITE)
+                .decorate(TextDecoration.OBFUSCATED).font(font).serialize()
         }
     }
 
@@ -92,14 +94,14 @@ data class Gif(
 
     fun font() = Font.font(font, fontProvider(), gifAdvance())
     private fun gifAdvance() =
-        FontProvider.space().advance(unicode(frameCount() + 1).toString(), -(height * aspectRatio + 1).roundToInt())
+        FontProvider.space().advance(unicode(frameCount), -(ascent * aspectRatio).roundToInt())
             .build()
 
     private fun fontProvider(): FontProvider {
         // Construct the `chars` mapping in `["xyz", "xyz", "xyz"]` format
         val charsGrid = (0 until bitmapRows).map { row ->
             (0 until bitmapColumns).joinToString("") { col ->
-                unicode(row + col * bitmapColumns).toString()
+                unicode((row * bitmapColumns + col).apply { if (id.contains("neco")) println(this) })
             }
         }
 
@@ -125,10 +127,9 @@ data class Gif(
         runCatching {
             val gifFolder = gifFolder.resolve(id)
             gifFolder.deleteRecursively()
+
             GifConverter.splitGif(gifFile, frameCount()) // Keep individual frame creation
-            createSpritesheet(gifFolder).let {
-                ImageIO.write(it, "png", gifSpriteSheet)
-            } // Create the spritesheet based on frames
+            createSpritesheet(gifFolder)
 
             Texture.texture(Key.key("${framePath.asString()}.png"), Writable.file(gifSpriteSheet)).addTo(resourcePack)
         }.onFailure {
@@ -136,31 +137,29 @@ data class Gif(
         }
     }
 
-    private fun createSpritesheet(gifFolder: File): BufferedImage {
+    private fun createSpritesheet(gifFolder: File) {
         // List all frame files in the folder, ensuring they are sorted by filename
         val frames = gifFolder.listFiles()
             ?.filter { it.isFile && it.extension == "png" }
             ?.sortedBy { it.nameWithoutExtension.toIntOrNull() } // Assumes frames are named in order (e.g., 1.png, 2.png)
             ?: throw IllegalStateException("No frame files found in $gifFolder")
 
-        val frameCount = frames.size
-
         // Determine dimensions based on the first frame
-        val firstFrame = ImageIO.read(frames[0])
-        val (frameWidth, frameHeight) = firstFrame.width to firstFrame.height
+        val (frameWidth, frameHeight) = ImageIO.read(frames.first()).let { it.width to it.height }
 
         // Create the spritesheet image
         val spritesheet = BufferedImage(bitmapColumns * frameWidth, bitmapRows * frameHeight, BufferedImage.TYPE_INT_ARGB)
         val graphics = spritesheet.createGraphics()
+        graphics.composite = AlphaComposite.Src  // Ensure correct alpha handling
 
         frames.forEachIndexed { index, frameFile ->
             val x = (index % bitmapColumns) * frameWidth
             val y = (index / bitmapColumns) * frameHeight
-            val frameImage = ImageIO.read(frameFile)
-            graphics.drawImage(frameImage, x, y, null)
+            graphics.drawImage(ImageIO.read(frameFile), x, y, null)
         }
         graphics.dispose()
 
-        return spritesheet
+        ImageIO.write(spritesheet, "png", gifSpriteSheet)
+
     }
 }
