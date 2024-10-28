@@ -1,9 +1,6 @@
 package com.mineinabyss.emojy
 
-import com.mineinabyss.emojy.config.EmojyConfig
-import com.mineinabyss.emojy.config.EmojyTemplates
-import com.mineinabyss.emojy.config.Emotes
-import com.mineinabyss.emojy.config.Gifs
+import com.mineinabyss.emojy.config.*
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
 import com.mineinabyss.emojy.translator.EmojyLanguage
@@ -47,8 +44,8 @@ class EmojyPlugin : JavaPlugin() {
         DI.remove<EmojyContext>()
         DI.add<EmojyContext>(object : EmojyContext {
             override val plugin: EmojyPlugin = this@EmojyPlugin
-            override val emotes: Array<Emotes.Emote> = config("emotes", dataPath, Emotes()).getOrLoad().emotes.toTypedArray()
-            override val gifs: Array<Gifs.Gif> = config("gifs", dataPath, Gifs()).getOrLoad().gifs.toTypedArray()
+            override val emotes: Array<Emote> = config("emotes", dataPath, Emotes()).getOrLoad().emotes.toTypedArray()
+            override val gifs: Array<Gif> = config("gifs", dataPath, Gifs()).getOrLoad().gifs.toTypedArray()
             override val languages: Array<EmojyLanguage> = emojyConfig.supportedLanguages.map {
                 EmojyLanguage(it.split("_").let { l -> Locale(l.first(), l.last().uppercase()) },
                     config<Map<String, String>>(it, dataPath / "languages", mapOf()).getOrLoad())
