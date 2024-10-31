@@ -1,9 +1,6 @@
 package com.mineinabyss.emojy
 
-import com.mineinabyss.emojy.config.EmojyConfig
-import com.mineinabyss.emojy.config.EmojyTemplates
-import com.mineinabyss.emojy.config.Emotes
-import com.mineinabyss.emojy.config.Gifs
+import com.mineinabyss.emojy.config.*
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
 import com.mineinabyss.emojy.translator.EmojyLanguage
@@ -15,9 +12,9 @@ val emojyConfig by DI.observe<EmojyConfig>()
 val templates get() = DI.observe<EmojyTemplates>().getOrNull() ?: EmojyTemplates()
 interface EmojyContext {
     val plugin: EmojyPlugin
-    val emotes: Set<Emotes.Emote>
-    val gifs: Set<Gifs.Gif>
-    val languages: Set<EmojyLanguage>
+    val emotes: Array<Emote>
+    val gifs: Array<Gif>
+    val languages: Array<EmojyLanguage>
     val handler: IEmojyNMSHandler
     val logger: ComponentLogger
 }

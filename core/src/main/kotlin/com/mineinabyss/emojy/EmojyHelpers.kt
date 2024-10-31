@@ -1,5 +1,6 @@
 package com.mineinabyss.emojy
 
+import com.mineinabyss.emojy.config.Emotes
 import com.mineinabyss.emojy.config.SPACE_PERMISSION
 import com.mineinabyss.idofront.font.Space
 import com.mineinabyss.idofront.textcomponents.miniMsg
@@ -18,8 +19,11 @@ val escapedSpaceRegex: Regex = "\\\\(:space_(-?\\d+):)".toRegex()
 val colorableRegex: Regex = "\\|(c|colorable)".toRegex()
 val bitmapIndexRegex: Regex = "\\|([0-9]+)".toRegex()
 
-private val defaultKey = Key.key("default")
 private val randomKey = Key.key("random")
+private val randomComponent = Component.text("random").font(randomKey)
+private val defaultKey = Key.key("default")
+private val defaultEmoteReplacementConfigs = emojy.emotes.filter { it.font == defaultKey }.flatMap { it.unicodes }
+    .map { TextReplacementConfig.builder().match(it).replacement(randomComponent).build() }
 
 val ORIGINAL_SIGN_FRONT_LINES = NamespacedKey.fromString("emojy:original_front_lines")!!
 val ORIGINAL_SIGN_BACK_LINES = NamespacedKey.fromString("emojy:original_back_lines")!!
@@ -29,15 +33,17 @@ fun spaceString(space: Int) = "<font:${emojyConfig.spaceFont.asMinimalString()}>
 fun spaceComponent(space: Int) = Component.textOfChildren(Component.text(Space.of(space)).font(emojyConfig.spaceFont))
 
 private fun Component.asFlatTextContent(): String {
-    return buildString {
-        append((this@asFlatTextContent as? TextComponent)?.content())
-        append(this@asFlatTextContent.children().joinToString("") { it.asFlatTextContent() })
-        append(this@asFlatTextContent.children().joinToString("") { it.asFlatTextContent() })
-        (this@asFlatTextContent.hoverEvent()?.value() as? Component)?.let {
-            append((it as? TextComponent)?.content())
-            append(it.children().joinToString("") { it.asFlatTextContent() })
-        }
+    var flattened = ""
+    val flatText = (this@asFlatTextContent as? TextComponent) ?: return flattened
+    flattened += flatText.content()
+    flattened += flatText.children().joinToString("") { it.asFlatTextContent() }
+    (flatText.hoverEvent()?.value() as? Component)?.let { hover ->
+        val hoverText = hover as? TextComponent ?: return@let
+        flattened += hoverText.content()
+        flattened += hoverText.children().joinToString("") { it.asFlatTextContent() }
     }
+
+    return flattened
 }
 
 fun String.transformEmotes(insert: Boolean = false): String {
@@ -152,17 +158,10 @@ fun Component.escapeEmoteIDs(player: Player?): Component {
 
     // Replace all unicodes found in default font with a random one
     // This is to prevent use of unicodes from the font the chat is in
-    for (emote in emojy.emotes.filter { it.font == defaultKey && !it.checkPermission(player) }) emote.unicodes.forEach {
-        component = component.replaceText(
-            TextReplacementConfig.builder()
-                .matchLiteral(it)
-                .replacement(it.miniMsg().font(randomKey))
-                .build()
-        )
-    }
+    for (defaultConfig in defaultEmoteReplacementConfigs) component = component.replaceText(defaultConfig)
 
-    for (emote in emojy.emotes) emote.baseRegex.findAll(serialized).forEach { match ->
-        if (emote.checkPermission(player)) return@forEach
+    for (emote in emojy.emotes) for (match in emote.baseRegex.findAll(serialized)) {
+        if (emote.checkPermission(player)) continue
 
         component = component.replaceText(
             TextReplacementConfig.builder()
@@ -172,8 +171,8 @@ fun Component.escapeEmoteIDs(player: Player?): Component {
         )
     }
 
-    for (gif in emojy.gifs) gif.baseRegex.findAll(serialized).forEach { match ->
-        if (gif.checkPermission(player)) return@forEach
+    for (gif in emojy.gifs) for (match in gif.baseRegex.findAll(serialized)) {
+        if (gif.checkPermission(player)) continue
         component = component.replaceText(
             TextReplacementConfig.builder()
                 .match("(?<!\\\\)${match.value}")
@@ -182,9 +181,9 @@ fun Component.escapeEmoteIDs(player: Player?): Component {
         )
     }
 
-    spaceRegex.findAll(serialized).forEach { match ->
-        if (player?.hasPermission(SPACE_PERMISSION) != false) return@forEach
-        val space = match.groupValues[1].toIntOrNull() ?: return@forEach
+    for (match in spaceRegex.findAll(serialized)) {
+        if (player?.hasPermission(SPACE_PERMISSION) != false) continue
+        val space = match.groupValues[1].toIntOrNull() ?: continue
 
         component = component.replaceText(
             TextReplacementConfig.builder()
