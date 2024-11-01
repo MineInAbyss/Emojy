@@ -120,10 +120,12 @@ data class Gif(
         runCatching {
             val gifFolder = gifFolder.resolve(id)
 
-            GifConverter.splitGif(gifFile, calculateFramecount())
+            if (gifFile.exists()) GifConverter.splitGif(gifFile, calculateFramecount())
+            else if (!gifSpriteSheet.exists() && !gifFolder.exists()) emojy.logger.w("No .gif or sprite-sheet found for $id")
             createSpritesheet(gifFolder)
 
-            Texture.texture(Key.key("${framePath.asString()}.png"), Writable.file(gifSpriteSheet)).addTo(resourcePack)
+            if (gifSpriteSheet.exists()) Texture.texture(Key.key("${framePath.asString()}.png"), Writable.file(gifSpriteSheet)).addTo(resourcePack)
+            else emojy.logger.w("Could not find sprite-sheet for ${id}")
             gifFolder.deleteRecursively()
         }.onFailure {
             emojy.logger.d("Could not generate split gif for ${id}.gif: ${it.message}")
@@ -134,7 +136,7 @@ data class Gif(
         val frames = gifFolder.listFiles()
             ?.filter { it.isFile && it.extension == "png" }
             ?.sortedBy { it.nameWithoutExtension.toIntOrNull() }
-            ?: throw IllegalStateException("No frame files found in $gifFolder")
+            ?: return emojy.logger.w("No frame files found in $gifFolder")
 
         val (frameWidth, frameHeight) = ImageIO.read(frames.first()).let { it.width to it.height }
         val spritesheet = BufferedImage(frameWidth, frameCount * frameHeight, BufferedImage.TYPE_INT_ARGB)
