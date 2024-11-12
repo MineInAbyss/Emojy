@@ -3,7 +3,7 @@ import io.papermc.paperweight.userdev.ReobfArtifactConfiguration
 plugins {
     id("com.mineinabyss.conventions.kotlin.jvm")
     id("com.mineinabyss.conventions.autoversion")
-    id("io.papermc.paperweight.userdev") version "1.7.1"
+    id("io.papermc.paperweight.userdev") version "1.7.4"
 }
 
 repositories {

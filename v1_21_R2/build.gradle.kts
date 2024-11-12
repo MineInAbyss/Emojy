@@ -26,7 +26,7 @@ dependencies {
     // Shaded
     implementation(idofrontLibs.bundles.idofront.core)
     implementation(project(":core"))
-    paperweight.paperDevBundle("1.21.1-R0.1-SNAPSHOT") //NMS
+    paperweight.paperDevBundle("1.21.3-R0.1-SNAPSHOT") //NMS
 }
 
 tasks {

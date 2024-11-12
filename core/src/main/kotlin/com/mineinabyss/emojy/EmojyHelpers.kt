@@ -1,6 +1,5 @@
 package com.mineinabyss.emojy
 
-import com.mineinabyss.emojy.config.Emotes
 import com.mineinabyss.emojy.config.SPACE_PERMISSION
 import com.mineinabyss.idofront.font.Space
 import com.mineinabyss.idofront.textcomponents.miniMsg
@@ -31,6 +30,12 @@ val ORIGINAL_ITEM_RENAME_TEXT = NamespacedKey.fromString("emojy:original_item_re
 
 fun spaceString(space: Int) = "<font:${emojyConfig.spaceFont.asMinimalString()}>${Space.of(space)}</font>"
 fun spaceComponent(space: Int) = Component.textOfChildren(Component.text(Space.of(space)).font(emojyConfig.spaceFont))
+
+val SPACE_REPLACEMENT_CONFIG = TextReplacementConfig.builder()
+    .match(spaceRegex.pattern)
+    .replacement { matchResult, _ ->
+        spaceComponent(matchResult.group(1).toIntOrNull() ?: return@replacement null)
+    }.build()
 
 private fun Component.asFlatTextContent(): String {
     var flattened = ""
@@ -111,16 +116,8 @@ fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): 
         )
     }
 
-    spaceRegex.findAll(serialized).forEach { match ->
-        val space = match.groupValues[1].toIntOrNull() ?: return@forEach
-        val spaceRegex = "(?<!\\\\):space_(-?$space+):".toRegex()
-        component = component.replaceText(
-            TextReplacementConfig.builder()
-                .match(spaceRegex.pattern).once()
-                .replacement(spaceComponent(space))
-                .build()
-        )
-    }
+
+    component = component.replaceText(SPACE_REPLACEMENT_CONFIG)
 
     return component
 }
