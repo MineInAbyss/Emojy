@@ -9,7 +9,7 @@ plugins {
     id("com.mineinabyss.conventions.autoversion")
     id("xyz.jpenilla.run-paper") version "2.3.1" // Adds runServer and runMojangMappedServer tasks for testing
     id("net.minecrell.plugin-yml.paper") version "0.6.0"
-    id("io.papermc.paperweight.userdev") version "1.7.4"
+    id("io.papermc.paperweight.userdev") version "1.7.6"
 }
 
 paperweight.reobfArtifactConfiguration.set(ReobfArtifactConfiguration.MOJANG_PRODUCTION)
@@ -44,6 +44,7 @@ dependencies {
     implementation(project(path = ":v1_20_R4"))
     implementation(project(path = ":v1_21_R1"))
     implementation(project(path = ":v1_21_R2"))
+    implementation(project(path = ":v1_21_R3"))
 }
 
 tasks {
