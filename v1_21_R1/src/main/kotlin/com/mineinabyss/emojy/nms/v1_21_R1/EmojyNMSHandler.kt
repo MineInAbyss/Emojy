@@ -5,13 +5,9 @@ package com.mineinabyss.emojy.nms.v1_21_R1
 import com.jeff_media.morepersistentdatatypes.DataType
 import com.mineinabyss.emojy.*
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
-import com.mineinabyss.emojy.nms.v1_21_R1.EmojyNMSHandler.Companion.locale
-import com.mineinabyss.emojy.nms.v1_21_R1.EmojyNMSHandler.Companion.transformEmotes
 import com.mineinabyss.idofront.items.editItemMeta
-import com.mineinabyss.idofront.messaging.logError
 import com.mineinabyss.idofront.plugin.listeners
 import com.mineinabyss.idofront.textcomponents.miniMsg
-import com.mineinabyss.idofront.textcomponents.serialize
 import io.netty.channel.Channel
 import io.netty.channel.ChannelDuplexHandler
 import io.netty.channel.ChannelHandlerContext
@@ -23,7 +19,7 @@ import net.minecraft.core.NonNullList
 import net.minecraft.network.Connection
 import net.minecraft.network.chat.ChatType
 import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.MutableComponent
+import net.minecraft.network.chat.contents.PlainTextContents
 import net.minecraft.network.chat.contents.PlainTextContents.LiteralContents
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.ClientboundDisconnectPacket
@@ -167,6 +163,7 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
             return when {
                 // Sometimes a NMS component is partially Literal, so ensure entire thing is just one LiteralContent with no extra data
                 contents is LiteralContents && style.isEmpty && siblings.isEmpty() -> (contents as LiteralContents).text.miniMsg()
+                contents == PlainTextContents.EMPTY -> return Component.empty().also { siblings.map { it.transformEmotes(locale) }.forEach(it::append) }
                 else -> PaperAdventure.asAdventure(this)
             }.transformEmotes(locale, insert).let(PaperAdventure::asVanilla)
         }
