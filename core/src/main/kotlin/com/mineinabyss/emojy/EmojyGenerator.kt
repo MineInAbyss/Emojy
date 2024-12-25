@@ -61,9 +61,15 @@ object EmojyGenerator {
         }
         Font.font(emojyConfig.spaceFont, spaceProvider).addTo(resourcePack)
 
-        generateGifShaderFiles(resourcePack)
+        if (emojyConfig.includeShader) {
+            generateGifShaderFiles(resourcePack)
+        } else {
+            emojy.logger.w("Skipping Shader Generation")
+        }
 
         resourcePack.packMeta(48, "")
+
+        MinecraftResourcePackWriter.minecraft().writeToDirectory(emojy.plugin.dataFolder.resolve("built-pack"), resourcePack)
 
         MinecraftResourcePackWriter.minecraft().writeToZipFile(emojy.plugin.dataFolder.resolve("pack.zip"), resourcePack)
     }
