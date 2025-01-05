@@ -60,7 +60,7 @@ fun String.transformEmotes(insert: Boolean = false): String {
         val bitmapIndex = bitmapIndexRegex.find(match.value)?.groupValues?.get(1)?.toIntOrNull() ?: -1
 
         content = content.replaceFirst(
-            emote.baseRegex, emote.formattedUnicode(
+            emote.baseRegex, emote.formattedComponent(
                 insert = insert,
                 colorable = colorable,
                 bitmapIndex = bitmapIndex
@@ -91,20 +91,7 @@ fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): 
         val colorable = colorableRegex in match.value
         val bitmapIndex = bitmapIndexRegex.find(match.value)?.groupValues?.get(1)?.toIntOrNull() ?: -1
 
-        component = component.replaceText(
-            TextReplacementConfig.builder()
-                .match(emote.baseRegex.pattern).once()
-                .replacement(
-                    Component.textOfChildren(
-                        emote.formattedUnicode(
-                            insert = insert,
-                            colorable = colorable,
-                            bitmapIndex = bitmapIndex
-                        )
-                    )
-                )
-                .build()
-        )
+        component = component.replaceText(emote.replacementConfig(false, insert, colorable, bitmapIndex))
     }
 
     for (gif in emojy.gifs) gif.baseRegex.findAll(serialized).forEach { _ ->

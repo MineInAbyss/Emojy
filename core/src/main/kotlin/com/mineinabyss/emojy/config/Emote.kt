@@ -13,6 +13,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.TextReplacementConfig
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.event.HoverEvent.hoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
@@ -29,9 +30,8 @@ data class Emote(
 
     @EncodeDefault(NEVER) val font: @Serializable(KeySerializer::class) Key =
         template?.font ?: emojyConfig.defaultFont,
-    @EncodeDefault(NEVER) val texture: @Serializable(KeySerializer::class) Key =
-        template?.texture
-            ?: Key.key("${emojyConfig.defaultNamespace}:${emojyConfig.defaultFolder}/${id.lowercase()}.png"),
+    @SerialName("texture") @EncodeDefault(NEVER) private val _texture: @Serializable(KeySerializer::class) Key =
+        template?.texture ?: Key.key("${emojyConfig.defaultNamespace}:${emojyConfig.defaultFolder}/${id.lowercase()}.png"),
     @EncodeDefault(NEVER) val height: Int = template?.height ?: emojyConfig.defaultHeight,
     @EncodeDefault(NEVER) val ascent: Int = template?.ascent ?: emojyConfig.defaultAscent,
     @EncodeDefault(NEVER) val bitmapWidth: Int = template?.bitmapWidth ?: 1,
@@ -43,6 +43,8 @@ data class Emote(
     val baseRegex = "(?<!\\\\):$id(\\|(c|colorable|\\d+))*:".toRegex()
     @Transient
     val escapedRegex = "\\\\:$id(\\|(c|colorable|\\d+))*:".toRegex()
+    @Transient
+    val texture = Key.key(_texture.asString().removeSuffix(".png").plus(".png"))
 
     // Beginning of Private Use Area \uE000 -> uF8FF
     // Option: (Character.toCodePoint('\uE000', '\uFF8F')/37 + getIndex())
@@ -73,16 +75,27 @@ data class Emote(
 
     private val permission get() = "emojy.emote.$id"
     private val fontPermission get() = "emojy.font.$font"
-    private fun fontProvider() = FontProvider.bitMap(texture, height, ascent, unicodes)
+    private val fontProvider by lazy { FontProvider.bitMap(texture, height, ascent, unicodes) }
     fun appendFont(resourcePack: ResourcePack) =
-        (resourcePack.font(font)?.toBuilder() ?: Font.font().key(font)).addProvider(fontProvider()).build()
+        (resourcePack.font(font)?.toBuilder() ?: Font.font().key(font)).addProvider(fontProvider).build().addTo(resourcePack)
 
     fun checkPermission(player: Player?) =
-        !emojyConfig.requirePermissions || player == null || player.hasPermission(permission) || player.hasPermission(
-            fontPermission
-        )
+        !emojyConfig.requirePermissions || player?.hasPermission(permission) != false || player.hasPermission(fontPermission)
 
-    fun formattedUnicode(
+    fun replacementConfig(
+        appendSpace: Boolean = false,
+        insert: Boolean = true,
+        colorable: Boolean = false,
+        bitmapIndex: Int = -1
+    ): TextReplacementConfig {
+        return if (!appendSpace && insert && !colorable && bitmapIndex == -1) defaultReplacementConfig
+        else TextReplacementConfig.builder().match(baseRegex.pattern).once().replacement(formattedComponent(appendSpace, insert, colorable, bitmapIndex)).build()
+    }
+    private val defaultReplacementConfig by lazy {
+        TextReplacementConfig.builder().match(baseRegex.pattern).once().replacement(defaultComponent).build()
+    }
+    private val defaultComponent by lazy { formattedComponent() }
+    fun formattedComponent(
         appendSpace: Boolean = false,
         insert: Boolean = true,
         colorable: Boolean = false,
@@ -115,8 +128,6 @@ data class Emote(
             )
         )
 
-        if (appendSpace) bitmap.append(spaceComponent(2))
-
-        return bitmap
+        return if (appendSpace) bitmap.append(spaceComponent(2)) else bitmap
     }
 }

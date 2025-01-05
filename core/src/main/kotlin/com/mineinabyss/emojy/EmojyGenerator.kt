@@ -1,11 +1,7 @@
 package com.mineinabyss.emojy
 
-import com.aaaaahhhhhhh.bananapuncher714.gifconverter.GifConverter
-import com.mineinabyss.emojy.config.Gif
-import com.mineinabyss.emojy.config.Gifs
 import com.mineinabyss.idofront.font.Space
 import com.mineinabyss.idofront.font.Space.Companion.toNumber
-import com.mineinabyss.idofront.messaging.broadcastVal
 import com.mineinabyss.idofront.resourcepacks.ResourcePacks
 import net.kyori.adventure.key.Key
 import team.unnamed.creative.ResourcePack
@@ -16,17 +12,12 @@ import team.unnamed.creative.font.FontProvider
 import team.unnamed.creative.font.SpaceFontProvider
 import team.unnamed.creative.serialize.minecraft.MinecraftResourcePackWriter
 import team.unnamed.creative.texture.Texture
-import java.awt.image.BufferedImage
-import java.io.File
-import javax.imageio.ImageIO
-import kotlin.io.path.Path
-import kotlin.math.ceil
-import kotlin.math.sqrt
 
 object EmojyGenerator {
     val gifFolder = emojy.plugin.dataFolder.resolve("gifs").apply { mkdirs() }
     private val emotesFolder = emojy.plugin.dataFolder.resolve("emotes").apply { mkdirs() }
     private val spaceProvider = FontProvider.space(Space.entries.asSequence().filterNot(Space.NULL::equals).associate { it.unicode to it.toNumber() })
+    private val unknownTexture by lazy { ResourcePacks.defaultVanillaResourcePack?.texture(Key.key("gui/sprites/icon/unseen_notification.png")) }
 
     fun generateResourcePack() {
         val resourcePack = ResourcePack.resourcePack()
@@ -35,7 +26,7 @@ object EmojyGenerator {
         val textureFiles = emotesFolder.walkTopDown().filter { it.isFile }.associateBy { it.name }
         val fontSpaceProvider = FontProvider.space().advance("\uE101", -1).build()
         emojy.emotes.forEach { emote ->
-            resourcePack.font(emote.font)?.takeIf { emote.isMultiBitmap }?.let { font ->
+            resourcePack.font(emote.font)?.takeIf { emote.isMultiBitmap }?.also { font ->
                 when {
                     // Add a -1 advance to the font for ease of use
                     // Mainly needed for ESC menu and default font due to no other font being supported
@@ -44,15 +35,18 @@ object EmojyGenerator {
                     // If the font has already added an entry for the emote, skip it
                     font.providers().any { it is BitMapFontProvider && it.file() == emote.texture } ->
                         return@forEach emojy.logger.w("Skipping ${emote.id}-font because it is a bitmap and already added")
-                            .let { null }
                 }
             }
 
-            emote.appendFont(resourcePack).addTo(resourcePack)
-            val texture = textureFiles[emote.texture.value().substringAfterLast("/")]
-            if (texture == null && ResourcePacks.defaultVanillaResourcePack?.texture(emote.texture) == null)
-                emojy.logger.w("Could not find texture for ${emote.id}")
-            Texture.texture(emote.texture, texture?.let(Writable::file) ?: Writable.EMPTY).addTo(resourcePack)
+            val texture = textureFiles[emote.texture.value().substringAfterLast("/").removeSuffix(".png").plus(".png")]
+            val vanillaTexture = ResourcePacks.defaultVanillaResourcePack?.texture(emote.texture)
+
+            if (texture == null && vanillaTexture == null)
+                return@forEach emojy.logger.w("Could not find texture for ${emote.id}")
+
+            texture?.also { Texture.texture(emote.texture, Writable.file(it)).addTo(resourcePack) }
+            emote.appendFont(resourcePack)
+
         }
 
         emojy.gifs.forEach {

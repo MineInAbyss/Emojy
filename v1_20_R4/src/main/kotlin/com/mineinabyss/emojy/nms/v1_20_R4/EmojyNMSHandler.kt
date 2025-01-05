@@ -154,7 +154,8 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
         fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): Component {
             return when {
                 // Sometimes a NMS component is partially Literal, so ensure entire thing is just one LiteralContent with no extra data
-                contents is LiteralContents && style.isEmpty && siblings.isEmpty() -> (contents as LiteralContents).text.miniMsg()
+                contents is LiteralContents && style.isEmpty && siblings.isEmpty() ->
+                    (contents as LiteralContents).text.let { it.takeUnless { "§" in it }?.miniMsg() ?: IEmojyNMSHandler.legacyHandler.deserialize(it) }
                 else -> PaperAdventure.asAdventure(this)
             }.transformEmotes(locale, insert).let(PaperAdventure::asVanilla)
         }

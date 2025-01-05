@@ -18,7 +18,7 @@ object EmojyCommands {
                         val gifs = emojy.gifs.filter { it.checkPermission(sender as? Player) && it !in emojyConfig.emojyList.ignoredGifs }.toSet()
 
                         val emoteList = when (sender) {
-                            is Player -> Component.textOfChildren(*emotes.map { it.formattedUnicode(true) }.toTypedArray())
+                            is Player -> Component.textOfChildren(*emotes.map { it.formattedComponent(true) }.toTypedArray())
                             else -> emotes.joinToString(", ") { it.id }.miniMsg()
                         }
 
