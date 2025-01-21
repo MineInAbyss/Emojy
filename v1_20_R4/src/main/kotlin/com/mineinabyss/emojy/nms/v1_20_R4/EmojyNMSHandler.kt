@@ -18,7 +18,9 @@ import net.minecraft.core.NonNullList
 import net.minecraft.network.Connection
 import net.minecraft.network.chat.ChatType
 import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.MutableComponent
 import net.minecraft.network.chat.contents.PlainTextContents.LiteralContents
+import net.minecraft.network.chat.contents.TranslatableContents
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.ClientboundDisconnectPacket
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
@@ -156,6 +158,13 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                 // Sometimes a NMS component is partially Literal, so ensure entire thing is just one LiteralContent with no extra data
                 contents is LiteralContents && style.isEmpty && siblings.isEmpty() ->
                     (contents as LiteralContents).text.let { it.takeUnless { "§" in it }?.miniMsg() ?: IEmojyNMSHandler.legacyHandler.deserialize(it) }
+                contents is TranslatableContents -> {
+                    val contents = contents as TranslatableContents
+                    val args = contents.args.map { (it as? Component)?.transformEmotes(locale) ?: it }.toTypedArray()
+                    return MutableComponent.create(TranslatableContents(contents.key, contents.fallback, args)).setStyle(style).apply {
+                        siblings.map { it.transformEmotes(locale) }.forEach(::append)
+                    }
+                }
                 else -> PaperAdventure.asAdventure(this)
             }.transformEmotes(locale, insert).let(PaperAdventure::asVanilla)
         }
