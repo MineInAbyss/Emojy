@@ -36,6 +36,7 @@ import org.bukkit.craftbukkit.inventory.CraftItemStack
 import org.bukkit.entity.Player
 import org.bukkit.inventory.AnvilInventory
 import java.util.*
+import kotlin.jvm.optionals.getOrNull
 
 class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
 
@@ -86,9 +87,14 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                         is AdventureComponent -> SynchedEntityData.DataValue(it.id, it.serializer as EntityDataSerializer<AdventureComponent>,
                             AdventureComponent(value.`adventure$component`().transformEmotes(connection.locale()))
                         )
-                        is Component -> SynchedEntityData.DataValue(it.id, EntityDataSerializers.COMPONENT,
-                            value.transformEmotes(connection.locale())
-                        )
+                        is Component -> SynchedEntityData.DataValue(it.id, EntityDataSerializers.COMPONENT, value.transformEmotes(connection.locale()))
+                        is Optional<*> -> when (val comp = value.getOrNull()) {
+                            is AdventureComponent -> SynchedEntityData.DataValue(it.id, it.serializer as EntityDataSerializer<Optional<AdventureComponent>>,
+                                Optional.of(AdventureComponent(comp.`adventure$component`().transformEmotes(connection.locale())))
+                            )
+                            is Component -> SynchedEntityData.DataValue(it.id, EntityDataSerializers.OPTIONAL_COMPONENT, Optional.of(comp.transformEmotes(connection.locale())))
+                            else -> it
+                        }
                         else -> it
                     }
                 })
@@ -162,6 +168,7 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
 
         fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): Component {
             return when {
+                this is AdventureComponent -> this.`adventure$component`()
                 // Sometimes a NMS component is partially Literal, so ensure entire thing is just one LiteralContent with no extra data
                 contents is LiteralContents && style.isEmpty && siblings.isEmpty() ->
                     (contents as LiteralContents).text.let { it.takeUnless { "§" in it }?.miniMsg() ?: IEmojyNMSHandler.legacyHandler.deserialize(it) }

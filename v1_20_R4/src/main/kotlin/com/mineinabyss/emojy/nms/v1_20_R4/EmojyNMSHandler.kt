@@ -26,6 +26,7 @@ import net.minecraft.network.protocol.common.ClientboundDisconnectPacket
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.syncher.EntityDataSerializer
+import net.minecraft.network.syncher.EntityDataSerializers
 import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.world.item.ItemStack
 import org.bukkit.NamespacedKey
@@ -33,6 +34,7 @@ import org.bukkit.craftbukkit.inventory.CraftItemStack
 import org.bukkit.entity.Player
 import org.bukkit.inventory.AnvilInventory
 import java.util.*
+import kotlin.jvm.optionals.getOrNull
 
 class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
 
@@ -78,11 +80,20 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                 is ClientboundResourcePackPushPacket -> ClientboundResourcePackPushPacket(packet.id, packet.url, packet.hash, packet.required, packet.prompt.map { it.transformEmotes(connection.locale()) })
                 is ClientboundDisconnectPacket -> ClientboundDisconnectPacket(packet.reason.transformEmotes(connection.locale()))
                 is ClientboundSetEntityDataPacket -> ClientboundSetEntityDataPacket(packet.id, packet.packedItems.map {
-                    (it.value as? AdventureComponent)?.let { value ->
-                        SynchedEntityData.DataValue(it.id, it.serializer as EntityDataSerializer<AdventureComponent>,
+                    when (val value = it.value) {
+                        is AdventureComponent -> SynchedEntityData.DataValue(it.id, it.serializer as EntityDataSerializer<AdventureComponent>,
                             AdventureComponent(value.`adventure$component`().transformEmotes(connection.locale()))
                         )
-                    } ?: it
+                        is Component -> SynchedEntityData.DataValue(it.id, EntityDataSerializers.COMPONENT, value.transformEmotes(connection.locale()))
+                        is Optional<*> -> when (val comp = value.getOrNull()) {
+                            is AdventureComponent -> SynchedEntityData.DataValue(it.id, it.serializer as EntityDataSerializer<Optional<AdventureComponent>>,
+                                Optional.of(AdventureComponent(comp.`adventure$component`().transformEmotes(connection.locale())))
+                            )
+                            is Component -> SynchedEntityData.DataValue(it.id, EntityDataSerializers.OPTIONAL_COMPONENT, Optional.of(comp.transformEmotes(connection.locale())))
+                            else -> it
+                        }
+                        else -> it
+                    }
                 })
                 is ClientboundContainerSetSlotPacket -> ClientboundContainerSetSlotPacket(packet.containerId, packet.stateId, packet.slot, packet.item.transformItemNameLore(connection.player.bukkitEntity))
                 is ClientboundContainerSetContentPacket -> ClientboundContainerSetContentPacket(
@@ -155,6 +166,7 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
 
         fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): Component {
             return when {
+                this is AdventureComponent -> this.`adventure$component`()
                 // Sometimes a NMS component is partially Literal, so ensure entire thing is just one LiteralContent with no extra data
                 contents is LiteralContents && style.isEmpty && siblings.isEmpty() ->
                     (contents as LiteralContents).text.let { it.takeUnless { "§" in it }?.miniMsg() ?: IEmojyNMSHandler.legacyHandler.deserialize(it) }
