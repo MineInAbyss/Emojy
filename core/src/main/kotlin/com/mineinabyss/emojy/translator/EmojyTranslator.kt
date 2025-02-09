@@ -19,11 +19,12 @@ class EmojyTranslator : Translator {
     override fun translate(key: String, locale: Locale) = null
 
     override fun translate(component: TranslatableComponent, locale: Locale): Component? {
-        val mmString = emojy.languages.firstOrNull { it.locale == locale }?.keys?.get(component.key()) ?: return null
-        val resultingComponent = mmString.miniMsg(EmojyArgumentTag(component.arguments()).takeIf { component.arguments().isNotEmpty() } ?: IdofrontTextComponents.globalResolver)
+        val lang = emojy.languages.firstOrNull { it.locale == locale } ?: emojy.languages.firstOrNull() ?: return null
+        val mmString = lang.keys[component.key()] ?: return null
+        val tagResolver = component.arguments().takeUnless { it.isEmpty() }?.let(::EmojyArgumentTag) ?: IdofrontTextComponents.globalResolver
         return when {
-            component.children().isEmpty() -> resultingComponent
-            else -> resultingComponent.children(component.children())
+            component.children().isEmpty() -> mmString.miniMsg(tagResolver)
+            else -> mmString.miniMsg(tagResolver).children(component.children())
         }
     }
 

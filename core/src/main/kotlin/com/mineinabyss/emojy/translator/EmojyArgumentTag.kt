@@ -9,25 +9,13 @@ import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
 import java.util.*
 
 
-class EmojyArgumentTag(argumentComponents: List<ComponentLike?>) : TagResolver {
-    private val argumentComponents: List<ComponentLike?>
-
-    init {
-        this.argumentComponents = Objects.requireNonNull(argumentComponents, "argumentComponents")
-    }
+class EmojyArgumentTag(private val argumentComponents: List<ComponentLike>) : TagResolver {
 
     @Throws(ParsingException::class)
     override fun resolve(name: String, arguments: ArgumentQueue, ctx: Context): Tag {
-        val index = arguments.popOr("No argument number provided").asInt().orElseThrow {
-            ctx.newException(
-                "Invalid argument number",
-                arguments
-            )
-        }
-        if (index < 0 || index >= argumentComponents.size) {
-            throw ctx.newException("Invalid argument number", arguments)
-        }
-        return Tag.inserting(argumentComponents[index]!!)
+        val index = arguments.popOr("No argument number provided").asInt().orElse(-1).takeUnless { it < 0 || it >= argumentComponents.size }
+            ?: throw ctx.newException("Invalid argument number", arguments)
+        return Tag.inserting(argumentComponents[index])
     }
 
     override fun has(name: String): Boolean {
