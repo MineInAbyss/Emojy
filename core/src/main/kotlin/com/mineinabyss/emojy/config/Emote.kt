@@ -40,7 +40,7 @@ data class Emote(
     @Transient
     val isMultiBitmap = bitmapWidth > 1 || bitmapHeight > 1
     @Transient
-    val baseRegex = "(?<!\\\\):$id(\\|(c|colorable|\\d+))*:".toRegex()
+    val baseRegex = "(?<!\\\\):$id(\\|(c|colorable|\\d+(\\.\\.\\d+)?))*:".toRegex()
     @Transient
     val escapedRegex = "\\\\:$id(\\|(c|colorable|\\d+))*:".toRegex()
     @Transient

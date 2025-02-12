@@ -16,7 +16,7 @@ import java.util.*
 val spaceRegex: Regex = "(?<!\\\\):space_(-?\\d+):".toRegex()
 val escapedSpaceRegex: Regex = "\\\\(:space_(-?\\d+):)".toRegex()
 val colorableRegex: Regex = "\\|(c|colorable)".toRegex()
-val bitmapIndexRegex: Regex = "\\|([0-9]+)".toRegex()
+val bitmapIndexRegex: Regex = "\\|([0-9]+)(?:\\.\\.([0-9]+))?:".toRegex()
 
 private val randomKey = Key.key("random")
 private val randomComponent = Component.text("random").font(randomKey)
@@ -57,15 +57,23 @@ fun String.transformEmotes(insert: Boolean = false): String {
     for (emote in emojy.emotes) emote.baseRegex.findAll(this).forEach { match ->
 
         val colorable = colorableRegex in match.value
-        val bitmapIndex = bitmapIndexRegex.find(match.value)?.groupValues?.get(1)?.toIntOrNull() ?: -1
+        val bitmapMatch = bitmapIndexRegex.find(match.value)
+        val startIndex = bitmapMatch?.groupValues?.get(1)?.toIntOrNull() ?: -1
+        val endIndex = bitmapMatch?.groupValues?.get(2)?.toIntOrNull()?.coerceAtLeast(startIndex) ?: startIndex
 
-        content = content.replaceFirst(
-            emote.baseRegex, emote.formattedComponent(
-                insert = insert,
-                colorable = colorable,
-                bitmapIndex = bitmapIndex
-            ).serialize()
-        )
+        if (startIndex != -1) content = content.replace(match.value, (startIndex..endIndex).joinToString(":space_-1:") { index ->
+            ":${emote.id}|$index${if (colorable) "|c" else ""}:"
+        })
+
+        for (bitmapIndex in startIndex..endIndex) {
+            content = content.replaceFirst(
+                emote.baseRegex, emote.formattedComponent(
+                    insert = insert,
+                    colorable = colorable,
+                    bitmapIndex = bitmapIndex
+                ).serialize()
+            )
+        }
     }
 
     for (gif in emojy.gifs) gif.baseRegex.findAll(this).forEach { _ ->
@@ -89,9 +97,19 @@ fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): 
     for (emote in emojy.emotes) emote.baseRegex.findAll(serialized).forEach { match ->
 
         val colorable = colorableRegex in match.value
-        val bitmapIndex = bitmapIndexRegex.find(match.value)?.groupValues?.get(1)?.toIntOrNull() ?: -1
+        val bitmapMatch = bitmapIndexRegex.find(match.value)
+        val startIndex = bitmapMatch?.groupValues?.get(1)?.toIntOrNull() ?: -1
+        val endIndex = bitmapMatch?.groupValues?.get(2)?.toIntOrNull()?.coerceAtLeast(startIndex) ?: startIndex
 
-        component = component.replaceText(emote.replacementConfig(false, insert, colorable, bitmapIndex))
+        if (startIndex != -1) component = component.replaceText {
+            it.matchLiteral(match.value).replacement((startIndex..endIndex).joinToString(":space_-1:") { index ->
+                ":${emote.id}|$index${if (colorable) "|c" else ""}:"
+            })
+        }
+
+        for (bitmapIndex in startIndex..endIndex) {
+            component = component.replaceText(emote.replacementConfig(false, insert, colorable, bitmapIndex))
+        }
     }
 
     for (gif in emojy.gifs) gif.baseRegex.findAll(serialized).forEach { _ ->
