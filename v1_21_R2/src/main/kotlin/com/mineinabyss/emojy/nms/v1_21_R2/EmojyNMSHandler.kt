@@ -3,8 +3,12 @@
 package com.mineinabyss.emojy.nms.v1_21_R2
 
 import com.jeff_media.morepersistentdatatypes.DataType
-import com.mineinabyss.emojy.*
+import com.mineinabyss.emojy.EmojyPlugin
+import com.mineinabyss.emojy.ORIGINAL_ITEM_RENAME_TEXT
+import com.mineinabyss.emojy.escapeEmoteIDs
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
+import com.mineinabyss.emojy.transformEmotes
+import com.mineinabyss.emojy.unescapeEmoteIds
 import com.mineinabyss.idofront.items.editItemMeta
 import com.mineinabyss.idofront.plugin.listeners
 import com.mineinabyss.idofront.textcomponents.miniMsg
@@ -15,27 +19,55 @@ import io.netty.channel.ChannelPromise
 import io.papermc.paper.adventure.AdventureComponent
 import io.papermc.paper.adventure.PaperAdventure
 import io.papermc.paper.network.ChannelInitializeListenerHolder
+import java.util.Locale
+import java.util.Optional
 import net.minecraft.core.NonNullList
+import net.minecraft.core.component.DataComponentMap
+import net.minecraft.core.component.DataComponentPredicate
+import net.minecraft.core.component.DataComponents
+import net.minecraft.core.component.PatchedDataComponentMap
 import net.minecraft.network.Connection
 import net.minecraft.network.chat.ChatType
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.MutableComponent
+import net.minecraft.network.chat.Style
 import net.minecraft.network.chat.contents.PlainTextContents.LiteralContents
 import net.minecraft.network.chat.contents.TranslatableContents
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.ClientboundDisconnectPacket
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
 import net.minecraft.network.protocol.common.ClientboundServerLinksPacket
-import net.minecraft.network.protocol.game.*
+import net.minecraft.network.protocol.game.ClientGamePacketListener
+import net.minecraft.network.protocol.game.ClientboundBossEventPacket
+import net.minecraft.network.protocol.game.ClientboundBundlePacket
+import net.minecraft.network.protocol.game.ClientboundContainerSetContentPacket
+import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket
+import net.minecraft.network.protocol.game.ClientboundDisguisedChatPacket
+import net.minecraft.network.protocol.game.ClientboundMerchantOffersPacket
+import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket
+import net.minecraft.network.protocol.game.ClientboundPlayerChatPacket
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket
+import net.minecraft.network.protocol.game.ClientboundServerDataPacket
+import net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket
+import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
+import net.minecraft.network.protocol.game.ClientboundSetScorePacket
+import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket
+import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket
+import net.minecraft.network.protocol.game.ClientboundSystemChatPacket
+import net.minecraft.network.protocol.game.ClientboundTabListPacket
+import net.minecraft.network.protocol.game.ServerboundRenameItemPacket
 import net.minecraft.network.syncher.EntityDataSerializer
 import net.minecraft.network.syncher.EntityDataSerializers
 import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.component.ItemLore
+import net.minecraft.world.item.trading.ItemCost
+import net.minecraft.world.item.trading.MerchantOffer
+import net.minecraft.world.item.trading.MerchantOffers
 import org.bukkit.NamespacedKey
 import org.bukkit.craftbukkit.inventory.CraftItemStack
 import org.bukkit.entity.Player
 import org.bukkit.inventory.AnvilInventory
-import java.util.*
 import kotlin.jvm.optionals.getOrNull
 
 class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
@@ -98,23 +130,37 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                         else -> it
                     }
                 })
+                is ClientboundPlayerInfoUpdatePacket -> ClientboundPlayerInfoUpdatePacket(packet.actions(), packet.entries().map {
+                    ClientboundPlayerInfoUpdatePacket.Entry(
+                        it.profileId, it.profile, it.listed, it.latency, it.gameMode,
+                        it.displayName?.transformEmotes(connection.locale()), it.listOrder, it.chatSession
+                    )
+                })
                 is ClientboundContainerSetSlotPacket -> ClientboundContainerSetSlotPacket(packet.containerId, packet.stateId, packet.slot, packet.item.transformItemNameLore(connection.player.bukkitEntity))
-                is ClientboundContainerSetContentPacket -> ClientboundContainerSetContentPacket(
-                    packet.containerId, packet.stateId, NonNullList.of(packet.items.first(),
-                        *packet.items.map {
-                            val player = connection.player.bukkitEntity
-                            val inv = player.openInventory.topInventory
-                            val bukkit = CraftItemStack.asBukkitCopy(it)
+                is ClientboundMerchantOffersPacket -> ClientboundMerchantOffersPacket(packet.containerId, MerchantOffers().apply {
+                    val player = connection.player.bukkitEntity
+                    fun ItemCost.transform() = ItemCost(item, count, components.transformItemNameLore(player), itemStack)
 
-                            // If item is firstItem in AnvilInventory we want to set it to have the plain-text displayname
-                            if (inv is AnvilInventory && inv.firstItem == bukkit)
-                                bukkit.itemMeta?.persistentDataContainer?.get(ORIGINAL_ITEM_RENAME_TEXT, DataType.STRING)?.let { og ->
-                                    CraftItemStack.asNMSCopy(bukkit.editItemMeta {
-                                        setDisplayName(og)
-                                    })
-                                } ?: it.transformItemNameLore(player)
-                            else it.transformItemNameLore(player)
-                        }.toTypedArray()), packet.carriedItem)
+                    addAll(packet.offers.map { offer ->
+                        MerchantOffer(
+                            offer.baseCostA.transform(), offer.costB.map { it.transform() }, offer.result.transformItemNameLore(player),
+                            offer.uses, offer.maxUses, offer.xp, offer.priceMultiplier, offer.demand, offer.ignoreDiscounts, offer.asBukkit()
+                        )
+                    })
+                }, packet.villagerLevel, packet.villagerXp, packet.showProgress(), packet.canRestock())
+                is ClientboundContainerSetContentPacket -> ClientboundContainerSetContentPacket(
+                    packet.containerId, packet.stateId, packet.items.mapTo(NonNullList.create()) { item ->
+                        val player = connection.player.bukkitEntity
+                        val inv = player.openInventory.topInventory
+                        val bukkit = CraftItemStack.asBukkitCopy(item)
+
+                        // If item is firstItem in AnvilInventory we want to set it to have the plain-text displayname
+                        if (inv is AnvilInventory && inv.firstItem == bukkit) {
+                            item.get(DataComponents.CUSTOM_DATA)?.copyTag()?.getCompound("PublicBukkitValues")?.getString(ORIGINAL_ITEM_RENAME_TEXT.toString())?.let { og ->
+                                item.copy().apply { set(DataComponents.CUSTOM_NAME, Component.literal(og)) }
+                            } ?: item.transformItemNameLore(player)
+                        } else item.transformItemNameLore(player)
+                    }, packet.carriedItem)
                 is ClientboundBossEventPacket -> {
                     // Access the private field 'operation'
                     val operationField = ClientboundBossEventPacket::class.java.getDeclaredField("operation").apply { isAccessible = true }
@@ -144,26 +190,36 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
 
                     packet
                 }
-                is ClientboundPlayerInfoUpdatePacket ->
-                    ClientboundPlayerInfoUpdatePacket(packet.actions(), packet.entries().map {
-                        ClientboundPlayerInfoUpdatePacket.Entry(
-                            it.profileId, it.profile, it.listed, it.latency, it.gameMode,
-                            it.displayName?.transformEmotes(connection.locale()), it.listOrder, it.chatSession
-                        )
-                    })
                 else -> packet
             }
         }
 
         private fun ItemStack.transformItemNameLore(player: Player): ItemStack {
-            val locale = player.locale()
-            return CraftItemStack.asNMSCopy(CraftItemStack.asBukkitCopy(this).editItemMeta {
-                itemName(if (hasItemName()) itemName().transformEmotes(locale) else null)
-                lore(lore()?.map { l -> l.transformEmotes(locale) })
-                persistentDataContainer.get(ORIGINAL_ITEM_RENAME_TEXT, DataType.STRING)?.let {
-                    displayName(it.escapeEmoteIDs(player).transformEmotes().unescapeEmoteIds().miniMsg())
+            return copy().apply {
+                val locale = player.locale()
+                set(DataComponents.ITEM_NAME, get(DataComponents.ITEM_NAME)?.transformEmotes(locale))
+                set(DataComponents.LORE, get(DataComponents.LORE)?.let { itemLore ->
+                    ItemLore(itemLore.lines.map { Component.empty().setStyle(Style.EMPTY.withItalic(false)).append(it.transformEmotes(locale)) }, itemLore.styledLines.map { Component.empty().setStyle(Style.EMPTY).append(it.transformEmotes(locale)) })
+                })
+                get(DataComponents.CUSTOM_DATA)?.copyTag()?.getCompound("PublicBukkitValues")?.getString(ORIGINAL_ITEM_RENAME_TEXT.toString())?.takeIf { it.isNotEmpty() }?.let {
+                    set(DataComponents.CUSTOM_NAME, PaperAdventure.asVanilla(it.escapeEmoteIDs(player).transformEmotes().unescapeEmoteIds().miniMsg()))
                 }
+            }
+        }
+
+        private fun DataComponentPredicate.transformItemNameLore(player: Player): DataComponentPredicate {
+            val locale = player.locale()
+            val map = PatchedDataComponentMap.fromPatch(DataComponentMap.EMPTY, asPatch())
+
+            map.set(DataComponents.ITEM_NAME, map.get(DataComponents.ITEM_NAME)?.transformEmotes(locale))
+            map.set(DataComponents.LORE, map.get(DataComponents.LORE)?.let { itemLore ->
+                ItemLore(itemLore.lines.map { Component.empty().setStyle(Style.EMPTY.withItalic(false)).append(it.transformEmotes(locale)) }, itemLore.styledLines.map { Component.empty().setStyle(Style.EMPTY).append(it.transformEmotes(locale)) })
             })
+            map.get(DataComponents.CUSTOM_DATA)?.copyTag()?.getCompound("PublicBukkitValues")?.getString(ORIGINAL_ITEM_RENAME_TEXT.toString())?.takeIf { it.isNotEmpty() }?.let {
+                map.set(DataComponents.CUSTOM_NAME, PaperAdventure.asVanilla(it.escapeEmoteIDs(player).transformEmotes().unescapeEmoteIds().miniMsg()))
+            }
+
+            return DataComponentPredicate.allOf(map)
         }
 
         fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): Component {
