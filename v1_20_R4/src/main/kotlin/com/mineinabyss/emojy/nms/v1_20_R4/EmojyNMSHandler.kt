@@ -235,11 +235,9 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
             when (operation::class.java.simpleName) {
                 "AddOperation" ->
                     bossEventAddOperationAccessorMethod.set(operation, (bossEventAddOperationAccessorMethod.get(operation) as Component).transformEmotes(connection.locale()))
-                "UpdateNameOperation" -> {
-                    bossEventUpdateNameOperationAccessorMethod?.invoke(operation)?.let { name ->
+                "UpdateNameOperation" -> bossEventUpdateNameOperationAccessorMethod?.invoke(operation)?.let { name ->
                         bossEventOperationField.set(packet, bossEventUpdateNameOperationComponentField.newInstance((name as Component).transformEmotes(connection.locale())))
                     }
-                }
             }
             return packet
         }
