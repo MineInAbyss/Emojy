@@ -5,10 +5,13 @@ import com.mineinabyss.emojy.EmojyGenerator.gifFolder
 import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.emojyConfig
 import com.mineinabyss.emojy.spaceComponent
-import com.mineinabyss.idofront.messaging.broadcastVal
 import com.mineinabyss.idofront.serialization.KeySerializer
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
+import java.awt.AlphaComposite
+import java.awt.image.BufferedImage
+import java.io.File
+import javax.imageio.ImageIO
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.EncodeDefault.Mode.NEVER
 import kotlinx.serialization.SerialName
@@ -27,14 +30,7 @@ import team.unnamed.creative.base.Writable
 import team.unnamed.creative.font.Font
 import team.unnamed.creative.font.FontProvider
 import team.unnamed.creative.texture.Texture
-import java.awt.AlphaComposite
-import java.awt.image.BufferedImage
-import java.io.File
-import javax.imageio.ImageIO
-import kotlin.math.absoluteValue
-import kotlin.math.ceil
 import kotlin.math.roundToInt
-import kotlin.math.sqrt
 import kotlin.properties.Delegates
 
 @Serializable
