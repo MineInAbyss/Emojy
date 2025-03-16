@@ -2,10 +2,12 @@
 
 package com.mineinabyss.emojy.nms.v1_21_R1
 
-import com.jeff_media.morepersistentdatatypes.DataType
-import com.mineinabyss.emojy.*
+import com.mineinabyss.emojy.EmojyPlugin
+import com.mineinabyss.emojy.ORIGINAL_ITEM_RENAME_TEXT
+import com.mineinabyss.emojy.escapeEmoteIDs
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
-import com.mineinabyss.idofront.items.editItemMeta
+import com.mineinabyss.emojy.transformEmotes
+import com.mineinabyss.emojy.unescapeEmoteIds
 import com.mineinabyss.idofront.plugin.listeners
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import io.netty.channel.Channel
@@ -15,37 +17,57 @@ import io.netty.channel.ChannelPromise
 import io.papermc.paper.adventure.AdventureComponent
 import io.papermc.paper.adventure.PaperAdventure
 import io.papermc.paper.network.ChannelInitializeListenerHolder
+import java.util.Locale
+import java.util.Optional
 import net.minecraft.core.NonNullList
+import net.minecraft.core.component.DataComponentMap
+import net.minecraft.core.component.DataComponentPredicate
+import net.minecraft.core.component.DataComponents
+import net.minecraft.core.component.PatchedDataComponentMap
 import net.minecraft.network.Connection
 import net.minecraft.network.chat.ChatType
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.MutableComponent
+import net.minecraft.network.chat.Style
 import net.minecraft.network.chat.contents.PlainTextContents.LiteralContents
 import net.minecraft.network.chat.contents.TranslatableContents
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.ClientboundDisconnectPacket
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
 import net.minecraft.network.protocol.common.ClientboundServerLinksPacket
-import net.minecraft.network.protocol.game.*
+import net.minecraft.network.protocol.game.ClientGamePacketListener
+import net.minecraft.network.protocol.game.ClientboundBossEventPacket
+import net.minecraft.network.protocol.game.ClientboundBundlePacket
+import net.minecraft.network.protocol.game.ClientboundContainerSetContentPacket
+import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket
+import net.minecraft.network.protocol.game.ClientboundDisguisedChatPacket
+import net.minecraft.network.protocol.game.ClientboundMerchantOffersPacket
+import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket
+import net.minecraft.network.protocol.game.ClientboundPlayerChatPacket
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket
+import net.minecraft.network.protocol.game.ClientboundServerDataPacket
+import net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket
+import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
+import net.minecraft.network.protocol.game.ClientboundSetScorePacket
+import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket
+import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket
+import net.minecraft.network.protocol.game.ClientboundSystemChatPacket
+import net.minecraft.network.protocol.game.ClientboundTabListPacket
+import net.minecraft.network.protocol.game.ServerboundRenameItemPacket
 import net.minecraft.network.syncher.EntityDataSerializer
 import net.minecraft.network.syncher.EntityDataSerializers
 import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.world.item.ItemStack
-import org.bukkit.NamespacedKey
-import org.bukkit.craftbukkit.inventory.CraftItemStack
-import org.bukkit.entity.Player
-import org.bukkit.inventory.AnvilInventory
-import java.util.*
-import net.minecraft.core.component.DataComponentMap
-import net.minecraft.core.component.DataComponentPredicate
-import net.minecraft.core.component.DataComponents
-import net.minecraft.core.component.PatchedDataComponentMap
-import net.minecraft.network.chat.Style
 import net.minecraft.world.item.component.ItemLore
 import net.minecraft.world.item.trading.ItemCost
 import net.minecraft.world.item.trading.MerchantOffer
 import net.minecraft.world.item.trading.MerchantOffers
+import org.bukkit.NamespacedKey
+import org.bukkit.craftbukkit.inventory.CraftItemStack
+import org.bukkit.entity.Player
+import org.bukkit.inventory.AnvilInventory
 import kotlin.jvm.optionals.getOrNull
+import kotlin.reflect.KClass
 
 class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
 
@@ -75,100 +97,156 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
 
     companion object {
         private fun Connection.locale() = player.bukkitEntity.locale()
-        fun transformPacket(packet: Any, connection: Connection): Any {
-            return when (packet) {
-                is ClientboundBundlePacket -> ClientboundBundlePacket(packet.subPackets().map { transformPacket(it, connection) as Packet<in ClientGamePacketListener> })
-                is ClientboundServerLinksPacket -> ClientboundServerLinksPacket(packet.links.map { net.minecraft.server.ServerLinks.UntrustedEntry(it.type.mapRight { it.transformEmotes(connection.locale()) }, it.link) })
-                is ClientboundSetScorePacket -> ClientboundSetScorePacket(packet.owner, packet.objectiveName, packet.score, packet.display.map { it.transformEmotes(connection.locale()) }, packet.numberFormat)
-                is ClientboundServerDataPacket -> ClientboundServerDataPacket(packet.motd.transformEmotes(connection.locale()), packet.iconBytes)
-                is ClientboundDisguisedChatPacket -> ClientboundDisguisedChatPacket(packet.message.transformEmotes(connection.locale(), true).unescapeEmoteIds(), packet.chatType)
-                is ClientboundPlayerChatPacket -> ClientboundPlayerChatPacket(packet.sender, packet.index, packet.signature, packet.body, (packet.unsignedContent ?: PaperAdventure.asVanilla(packet.body.content.miniMsg()))?.transformEmotes(connection.locale(), true)?.unescapeEmoteIds(), packet.filterMask, ChatType.bind(packet.chatType.chatType.unwrapKey().get(), connection.player.registryAccess(), packet.chatType.name.transformEmotes(connection.locale(), true)))
-                is ClientboundSystemChatPacket -> ClientboundSystemChatPacket(packet.content.transformEmotes(connection.locale(), true).unescapeEmoteIds(), packet.overlay)
-                is ClientboundSetTitleTextPacket -> ClientboundSetTitleTextPacket(packet.text.transformEmotes(connection.locale()))
-                is ClientboundSetSubtitleTextPacket -> ClientboundSetSubtitleTextPacket(packet.text.transformEmotes(connection.locale()))
-                is ClientboundSetActionBarTextPacket -> ClientboundSetActionBarTextPacket(packet.text.transformEmotes(connection.locale()))
-                is ClientboundOpenScreenPacket -> ClientboundOpenScreenPacket(packet.containerId, packet.type, packet.title.transformEmotes(connection.locale()))
-                is ClientboundTabListPacket -> ClientboundTabListPacket(packet.header.transformEmotes(connection.locale()), packet.footer.transformEmotes(connection.locale()))
-                is ClientboundResourcePackPushPacket -> ClientboundResourcePackPushPacket(packet.id, packet.url, packet.hash, packet.required, packet.prompt.map { it.transformEmotes(connection.locale()) })
-                is ClientboundDisconnectPacket -> ClientboundDisconnectPacket(packet.reason.transformEmotes(connection.locale()))
-                is ClientboundSetEntityDataPacket -> ClientboundSetEntityDataPacket(packet.id, packet.packedItems.map {
+        private val packetTransformers: Map<KClass<out Packet<*>>, (Packet<*>, Connection) -> Packet<*>> = mapOf(
+            ClientboundBundlePacket::class to { p, conn ->
+                p as ClientboundBundlePacket
+                ClientboundBundlePacket(p.subPackets().map { transformPacket(it, conn) as Packet<in ClientGamePacketListener> })
+            },
+            ClientboundServerLinksPacket::class to { p, conn ->
+                p as ClientboundServerLinksPacket
+                ClientboundServerLinksPacket(p.links.map { net.minecraft.server.ServerLinks.UntrustedEntry(it.type.mapRight { it.transformEmotes(conn.locale()) }, it.link) })
+            },
+            ClientboundSetScorePacket::class to { p, conn ->
+                p as ClientboundSetScorePacket
+                ClientboundSetScorePacket(p.owner, p.objectiveName, p.score, p.display.map { it.transformEmotes(conn.locale()) }, p.numberFormat)
+            },
+            ClientboundServerDataPacket::class to { p, conn ->
+                p as ClientboundServerDataPacket
+                ClientboundServerDataPacket(p.motd.transformEmotes(conn.locale()), p.iconBytes)
+            },
+            ClientboundDisguisedChatPacket::class to { p, conn ->
+                p as ClientboundDisguisedChatPacket
+                ClientboundDisguisedChatPacket(p.message.transformEmotes(conn.locale(), true).unescapeEmoteIds(), p.chatType)
+            },
+            ClientboundPlayerChatPacket::class to { p, conn ->
+                p as ClientboundPlayerChatPacket
+                ClientboundPlayerChatPacket(p.sender, p.index, p.signature, p.body,
+                    (p.unsignedContent ?: PaperAdventure.asVanilla(p.body.content.miniMsg()))?.transformEmotes(conn.locale(), true)?.unescapeEmoteIds(),
+                    p.filterMask, ChatType.bind(p.chatType.chatType.unwrapKey().get(), conn.player.registryAccess(), p.chatType.name.transformEmotes(conn.locale(), true))
+                )
+            },
+            ClientboundSystemChatPacket::class to { p, conn ->
+                p as ClientboundSystemChatPacket
+                ClientboundSystemChatPacket(p.content.transformEmotes(conn.locale(), true).unescapeEmoteIds(), p.overlay)
+            },
+            ClientboundSetTitleTextPacket::class to { p, conn ->
+                p as ClientboundSetTitleTextPacket
+                ClientboundSetTitleTextPacket(p.text.transformEmotes(conn.locale()))
+            },
+            ClientboundSetSubtitleTextPacket::class to { p, conn ->
+                p as ClientboundSetSubtitleTextPacket
+                ClientboundSetSubtitleTextPacket(p.text.transformEmotes(conn.locale()))
+            },
+            ClientboundSetActionBarTextPacket::class to { p, conn ->
+                p as ClientboundSetActionBarTextPacket
+                ClientboundSetActionBarTextPacket(p.text.transformEmotes(conn.locale()))
+            },
+            ClientboundOpenScreenPacket::class to { p, conn ->
+                p as ClientboundOpenScreenPacket
+                ClientboundOpenScreenPacket(p.containerId, p.type, p.title.transformEmotes(conn.locale()))
+            },
+            ClientboundTabListPacket::class to { p, conn ->
+                p as ClientboundTabListPacket
+                ClientboundTabListPacket(p.header.transformEmotes(conn.locale()), p.footer.transformEmotes(conn.locale()))
+            },
+            ClientboundResourcePackPushPacket::class to { p, conn ->
+                p as ClientboundResourcePackPushPacket
+                ClientboundResourcePackPushPacket(p.id, p.url, p.hash, p.required, p.prompt.map { it.transformEmotes(conn.locale()) })
+            },
+            ClientboundDisconnectPacket::class to { p, conn ->
+                p as ClientboundDisconnectPacket
+                ClientboundDisconnectPacket(p.reason.transformEmotes(conn.locale()))
+            },
+            ClientboundSetEntityDataPacket::class to { p, conn ->
+                p as ClientboundSetEntityDataPacket
+                ClientboundSetEntityDataPacket(p.id, p.packedItems.map {
                     when (val value = it.value) {
                         is AdventureComponent -> SynchedEntityData.DataValue(it.id, it.serializer as EntityDataSerializer<AdventureComponent>,
-                            AdventureComponent(value.`adventure$component`().transformEmotes(connection.locale()))
+                            AdventureComponent(value.`adventure$component`().transformEmotes(conn.locale()))
                         )
-                        is Component -> SynchedEntityData.DataValue(it.id, EntityDataSerializers.COMPONENT, value.transformEmotes(connection.locale()))
+                        is Component -> SynchedEntityData.DataValue(it.id, EntityDataSerializers.COMPONENT, value.transformEmotes(conn.locale()))
                         is Optional<*> -> when (val comp = value.getOrNull()) {
                             is AdventureComponent -> SynchedEntityData.DataValue(it.id, it.serializer as EntityDataSerializer<Optional<AdventureComponent>>,
-                                Optional.of(AdventureComponent(comp.`adventure$component`().transformEmotes(connection.locale())))
+                                Optional.of(AdventureComponent(comp.`adventure$component`().transformEmotes(conn.locale())))
                             )
-                            is Component -> SynchedEntityData.DataValue(it.id, EntityDataSerializers.OPTIONAL_COMPONENT, Optional.of(comp.transformEmotes(connection.locale())))
+                            is Component -> SynchedEntityData.DataValue(it.id, EntityDataSerializers.OPTIONAL_COMPONENT, Optional.of(comp.transformEmotes(conn.locale())))
                             else -> it
                         }
                         else -> it
                     }
                 })
-                is ClientboundPlayerInfoUpdatePacket -> ClientboundPlayerInfoUpdatePacket(packet.actions(), packet.entries().map {
+            },
+            ClientboundPlayerInfoUpdatePacket::class to { p, conn ->
+                p as ClientboundPlayerInfoUpdatePacket
+                ClientboundPlayerInfoUpdatePacket(p.actions(), p.entries().map {
                     ClientboundPlayerInfoUpdatePacket.Entry(
                         it.profileId, it.profile, it.listed, it.latency, it.gameMode,
-                        it.displayName?.transformEmotes(connection.locale()), it.chatSession
+                        it.displayName?.transformEmotes(conn.locale()), it.chatSession
                     )
                 })
-                is ClientboundContainerSetSlotPacket -> ClientboundContainerSetSlotPacket(packet.containerId, packet.stateId, packet.slot, packet.item.transformItemNameLore(connection.player.bukkitEntity))
-                is ClientboundMerchantOffersPacket -> ClientboundMerchantOffersPacket(packet.containerId, MerchantOffers().apply {
-                    val player = connection.player.bukkitEntity
+            },
+            ClientboundContainerSetSlotPacket::class to { p, conn ->
+                p as ClientboundContainerSetSlotPacket
+                ClientboundContainerSetSlotPacket(p.containerId, p.stateId, p.slot, p.item.transformItemNameLore(conn.player.bukkitEntity))
+            },
+            ClientboundMerchantOffersPacket::class to { p, conn ->
+                p as ClientboundMerchantOffersPacket
+                ClientboundMerchantOffersPacket(p.containerId, MerchantOffers().apply {
+                    val player = conn.player.bukkitEntity
                     fun ItemCost.transform() = ItemCost(item, count, components.transformItemNameLore(player), itemStack)
 
-                    addAll(packet.offers.map { offer ->
+                    addAll(p.offers.map { offer ->
                         MerchantOffer(
                             offer.baseCostA.transform(), offer.costB.map { it.transform() }, offer.result.transformItemNameLore(player),
                             offer.uses, offer.maxUses, offer.xp, offer.priceMultiplier, offer.demand, offer.ignoreDiscounts, offer.asBukkit()
                         )
                     })
-                }, packet.villagerLevel, packet.villagerXp, packet.showProgress(), packet.canRestock())
-                is ClientboundContainerSetContentPacket -> ClientboundContainerSetContentPacket(
-                    packet.containerId, packet.stateId, packet.items.mapTo(NonNullList.create()) { item ->
-                        val player = connection.player.bukkitEntity
+                }, p.villagerLevel, p.villagerXp, p.showProgress(), p.canRestock())
+            },
+            ClientboundContainerSetContentPacket::class to { p, conn ->
+                p as ClientboundContainerSetContentPacket
+                ClientboundContainerSetContentPacket(
+                    p.containerId, p.stateId, p.items.mapTo(NonNullList.create()) { item ->
+                        val player = conn.player.bukkitEntity
                         val inv = player.openInventory.topInventory
                         val bukkit = CraftItemStack.asBukkitCopy(item)
 
-                        // If item is firstItem in AnvilInventory we want to set it to have the plain-text displayname
                         if (inv is AnvilInventory && inv.firstItem == bukkit) {
                             item.get(DataComponents.CUSTOM_DATA)?.copyTag()?.getCompound("PublicBukkitValues")?.getString(ORIGINAL_ITEM_RENAME_TEXT.toString())?.let { og ->
                                 item.copy().apply { set(DataComponents.CUSTOM_NAME, Component.literal(og)) }
                             } ?: item.transformItemNameLore(player)
                         } else item.transformItemNameLore(player)
-                    }, packet.carriedItem)
-                is ClientboundBossEventPacket -> {
-                    // Access the private field 'operation'
-                    val operationField = ClientboundBossEventPacket::class.java.getDeclaredField("operation").apply { isAccessible = true }
-                    val operation = operationField.get(packet)
+                    }, p.carriedItem
+                )
+            },
+            ClientboundBossEventPacket::class to { p, conn -> transformBossEventPacket(p as ClientboundBossEventPacket, conn) }
+        )
 
-                    when (operation::class.java.simpleName) {
-                        "AddOperation" -> {
-                            val nameField = operation::class.java.getDeclaredField("name").apply { isAccessible = true }
-                            nameField.set(operation, (nameField.get(operation) as Component).transformEmotes(connection.locale()))
-                        }
-                        "UpdateNameOperation" -> {
-                            val accessorMethod = operation::class.java.methods.find { it.name == "name" }
-                            accessorMethod?.isAccessible = true
-                            if (accessorMethod != null) {
-                                val updateNameOperationClass = operation::class.java.enclosingClass.declaredClasses.find {
-                                    it.simpleName == "UpdateNameOperation"
-                                } ?: throw IllegalStateException("UpdateNameOperation class not found")
+        fun transformPacket(packet: Any, connection: Connection): Any {
+            if (packet !is Packet<*>) return packet
+            return packetTransformers[packet::class]?.invoke(packet, connection) ?: packet
+        }
 
-                                val constructor = updateNameOperationClass.getDeclaredConstructor(Component::class.java).apply { isAccessible = true }
-                                val name = (accessorMethod.invoke(operation) as Component).transformEmotes(connection.locale())
-                                val updatedOperation = constructor.newInstance(name)
+        private val bossEventOperationField = ClientboundBossEventPacket::class.java.getDeclaredField("operation").apply { isAccessible = true }
+        private val bossEventAddOperation = Class.forName("net.minecraft.network.protocol.game.ClientboundBossEventPacket.AddOperation")
+        private val bossEventAddOperationAccessorMethod = bossEventAddOperation::class.java.getDeclaredField("name").apply { isAccessible = true }
+        private val bossEventUpdateNameOperation = Class.forName("net.minecraft.network.protocol.game.ClientboundBossEventPacket.UpdateNameOperation")
+        private val bossEventUpdateNameOperationAccessorMethod = bossEventUpdateNameOperation::class.java.methods.find { it.name == "name" }?.apply { isAccessible = true }
+        private val bossEventUpdateNameOperationComponentField = bossEventUpdateNameOperation::class.java.getDeclaredConstructor(Component::class.java).apply { isAccessible = true }
+        private fun transformBossEventPacket(packet: ClientboundBossEventPacket, connection: Connection): ClientboundBossEventPacket {
 
-                                operationField.set(packet, updatedOperation)
-                            }
-                        }
+            val operation = bossEventOperationField.get(packet)
+
+            when (operation::class.java.simpleName) {
+                "AddOperation" ->
+                    bossEventAddOperationAccessorMethod.set(operation, (bossEventAddOperationAccessorMethod.get(operation) as Component).transformEmotes(connection.locale()))
+                "UpdateNameOperation" -> {
+                    bossEventUpdateNameOperationAccessorMethod?.invoke(operation)?.let { name ->
+                        bossEventOperationField.set(packet, bossEventUpdateNameOperationComponentField.newInstance((name as Component).transformEmotes(connection.locale())))
                     }
-
-                    packet
                 }
-                else -> packet
             }
+            return packet
         }
 
         private fun ItemStack.transformItemNameLore(player: Player): ItemStack {
