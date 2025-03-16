@@ -4,6 +4,7 @@ import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.jeff_media.morepersistentdatatypes.DataType
 import com.mineinabyss.emojy.*
+import com.mineinabyss.emojy.nms.IEmojyNMSHandler
 import com.mineinabyss.idofront.items.editItemMeta
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
@@ -21,9 +22,21 @@ import org.bukkit.event.Listener
 import org.bukkit.event.block.SignChangeEvent
 import org.bukkit.event.inventory.PrepareAnvilEvent
 import org.bukkit.event.player.PlayerEditBookEvent
+import org.bukkit.event.player.PlayerJoinEvent
+import org.bukkit.event.player.PlayerQuitEvent
 
 @Suppress("UnstableApiUsage")
-class EmojyListener : Listener {
+class EmojyListener(val handler: IEmojyNMSHandler) : Listener {
+
+    @EventHandler
+    fun PlayerJoinEvent.onJoin() {
+        handler.inject(player)
+    }
+
+    @EventHandler
+    fun PlayerQuitEvent.onQuit() {
+        handler.uninject(player)
+    }
 
     // Replace with result not original message to avoid borking other chat formatting
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)

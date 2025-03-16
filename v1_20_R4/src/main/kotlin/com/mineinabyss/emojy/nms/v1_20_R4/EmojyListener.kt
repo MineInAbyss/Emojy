@@ -4,11 +4,11 @@ import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.jeff_media.morepersistentdatatypes.DataType
 import com.mineinabyss.emojy.*
+import com.mineinabyss.emojy.nms.IEmojyNMSHandler
 import com.mineinabyss.idofront.items.editItemMeta
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
 import io.papermc.paper.event.player.AsyncChatDecorateEvent
-import io.papermc.paper.event.player.AsyncChatEvent
 import io.papermc.paper.event.player.PlayerOpenSignEvent
 import kotlinx.coroutines.delay
 import net.minecraft.core.BlockPos
@@ -22,9 +22,21 @@ import org.bukkit.event.Listener
 import org.bukkit.event.block.SignChangeEvent
 import org.bukkit.event.inventory.PrepareAnvilEvent
 import org.bukkit.event.player.PlayerEditBookEvent
+import org.bukkit.event.player.PlayerJoinEvent
+import org.bukkit.event.player.PlayerQuitEvent
 
 @Suppress("UnstableApiUsage")
-class EmojyListener : Listener {
+class EmojyListener(val handler: IEmojyNMSHandler) : Listener {
+
+    @EventHandler
+    fun PlayerJoinEvent.onJoin() {
+        handler.inject(player)
+    }
+
+    @EventHandler
+    fun PlayerQuitEvent.onQuit() {
+        handler.uninject(player)
+    }
 
     // Replace with result not original message to avoid borking other chat formatting
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -37,8 +49,16 @@ class EmojyListener : Listener {
         val state = (block.state as Sign)
         val type = DataType.asList(DataType.STRING)
         val sideLines = lines().map { it.serialize() }.toList()
-        val frontLines = if (side == Side.FRONT) sideLines else state.persistentDataContainer.getOrDefault(ORIGINAL_SIGN_FRONT_LINES, type, mutableListOf("", "", "", ""))
-        val backLines = if (side == Side.BACK) sideLines else state.persistentDataContainer.getOrDefault(ORIGINAL_SIGN_BACK_LINES, type, mutableListOf("", "", "", ""))
+        val frontLines = if (side == Side.FRONT) sideLines else state.persistentDataContainer.getOrDefault(
+            ORIGINAL_SIGN_FRONT_LINES,
+            type,
+            mutableListOf("", "", "", "")
+        )
+        val backLines = if (side == Side.BACK) sideLines else state.persistentDataContainer.getOrDefault(
+            ORIGINAL_SIGN_BACK_LINES,
+            type,
+            mutableListOf("", "", "", "")
+        )
 
         state.persistentDataContainer.set(ORIGINAL_SIGN_FRONT_LINES, type, frontLines)
         state.persistentDataContainer.set(ORIGINAL_SIGN_BACK_LINES, type, backLines)
@@ -53,20 +73,23 @@ class EmojyListener : Listener {
     fun PlayerOpenSignEvent.onSignEdit() {
         if (cause == PlayerOpenSignEvent.Cause.PLACE) return
 
-        sign.persistentDataContainer.get(when (sign.getInteractableSideFor(player)) {
-            Side.FRONT -> ORIGINAL_SIGN_FRONT_LINES
-            Side.BACK -> ORIGINAL_SIGN_BACK_LINES
-        }, DataType.asList(DataType.STRING))?.forEachIndexed { index, s ->
+        sign.persistentDataContainer.get(
+            when (sign.getInteractableSideFor(player)) {
+                Side.FRONT -> ORIGINAL_SIGN_FRONT_LINES
+                Side.BACK -> ORIGINAL_SIGN_BACK_LINES
+            }, DataType.asList(DataType.STRING)
+        )?.forEachIndexed { index, s ->
             sign.getSide(side).line(index, s.miniMsg())
         }
         sign.update(true)
         isCancelled = true
         emojy.plugin.launch {
             delay(2.ticks)
-            (player as CraftPlayer).handle.level().getBlockEntity(BlockPos(sign.x, sign.y, sign.z), BlockEntityType.SIGN).ifPresent {
-                it.setAllowedPlayerEditor(player.uniqueId)
-                (player as CraftPlayer).handle.openTextEdit(it, side == Side.FRONT)
-            }
+            (player as CraftPlayer).handle.level()
+                .getBlockEntity(BlockPos(sign.x, sign.y, sign.z), BlockEntityType.SIGN).ifPresent {
+                    it.setAllowedPlayerEditor(player.uniqueId)
+                    (player as CraftPlayer).handle.openTextEdit(it, side == Side.FRONT)
+                }
         }
     }
 
@@ -74,8 +97,8 @@ class EmojyListener : Listener {
     fun PrepareAnvilEvent.onAnvil() {
         result = result?.editItemMeta {
             if (inventory.renameText == null || result?.itemMeta?.hasDisplayName() != true) {
-                persistentDataContainer.remove(ORIGINAL_ITEM_RENAME_TEXT) }
-            else persistentDataContainer.set(ORIGINAL_ITEM_RENAME_TEXT, DataType.STRING, inventory.renameText!!)
+                persistentDataContainer.remove(ORIGINAL_ITEM_RENAME_TEXT)
+            } else persistentDataContainer.set(ORIGINAL_ITEM_RENAME_TEXT, DataType.STRING, inventory.renameText!!)
         }
     }
 
