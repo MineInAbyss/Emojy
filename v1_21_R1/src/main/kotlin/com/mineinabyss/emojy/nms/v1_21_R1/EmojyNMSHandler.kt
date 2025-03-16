@@ -17,6 +17,7 @@ import io.netty.channel.ChannelPromise
 import io.papermc.paper.adventure.AdventureComponent
 import io.papermc.paper.adventure.PaperAdventure
 import io.papermc.paper.network.ChannelInitializeListenerHolder
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import java.util.Locale
 import java.util.Optional
 import net.minecraft.core.NonNullList
@@ -97,7 +98,7 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
 
     companion object {
         private fun Connection.locale() = player.bukkitEntity.locale()
-        private val packetTransformers: Map<KClass<out Packet<*>>, (Packet<*>, Connection) -> Packet<*>> = mapOf(
+        private val packetTransformers: Map<KClass<out Packet<*>>, (Packet<*>, Connection) -> Packet<*>> = Object2ObjectOpenHashMap(mapOf(
             ClientboundBundlePacket::class to { p, conn ->
                 p as ClientboundBundlePacket
                 ClientboundBundlePacket(p.subPackets().map { transformPacket(it, conn) as Packet<in ClientGamePacketListener> })
@@ -220,7 +221,7 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
                 )
             },
             ClientboundBossEventPacket::class to { p, conn -> transformBossEventPacket(p as ClientboundBossEventPacket, conn) }
-        )
+        ))
 
         fun transformPacket(packet: Any, connection: Connection): Any {
             if (packet !is Packet<*>) return packet
@@ -228,21 +229,20 @@ class EmojyNMSHandler(emojy: EmojyPlugin) : IEmojyNMSHandler {
         }
 
         private val bossEventOperationField = ClientboundBossEventPacket::class.java.getDeclaredField("operation").apply { isAccessible = true }
-        private val bossEventAddOperation = Class.forName("net.minecraft.network.protocol.game.ClientboundBossEventPacket.AddOperation")
-        private val bossEventAddOperationAccessorMethod = bossEventAddOperation::class.java.getDeclaredField("name").apply { isAccessible = true }
-        private val bossEventUpdateNameOperation = Class.forName("net.minecraft.network.protocol.game.ClientboundBossEventPacket.UpdateNameOperation")
-        private val bossEventUpdateNameOperationAccessorMethod = bossEventUpdateNameOperation::class.java.methods.find { it.name == "name" }?.apply { isAccessible = true }
-        private val bossEventUpdateNameOperationComponentField = bossEventUpdateNameOperation::class.java.getDeclaredConstructor(Component::class.java).apply { isAccessible = true }
-        private fun transformBossEventPacket(packet: ClientboundBossEventPacket, connection: Connection): ClientboundBossEventPacket {
+        private val bossEventAddOperation = ClientboundBossEventPacket::class.java.declaredClasses.find { it.simpleName == "AddOperation" }!!
+        private val bossEventAddOperationNameField = bossEventAddOperation.getDeclaredField("name").apply { isAccessible = true }
+        private val bossEventUpdateNameOperation = ClientboundBossEventPacket::class.java.declaredClasses.find { it.simpleName == "UpdateNameOperation" }!!
+        private val bossEventUpdateNameOperationNameMethod = bossEventUpdateNameOperation.methods.find { it.name == "name" }?.apply { isAccessible = true }
+        private val bossEventUpdateNameOperationConstructor = bossEventUpdateNameOperation.getDeclaredConstructor(Component::class.java).apply { isAccessible = true }
 
+        private fun transformBossEventPacket(packet: ClientboundBossEventPacket, connection: Connection): ClientboundBossEventPacket {
             val operation = bossEventOperationField.get(packet)
 
-            when (operation::class.java.simpleName) {
-                "AddOperation" ->
-                    bossEventAddOperationAccessorMethod.set(operation, (bossEventAddOperationAccessorMethod.get(operation) as Component).transformEmotes(connection.locale()))
-                "UpdateNameOperation" -> bossEventUpdateNameOperationAccessorMethod?.invoke(operation)?.let { name ->
-                        bossEventOperationField.set(packet, bossEventUpdateNameOperationComponentField.newInstance((name as Component).transformEmotes(connection.locale())))
-                    }
+            when (operation.javaClass.simpleName) {
+                "AddOperation" -> bossEventAddOperationNameField.set(operation, (bossEventAddOperationNameField.get(operation) as Component).transformEmotes(connection.locale()))
+                "UpdateNameOperation" -> (bossEventUpdateNameOperationNameMethod?.invoke(operation) as? Component)?.let { name ->
+                    bossEventOperationField.set(packet, bossEventUpdateNameOperationConstructor.newInstance(name.transformEmotes(connection.locale())))
+                }
             }
             return packet
         }
