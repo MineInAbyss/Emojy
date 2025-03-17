@@ -42,6 +42,7 @@ import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket
 import net.minecraft.network.protocol.game.ClientboundServerDataPacket
 import net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
+import net.minecraft.network.protocol.game.ClientboundSetObjectivePacket
 import net.minecraft.network.protocol.game.ClientboundSetScorePacket
 import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket
@@ -63,78 +64,30 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.AnvilInventory
 import kotlin.jvm.optionals.getOrNull
 import kotlin.reflect.KClass
+import kotlin.toString
 
 class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
     private val serverPlayer = (player as CraftPlayer).handle
 
-    override fun write(ctx: ChannelHandlerContext, packet: Any, promise: ChannelPromise) {
-        ctx.write(transformPacket(packet), promise)
+    override fun write(ctx: ChannelHandlerContext, msg: Any, promise: ChannelPromise?) {
+        if (msg !is Packet<*>) return super.write(ctx, msg, promise)
+        return super.write(ctx, transformPacket(msg) ?: return, promise)
     }
 
-    override fun channelRead(ctx: ChannelHandlerContext, packet: Any) {
-        ctx.fireChannelRead(when (packet) {
-            is ServerboundRenameItemPacket -> ServerboundRenameItemPacket(packet.name.escapeEmoteIDs(player))
-            else -> packet
-        })
+    override fun channelRead(ctx: ChannelHandlerContext?, msg: Any?) {
+        if (msg !is Packet<*>) return super.channelRead(ctx, msg)
+        return super.channelRead(ctx, transformPacket(msg) ?: return)
     }
 
-    fun Component.transformEmotes(insert: Boolean = false, locale: Locale? = player.locale()): Component {
-        return when {
-            this is AdventureComponent -> this.`adventure$component`()
-            // Sometimes a NMS component is partially Literal, so ensure entire thing is just one LiteralContent with no extra data
-            contents is LiteralContents && style.isEmpty && siblings.isEmpty() ->
-                (contents as LiteralContents).text.let { it.takeUnless { "§" in it }?.miniMsg() ?: IEmojyNMSHandler.legacyHandler.deserialize(it) }
-            contents is TranslatableContents -> {
-                val contents = contents as TranslatableContents
-                val args = contents.args.map { (it as? Component)?.transformEmotes(insert, locale) ?: it }.toTypedArray()
-                return MutableComponent.create(TranslatableContents(contents.key, contents.fallback, args)).setStyle(style).apply {
-                    siblings.map { it.transformEmotes(insert, locale) }.forEach(::append)
-                }
-            }
-            else -> PaperAdventure.asAdventure(this)
-        }.transformEmotes(locale, insert).let(PaperAdventure::asVanilla)
-    }
-
-    private fun ItemStack.transformItemNameLore(): ItemStack {
-        return copy().apply {
-            set(DataComponents.ITEM_NAME, get(DataComponents.ITEM_NAME)?.transformEmotes())
-            set(DataComponents.LORE, get(DataComponents.LORE)?.let { itemLore ->
-                ItemLore(itemLore.lines.map { Component.empty().setStyle(Style.EMPTY.withItalic(false)).append(it.transformEmotes()) }, itemLore.styledLines.map { Component.empty().setStyle(Style.EMPTY).append(it.transformEmotes()) })
-            })
-            get(DataComponents.CUSTOM_DATA)?.copyTag()?.getCompound("PublicBukkitValues")?.getString(ORIGINAL_ITEM_RENAME_TEXT.toString())?.takeIf { it.isNotEmpty() }?.let {
-                set(DataComponents.CUSTOM_NAME, PaperAdventure.asVanilla(it.escapeEmoteIDs(player).transformEmotes().unescapeEmoteIds().miniMsg()))
-            }
-        }
-    }
-
-    private fun DataComponentPredicate.transformItemNameLore(player: Player): DataComponentPredicate {
-        val map = PatchedDataComponentMap.fromPatch(DataComponentMap.EMPTY, asPatch())
-
-        map.set(DataComponents.ITEM_NAME, map.get(DataComponents.ITEM_NAME)?.transformEmotes())
-        map.set(DataComponents.LORE, map.get(DataComponents.LORE)?.let { itemLore ->
-            ItemLore(itemLore.lines.map { Component.empty().setStyle(Style.EMPTY.withItalic(false)).append(it.transformEmotes()) }, itemLore.styledLines.map { Component.empty().setStyle(Style.EMPTY).append(it.transformEmotes()) })
-        })
-        map.get(DataComponents.CUSTOM_DATA)?.copyTag()?.getCompound("PublicBukkitValues")?.getString(ORIGINAL_ITEM_RENAME_TEXT.toString())?.takeIf { it.isNotEmpty() }?.let {
-            map.set(DataComponents.CUSTOM_NAME, PaperAdventure.asVanilla(it.escapeEmoteIDs(player).transformEmotes().unescapeEmoteIds().miniMsg()))
-        }
-
-        return DataComponentPredicate.allOf(map)
-    }
-
-    fun Component.escapeEmoteIDs(): Component {
-        return PaperAdventure.asVanilla((PaperAdventure.asAdventure(this)).escapeEmoteIDs(player))
-    }
-
-    fun Component.unescapeEmoteIds(): Component {
-        return PaperAdventure.asVanilla(PaperAdventure.asAdventure(this).unescapeEmoteIds())
-    }
-
-    inline fun <reified T : Packet<*>> registerTransformer(noinline transformer: (T) -> Packet<*>) =
+    inline fun <reified T : Packet<*>> registerTransformer(noinline transformer: (T) -> Packet<*>?) =
         T::class to transformer as (Packet<*>) -> Packet<*>
 
-    fun transformPacket(packet: Any): Any {
-        if (packet !is Packet<*>) return packet
-        return packetTransformers[packet::class]?.invoke(packet) ?: packet
+    inline fun <reified T : Packet<*>> registerReader(noinline reader: (T) -> Unit): Pair<KClass<T>, (Packet<*>) -> Packet<*>> =
+        T::class to { packet -> (packet as? T)?.also { reader(it) } ?: packet }
+
+    fun transformPacket(packet: Packet<*>): Packet<*>? {
+        val entry = packetTransformers[packet::class] ?: return packet
+        return entry.invoke(packet)
     }
 
     private val packetTransformers: Map<KClass<out Packet<*>>, (Packet<*>) -> Packet<*>> = Object2ObjectOpenHashMap(mapOf(
@@ -146,6 +99,9 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
         },
         registerTransformer<ClientboundSetScorePacket> {
             ClientboundSetScorePacket(it.owner, it.objectiveName, it.score, it.display.map { it.transformEmotes() }, it.numberFormat)
+        },
+        registerReader<ClientboundSetObjectivePacket> { packet ->
+            setObjectiveDisplayNameField.set(packet, packet.displayName.transformEmotes())
         },
         registerTransformer<ClientboundServerDataPacket> {
             ClientboundServerDataPacket(it.motd.transformEmotes(), it.iconBytes)
@@ -242,7 +198,7 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
                 }, it.carriedItem
             )
         },
-        registerTransformer<ClientboundBossEventPacket> {
+        registerReader<ClientboundBossEventPacket> {
             val operation = bossEventOperationField.get(it)
 
             when (operation.javaClass.simpleName) {
@@ -251,11 +207,64 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
                     bossEventOperationField.set(it, bossEventUpdateNameOperationConstructor.newInstance(name.transformEmotes()))
                 }
             }
-            it
+        },
+        registerTransformer<ServerboundRenameItemPacket> { packet ->
+            ServerboundRenameItemPacket(packet.name.transformEmotes())
         }
     ))
 
     fun ItemCost.transform() = ItemCost(item, count, components.transformItemNameLore(player), itemStack)
+
+    fun Component.transformEmotes(insert: Boolean = false, locale: Locale? = player.locale()): Component {
+        return when {
+            this is AdventureComponent -> this.`adventure$component`()
+            // Sometimes a NMS component is partially Literal, so ensure entire thing is just one LiteralContent with no extra data
+            contents is LiteralContents && style.isEmpty && siblings.isEmpty() ->
+                (contents as LiteralContents).text.let { it.takeUnless { "§" in it }?.miniMsg() ?: IEmojyNMSHandler.legacyHandler.deserialize(it) }
+            contents is TranslatableContents -> {
+                val contents = contents as TranslatableContents
+                val args = contents.args.map { (it as? Component)?.transformEmotes(insert, locale) ?: it }.toTypedArray()
+                return MutableComponent.create(TranslatableContents(contents.key, contents.fallback, args)).setStyle(style).apply {
+                    siblings.map { it.transformEmotes(insert, locale) }.forEach(::append)
+                }
+            }
+            else -> PaperAdventure.asAdventure(this)
+        }.transformEmotes(locale, insert).let(PaperAdventure::asVanilla)
+    }
+
+    private fun ItemStack.transformItemNameLore(): ItemStack {
+        return copy().apply {
+            set(DataComponents.ITEM_NAME, get(DataComponents.ITEM_NAME)?.transformEmotes())
+            set(DataComponents.LORE, get(DataComponents.LORE)?.let { itemLore ->
+                ItemLore(itemLore.lines.map { Component.empty().setStyle(Style.EMPTY.withItalic(false)).append(it.transformEmotes()) }, itemLore.styledLines.map { Component.empty().setStyle(Style.EMPTY).append(it.transformEmotes()) })
+            })
+            get(DataComponents.CUSTOM_DATA)?.copyTag()?.getCompound("PublicBukkitValues")?.getString(ORIGINAL_ITEM_RENAME_TEXT.toString())?.takeIf { it.isNotEmpty() }?.let {
+                set(DataComponents.CUSTOM_NAME, PaperAdventure.asVanilla(it.escapeEmoteIDs(player).transformEmotes().unescapeEmoteIds().miniMsg()))
+            }
+        }
+    }
+
+    private fun DataComponentPredicate.transformItemNameLore(player: Player): DataComponentPredicate {
+        val map = PatchedDataComponentMap.fromPatch(DataComponentMap.EMPTY, asPatch())
+
+        map.set(DataComponents.ITEM_NAME, map.get(DataComponents.ITEM_NAME)?.transformEmotes())
+        map.set(DataComponents.LORE, map.get(DataComponents.LORE)?.let { itemLore ->
+            ItemLore(itemLore.lines.map { Component.empty().setStyle(Style.EMPTY.withItalic(false)).append(it.transformEmotes()) }, itemLore.styledLines.map { Component.empty().setStyle(Style.EMPTY).append(it.transformEmotes()) })
+        })
+        map.get(DataComponents.CUSTOM_DATA)?.copyTag()?.getCompound("PublicBukkitValues")?.getString(ORIGINAL_ITEM_RENAME_TEXT.toString())?.takeIf { it.isNotEmpty() }?.let {
+            map.set(DataComponents.CUSTOM_NAME, PaperAdventure.asVanilla(it.escapeEmoteIDs(player).transformEmotes().unescapeEmoteIds().miniMsg()))
+        }
+
+        return DataComponentPredicate.allOf(map)
+    }
+
+    fun Component.escapeEmoteIDs(): Component {
+        return PaperAdventure.asVanilla((PaperAdventure.asAdventure(this)).escapeEmoteIDs(player))
+    }
+
+    fun Component.unescapeEmoteIds(): Component {
+        return PaperAdventure.asVanilla(PaperAdventure.asAdventure(this).unescapeEmoteIds())
+    }
 
     companion object {
         private val bossEventOperationField = ClientboundBossEventPacket::class.java.getDeclaredField("operation").apply { isAccessible = true }
@@ -264,5 +273,7 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
         private val bossEventUpdateNameOperation = ClientboundBossEventPacket::class.java.declaredClasses.find { it.simpleName == "UpdateNameOperation" }!!
         private val bossEventUpdateNameOperationNameMethod = bossEventUpdateNameOperation.methods.find { it.name == "name" }?.apply { isAccessible = true }
         private val bossEventUpdateNameOperationConstructor = bossEventUpdateNameOperation.getDeclaredConstructor(Component::class.java).apply { isAccessible = true }
+
+        private val setObjectiveDisplayNameField = ClientboundSetObjectivePacket::class.java.getDeclaredField("displayName").apply { isAccessible = true }
     }
 }
