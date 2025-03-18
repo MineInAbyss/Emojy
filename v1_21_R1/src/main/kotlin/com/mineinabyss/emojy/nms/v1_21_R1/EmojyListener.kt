@@ -3,11 +3,18 @@ package com.mineinabyss.emojy.nms.v1_21_R1
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.jeff_media.morepersistentdatatypes.DataType
-import com.mineinabyss.emojy.*
+import com.mineinabyss.emojy.ORIGINAL_ITEM_RENAME_TEXT
+import com.mineinabyss.emojy.ORIGINAL_SIGN_BACK_LINES
+import com.mineinabyss.emojy.ORIGINAL_SIGN_FRONT_LINES
+import com.mineinabyss.emojy.emojy
+import com.mineinabyss.emojy.escapeEmoteIDs
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
+import com.mineinabyss.emojy.transformEmotes
+import com.mineinabyss.emojy.unescapeEmoteIds
 import com.mineinabyss.idofront.items.editItemMeta
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
+import io.papermc.paper.event.player.AsyncChatCommandDecorateEvent
 import io.papermc.paper.event.player.AsyncChatDecorateEvent
 import io.papermc.paper.event.player.PlayerOpenSignEvent
 import kotlinx.coroutines.delay
@@ -41,6 +48,12 @@ class EmojyListener(val handler: IEmojyNMSHandler) : Listener {
     // Replace with result not original message to avoid borking other chat formatting
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     fun AsyncChatDecorateEvent.onPlayerChat() {
+        result(result().escapeEmoteIDs(player()))
+    }
+
+
+    @EventHandler
+    fun AsyncChatCommandDecorateEvent.onPlayerCommandChat() {
         result(result().escapeEmoteIDs(player()))
     }
 
