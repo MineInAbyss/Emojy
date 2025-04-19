@@ -20,7 +20,7 @@ object EmojyGenerator {
     val gifFolder = emojy.plugin.dataFolder.resolve("gifs").apply { mkdirs() }
     private val emotesFolder = emojy.plugin.dataFolder.resolve("emotes").apply { mkdirs() }
     private val spaceProvider = FontProvider.space(Space.entries.asSequence().filterNot(Space.NULL::equals).associate { it.unicode to it.toNumber() })
-    private val unknownTexture by lazy { ResourcePacks.defaultVanillaResourcePack?.texture(Key.key("gui/sprites/icon/unseen_notification.png")) }
+    private val unknownTexture by lazy { ResourcePacks.vanillaResourcePack.texture(Key.key("gui/sprites/icon/unseen_notification.png")) }
 
     fun generateResourcePack() {
         val resourcePack = ResourcePack.resourcePack()
@@ -42,7 +42,7 @@ object EmojyGenerator {
             }
 
             val texture = textureFiles[emote.texture.value().substringAfterLast("/").removeSuffix(".png").plus(".png")]
-            val vanillaTexture = ResourcePacks.defaultVanillaResourcePack?.texture(emote.texture)
+            val vanillaTexture = ResourcePacks.vanillaResourcePack?.texture(emote.texture)
 
             if (texture == null && vanillaTexture == null)
                 return@forEach emojy.logger.w("Could not find texture for ${emote.id}")
