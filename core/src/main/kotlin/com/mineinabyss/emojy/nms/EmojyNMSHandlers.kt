@@ -11,6 +11,7 @@ object EmojyNMSHandlers {
             "1.21", "1.21.1" -> "v1_21_R1"
             "1.21.2", "1.21.3" -> "v1_21_R2"
             "1.21.4" -> "v1_21_R3"
+            "1.21.5" -> "v1_21_R4"
             else -> throw IllegalStateException("Unsupported server version")
         }
         runCatching {
