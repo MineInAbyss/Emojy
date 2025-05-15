@@ -12,14 +12,11 @@ import io.netty.channel.ChannelPromise
 import io.papermc.paper.adventure.AdventureComponent
 import io.papermc.paper.adventure.PaperAdventure
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
-import java.util.Locale
-import java.util.Optional
 import net.minecraft.core.NonNullList
 import net.minecraft.core.component.DataComponentExactPredicate
 import net.minecraft.core.component.DataComponentMap
 import net.minecraft.core.component.DataComponents
 import net.minecraft.core.component.PatchedDataComponentMap
-import net.minecraft.core.component.predicates.DataComponentPredicate
 import net.minecraft.network.chat.ChatType
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.MutableComponent
@@ -30,26 +27,7 @@ import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.ClientboundDisconnectPacket
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
 import net.minecraft.network.protocol.common.ClientboundServerLinksPacket
-import net.minecraft.network.protocol.game.ClientGamePacketListener
-import net.minecraft.network.protocol.game.ClientboundBossEventPacket
-import net.minecraft.network.protocol.game.ClientboundBundlePacket
-import net.minecraft.network.protocol.game.ClientboundContainerSetContentPacket
-import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket
-import net.minecraft.network.protocol.game.ClientboundDisguisedChatPacket
-import net.minecraft.network.protocol.game.ClientboundMerchantOffersPacket
-import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket
-import net.minecraft.network.protocol.game.ClientboundPlayerChatPacket
-import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket
-import net.minecraft.network.protocol.game.ClientboundServerDataPacket
-import net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket
-import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
-import net.minecraft.network.protocol.game.ClientboundSetObjectivePacket
-import net.minecraft.network.protocol.game.ClientboundSetScorePacket
-import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket
-import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket
-import net.minecraft.network.protocol.game.ClientboundSystemChatPacket
-import net.minecraft.network.protocol.game.ClientboundTabListPacket
-import net.minecraft.network.protocol.game.ServerboundRenameItemPacket
+import net.minecraft.network.protocol.game.*
 import net.minecraft.network.syncher.EntityDataSerializer
 import net.minecraft.network.syncher.EntityDataSerializers
 import net.minecraft.network.syncher.SynchedEntityData
@@ -63,6 +41,7 @@ import org.bukkit.craftbukkit.entity.CraftPlayer
 import org.bukkit.craftbukkit.inventory.CraftItemStack
 import org.bukkit.entity.Player
 import org.bukkit.inventory.AnvilInventory
+import java.util.*
 import kotlin.jvm.optionals.getOrNull
 import kotlin.reflect.KClass
 
@@ -87,7 +66,7 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
 
     fun transformPacket(packet: Packet<*>): Packet<*>? {
         val entry = packetTransformers[packet::class] ?: return packet
-        return entry.invoke(packet)
+        return runCatching { entry.invoke(packet) }.onFailure { return packet }.getOrNull()
     }
 
     private val packetTransformers: Map<KClass<out Packet<*>>, (Packet<*>) -> Packet<*>> = Object2ObjectOpenHashMap(mapOf(
