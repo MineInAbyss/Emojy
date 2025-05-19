@@ -1,4 +1,5 @@
 plugins {
+    id("maven-publish")
     id("com.mineinabyss.conventions.kotlin.jvm")
     id("com.mineinabyss.conventions.papermc")
     id("com.mineinabyss.conventions.autoversion")
@@ -27,4 +28,27 @@ dependencies {
 
     // Shaded
     implementation("com.aaaaahhhhh.bananapuncher714:GifConverter:1.0")
+}
+
+publishing {
+    repositories {
+        maven {
+            val repo = "https://repo.mineinabyss.com/"
+            val isSnapshot = System.getenv("IS_SNAPSHOT") == "true"
+            val url = if (isSnapshot) repo + "snapshots" else repo + "releases"
+            setUrl(url)
+            credentials {
+                username = project.findProperty("mineinabyssMavenUsername") as String?
+                password = project.findProperty("mineinabyssMavenPassword") as String?
+            }
+        }
+    }
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+            groupId = rootProject.group.toString()
+            artifactId = rootProject.name
+            version = rootProject.version.toString()
+        }
+    }
 }
