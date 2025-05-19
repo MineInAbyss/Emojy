@@ -21,9 +21,10 @@ object EmojyGenerator {
     private val emotesFolder = emojy.plugin.dataFolder.resolve("emotes").apply { mkdirs() }
     private val spaceProvider = FontProvider.space(Space.entries.asSequence().filterNot(Space.NULL::equals).associate { it.unicode to it.toNumber() })
     private val unknownTexture by lazy { ResourcePacks.vanillaResourcePack.texture(Key.key("gui/sprites/icon/unseen_notification.png")) }
+    val resourcePack = ResourcePack.resourcePack()
 
     fun generateResourcePack() {
-        val resourcePack = ResourcePack.resourcePack()
+        ResourcePacks.clearResourcePack(resourcePack)
         emojy.plugin.dataFolder.resolve("assets").deleteRecursively()
 
         val textureFiles = emotesFolder.walkTopDown().filter { it.isFile }.associateBy { it.name }

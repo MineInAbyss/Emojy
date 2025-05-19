@@ -172,16 +172,6 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
                 }, it.carriedItem
             )
         },
-        registerReader<ClientboundBossEventPacket> {
-            val operation = bossEventOperationField.get(it)
-
-            when (operation.javaClass.simpleName) {
-                "AddOperation" -> bossEventAddOperationNameField.set(operation, (bossEventAddOperationNameField.get(operation) as Component).transformEmotes())
-                "UpdateNameOperation" -> (bossEventUpdateNameOperationNameMethod?.invoke(operation) as? Component)?.let { name ->
-                    bossEventOperationField.set(it, bossEventUpdateNameOperationConstructor.newInstance(name.transformEmotes()))
-                }
-            }
-        },
         registerTransformer<ServerboundRenameItemPacket> { packet ->
             ServerboundRenameItemPacket(packet.name.transformEmotes())
         }
@@ -241,13 +231,6 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
     }
 
     companion object {
-        private val bossEventOperationField = ClientboundBossEventPacket::class.java.getDeclaredField("operation").apply { isAccessible = true }
-        private val bossEventAddOperation = ClientboundBossEventPacket::class.java.declaredClasses.find { it.simpleName == "AddOperation" }!!
-        private val bossEventAddOperationNameField = bossEventAddOperation.getDeclaredField("name").apply { isAccessible = true }
-        private val bossEventUpdateNameOperation = ClientboundBossEventPacket::class.java.declaredClasses.find { it.simpleName == "UpdateNameOperation" }!!
-        private val bossEventUpdateNameOperationNameMethod = bossEventUpdateNameOperation.methods.find { it.name == "name" }?.apply { isAccessible = true }
-        private val bossEventUpdateNameOperationConstructor = bossEventUpdateNameOperation.getDeclaredConstructor(Component::class.java).apply { isAccessible = true }
-
         private val setObjectiveDisplayNameField = ClientboundSetObjectivePacket::class.java.getDeclaredField("displayName").apply { isAccessible = true }
     }
 }

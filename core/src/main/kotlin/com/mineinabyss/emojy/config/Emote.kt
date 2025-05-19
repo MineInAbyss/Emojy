@@ -75,7 +75,7 @@ data class Emote(
 
     private val permission get() = "emojy.emote.$id"
     private val fontPermission get() = "emojy.font.$font"
-    private val fontProvider by lazy { FontProvider.bitMap(texture, height, ascent, unicodes) }
+    val fontProvider by lazy { FontProvider.bitMap(texture, height, ascent, unicodes) }
     fun appendFont(resourcePack: ResourcePack) =
         (resourcePack.font(font)?.toBuilder() ?: Font.font().key(font)).addProvider(fontProvider).build().addTo(resourcePack)
 
