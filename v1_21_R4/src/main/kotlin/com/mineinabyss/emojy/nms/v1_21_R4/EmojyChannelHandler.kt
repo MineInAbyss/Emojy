@@ -6,6 +6,7 @@ import com.mineinabyss.emojy.nms.IEmojyNMSHandler
 import com.mineinabyss.emojy.transformEmotes
 import com.mineinabyss.emojy.unescapeEmoteIds
 import com.mineinabyss.idofront.textcomponents.miniMsg
+import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelDuplexHandler
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelPromise
@@ -17,6 +18,7 @@ import net.minecraft.core.component.DataComponentExactPredicate
 import net.minecraft.core.component.DataComponentMap
 import net.minecraft.core.component.DataComponents
 import net.minecraft.core.component.PatchedDataComponentMap
+import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.chat.ChatType
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.MutableComponent
@@ -32,6 +34,7 @@ import net.minecraft.network.syncher.EntityDataSerializer
 import net.minecraft.network.syncher.EntityDataSerializers
 import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.server.ServerLinks
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.component.ItemLore
 import net.minecraft.world.item.trading.ItemCost
@@ -46,11 +49,19 @@ import kotlin.jvm.optionals.getOrNull
 import kotlin.reflect.KClass
 
 class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
-    private val serverPlayer = (player as CraftPlayer).handle
+    private val serverPlayer: ServerPlayer = (player as CraftPlayer).handle
+    private val registryAccess = serverPlayer.server.registryAccess()
+    private val protocolInfo = GameProtocols.CLIENTBOUND_TEMPLATE.bind(RegistryFriendlyByteBuf.decorator(registryAccess))
 
     override fun write(ctx: ChannelHandlerContext, msg: Any, promise: ChannelPromise?) {
-        if (msg !is Packet<*>) return super.write(ctx, msg, promise)
-        return super.write(ctx, transformPacket(msg) ?: return, promise)
+        super.write(ctx, when (msg) {
+            is Packet<*> -> transformPacket(msg) ?: return
+            is ByteBuf -> runCatching {
+                val wrappedBuf = RegistryFriendlyByteBuf(msg, registryAccess)
+                transformPacket(protocolInfo.codec().decode(wrappedBuf)) ?: return
+            }.getOrDefault(msg)
+            else -> msg
+        }, promise)
     }
 
     override fun channelRead(ctx: ChannelHandlerContext?, msg: Any?) {
