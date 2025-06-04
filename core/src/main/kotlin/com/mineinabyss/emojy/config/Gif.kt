@@ -53,7 +53,7 @@ data class Gif(
 
     val gifFile by lazy { emojy.plugin.dataFolder.resolve("gifs/${id}.gif").apply { parentFile.mkdirs() } }
     val gifSpriteSheet by lazy { emojy.plugin.dataFolder.resolve("gifs/${id}.png").apply { parentFile.mkdirs() } }
-    private var aspectRatio by Delegates.notNull<Float>()
+    private var aspectRatio = 0f
 
     enum class GifType {
         SHADER, OBFUSCATION
@@ -73,18 +73,16 @@ data class Gif(
 
 
     private fun calculateFramecount(): Int {
-        if (frameCount <= 0) frameCount = runCatching {
+        val (fc, ar) = runCatching {
             val reader = ImageIO.getImageReadersByFormatName("gif").next()
             reader.input = ImageIO.createImageInputStream(gifFile)
-            aspectRatio = reader.getAspectRatio(0)
-            if (aspectRatio % 1 != 0f && offset == null) {
-                emojy.logger.w("AspectRatio for $id is not 1:1, and the offset (${-(height * aspectRatio).roundToInt() - 1}) between frames will likely be wrong")
-                emojy.logger.w("Either modify your GIF's resolution to have an aspect-ration of 1:1 or tweak the offset-property of your glyph")
-            }
-            reader.getNumImages(true)
+            reader.getNumImages(true) to reader.getAspectRatio(0)
         }.onFailure {
             emojy.logger.d("Could not get frame count for ${id}.gif")
-        }.getOrNull()?.apply { aspectRatio = 1f } ?: 0
+        }.getOrDefault(0 to 0f)
+
+        if (frameCount <= 0) frameCount = fc
+        if (aspectRatio <= 0) aspectRatio = ar
 
         return frameCount
     }

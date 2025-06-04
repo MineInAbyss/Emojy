@@ -98,11 +98,7 @@ class EmojyListener(val handler: IEmojyNMSHandler) : Listener {
         isCancelled = true
         emojy.plugin.launch {
             delay(2.ticks)
-            (player as CraftPlayer).handle.level()
-                .getBlockEntity(BlockPos(sign.x, sign.y, sign.z), BlockEntityType.SIGN).ifPresent {
-                    it.setAllowedPlayerEditor(player.uniqueId)
-                    (player as CraftPlayer).handle.openTextEdit(it, side == Side.FRONT)
-                }
+            player.openSign(sign, side)
         }
     }
 
