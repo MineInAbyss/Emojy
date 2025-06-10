@@ -58,51 +58,6 @@ class EmojyListener(val handler: IEmojyNMSHandler) : Listener {
     }
 
     @EventHandler
-    fun SignChangeEvent.onSign() {
-        val state = (block.state as Sign)
-        val type = DataType.asList(DataType.STRING)
-        val sideLines = lines().map { it.serialize() }.toList()
-        val frontLines = if (side == Side.FRONT) sideLines else state.persistentDataContainer.getOrDefault(
-            ORIGINAL_SIGN_FRONT_LINES,
-            type,
-            mutableListOf("", "", "", "")
-        )
-        val backLines = if (side == Side.BACK) sideLines else state.persistentDataContainer.getOrDefault(
-            ORIGINAL_SIGN_BACK_LINES,
-            type,
-            mutableListOf("", "", "", "")
-        )
-
-        state.persistentDataContainer.set(ORIGINAL_SIGN_FRONT_LINES, type, frontLines)
-        state.persistentDataContainer.set(ORIGINAL_SIGN_BACK_LINES, type, backLines)
-        state.update(true)
-
-        lines().forEachIndexed { index, s ->
-            line(index, s?.escapeEmoteIDs(player)?.transformEmotes())
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    fun PlayerOpenSignEvent.onSignEdit() {
-        if (cause == PlayerOpenSignEvent.Cause.PLACE) return
-
-        sign.persistentDataContainer.get(
-            when (sign.getInteractableSideFor(player)) {
-                Side.FRONT -> ORIGINAL_SIGN_FRONT_LINES
-                Side.BACK -> ORIGINAL_SIGN_BACK_LINES
-            }, DataType.asList(DataType.STRING)
-        )?.forEachIndexed { index, s ->
-            sign.getSide(side).line(index, s.miniMsg())
-        }
-        sign.update(true)
-        isCancelled = true
-        emojy.plugin.launch {
-            delay(2.ticks)
-            player.openSign(sign, side)
-        }
-    }
-
-    @EventHandler
     fun PrepareAnvilEvent.onAnvil() {
         result = result?.editItemMeta {
             if (view.renameText == null || result?.itemMeta?.hasDisplayName() != true) {
