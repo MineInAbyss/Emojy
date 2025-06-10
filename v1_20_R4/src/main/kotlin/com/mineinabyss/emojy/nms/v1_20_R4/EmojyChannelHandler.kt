@@ -182,9 +182,6 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
                     } else item.transformItemNameLore()
                 }, it.carriedItem
             )
-        },
-        registerTransformer<ServerboundRenameItemPacket> { packet ->
-            ServerboundRenameItemPacket(packet.name.transformEmotes())
         }
     ))
 

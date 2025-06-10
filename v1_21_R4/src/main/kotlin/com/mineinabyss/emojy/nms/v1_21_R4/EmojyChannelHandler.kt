@@ -187,9 +187,6 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
                     } else item.transformItemNameLore()
                 }, it.carriedItem
             )
-        },
-        registerTransformer<ServerboundRenameItemPacket> { packet ->
-            ServerboundRenameItemPacket(packet.name.transformEmotes())
         }
     ))
 
@@ -222,9 +219,11 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
                     itemLore.lines.map { Component.empty().setStyle(Style.EMPTY.withItalic(false)).append(it.transformEmotes()) },
                     itemLore.styledLines.map { Component.empty().setStyle(Style.EMPTY).append(it.transformEmotes()) })
             })
-            get(DataComponents.CUSTOM_DATA)?.copyTag()?.getCompound("PublicBukkitValues")?.getOrNull()?.getString(ORIGINAL_ITEM_RENAME_TEXT.toString())?.getOrNull()?.takeIf { it.isNotEmpty() }?.let {
+
+            val customData = get(DataComponents.CUSTOM_DATA)?.copyTag()?.getCompound("PublicBukkitValues")?.getOrNull()
+            customData?.getString(ORIGINAL_ITEM_RENAME_TEXT.toString())?.getOrNull()?.takeIf { it.isNotEmpty() }?.let {
                 set(DataComponents.CUSTOM_NAME, PaperAdventure.asVanilla(it.escapeEmoteIDs(player).transformEmotes().unescapeEmoteIds().miniMsg()))
-            }
+            } ?: set(DataComponents.CUSTOM_NAME, get(DataComponents.CUSTOM_NAME)?.transformEmotes())
         }
     }
 
