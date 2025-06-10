@@ -107,12 +107,12 @@ data class Emote(
                     val unicode = unicodes.joinToString("").toCharArray()
                         .getOrElse(maxOf(bitmapIndex, 1) - 1) { unicodes.last().last() }.toString()
                     Component.text(unicode).font(font)
-                } else Component.textOfChildren(*unicodes.map {
+                } else Component.textOfChildren(*unicodes.flatMap {
                     listOf(
                         Component.text(it).font(font),
                         spaceComponent(-1)
                     )
-                }.flatten().toTypedArray())
+                }.toTypedArray())
 
             }
 

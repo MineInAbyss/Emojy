@@ -216,12 +216,14 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
             set(DataComponents.ITEM_NAME, get(DataComponents.ITEM_NAME)?.transformEmotes())
             set(DataComponents.LORE, get(DataComponents.LORE)?.let { itemLore ->
                 ItemLore(
-                    itemLore.lines.map { Component.empty().setStyle(Style.EMPTY.withItalic(false)).append(it.transformEmotes()) },
-                    itemLore.styledLines.map { Component.empty().setStyle(Style.EMPTY).append(it.transformEmotes()) })
+                    itemLore.lines.map { l -> l.transformEmotes().copy().withStyle { it.withItalic(false) } },
+                    itemLore.styledLines.map { Component.empty().setStyle(Style.EMPTY).append(it.transformEmotes()) }
+                )
             })
-            get(DataComponents.CUSTOM_DATA)?.copyTag()?.getCompound("PublicBukkitValues")?.getString(ORIGINAL_ITEM_RENAME_TEXT.toString())?.takeIf { it.isNotEmpty() }?.let {
-                set(DataComponents.CUSTOM_NAME, PaperAdventure.asVanilla(it.escapeEmoteIDs(player).transformEmotes().unescapeEmoteIds().miniMsg()))
-            }
+            val customData = get(DataComponents.CUSTOM_DATA)?.copyTag()?.getCompound("PublicBukkitValues")
+            customData?.getString(ORIGINAL_ITEM_RENAME_TEXT.toString())?.takeIf { it.isNotEmpty() }?.let {
+                set(DataComponents.CUSTOM_NAME, PaperAdventure.asVanilla(it.miniMsg().escapeEmoteIDs(player).transformEmotes().unescapeEmoteIds()))
+            } ?: set(DataComponents.CUSTOM_NAME, get(DataComponents.CUSTOM_NAME)?.transformEmotes())
         }
     }
 
@@ -231,8 +233,9 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
         map.set(DataComponents.ITEM_NAME, map.get(DataComponents.ITEM_NAME)?.transformEmotes())
         map.set(DataComponents.LORE, map.get(DataComponents.LORE)?.let { itemLore ->
             ItemLore(
-                itemLore.lines.map { Component.empty().setStyle(Style.EMPTY.withItalic(false)).append(it.transformEmotes()) },
-                itemLore.styledLines.map { Component.empty().setStyle(Style.EMPTY).append(it.transformEmotes()) })
+                itemLore.lines.map { l -> l.transformEmotes().copy().withStyle { it.withItalic(false) } },
+                itemLore.styledLines.map { Component.empty().setStyle(Style.EMPTY).append(it.transformEmotes()) }
+            )
         })
 
         val customData = map.get(DataComponents.CUSTOM_DATA)?.copyTag()?.getCompound("PublicBukkitValues")
