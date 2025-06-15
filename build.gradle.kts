@@ -41,7 +41,6 @@ dependencies {
     // Shaded
     paperweight.paperDevBundle("1.21.5-R0.1-SNAPSHOT") //NMS
     implementation(project(path = ":core"))
-    implementation(project(path = ":v1_20_R4"))
     implementation(project(path = ":v1_21_R1"))
     implementation(project(path = ":v1_21_R2"))
     implementation(project(path = ":v1_21_R3"))
@@ -74,9 +73,7 @@ tasks {
     }
 
     shadowJar {
-        dependsOn(":v1_20_R4:reobfJar")
-
-        //relocate("com.jeff_media.morepersistentdatatypes", "com.mineinabyss.shaded.morepersistentdatatypes")
+        dependsOn(":v1_21_R1:reobfJar")
 
         archiveFileName.set("Emojy.jar")
     }
@@ -91,7 +88,7 @@ paper {
     val version: String by project
     this.version = version
     authors = listOf("boy0000")
-    apiVersion = "1.20"
+    apiVersion = "1.21"
 
     serverDependencies {
         register("Idofront") {
