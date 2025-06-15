@@ -1,10 +1,12 @@
 #version 150
 
-#moj_import <fog.glsl>
+#moj_import <minecraft:fog.glsl>
 
 uniform sampler2D Sampler0;
+
 uniform vec4 ColorModulator;
-uniform float FogStart, FogEnd;
+uniform float FogStart;
+uniform float FogEnd;
 uniform vec4 FogColor;
 
 in float vertexDistance;
@@ -14,9 +16,11 @@ in vec2 texCoord0;
 out vec4 fragColor;
 
 void main() {
-  vec4 v = texture(Sampler0, texCoord0) * vertexColor * ColorModulator;
-  if (v.w == 0 ) {
+  vec4 color = texture(Sampler0, texCoord0) * vertexColor * ColorModulator;
+  //Emojy start
+  if (color.w == 0) {
     discard;
   }
-  fragColor = linear_fog(v, vertexDistance, FogStart, FogEnd, FogColor);
+  //Emojy end
+  fragColor = linear_fog(color, vertexDistance, FogStart, FogEnd, FogColor);
 }

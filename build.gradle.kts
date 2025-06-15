@@ -46,6 +46,7 @@ dependencies {
     implementation(project(path = ":v1_21_R2"))
     implementation(project(path = ":v1_21_R3"))
     implementation(project(path = ":v1_21_R4"))
+    implementation(project(path = ":v1_21_R5"))
 }
 
 tasks {

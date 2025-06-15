@@ -69,7 +69,8 @@ object EmojyGenerator {
     private fun generateGifShaderFiles(resourcePack: ResourcePack) {
         resourcePack.overlaysMeta(OverlaysMeta.of(
             OverlayEntry.of(PackFormat.format(34, 32, 34), "emojy_1_21_1"),
-            OverlayEntry.of(PackFormat.format(42, 42, 46), "emojy_1_21_3")
+            OverlayEntry.of(PackFormat.format(42, 42, 46), "emojy_1_21_3"),
+            OverlayEntry.of(PackFormat.format(63, 63, 99), "emojy_1_21_6")
         ))
 
         val path = "assets/minecraft/shaders/core/rendertype_text"
@@ -80,5 +81,9 @@ object EmojyGenerator {
         resourcePack.unknownFile("emojy_1_21_3/$path.json", Writable.copyInputStream(emojy.plugin.getResource("emojy_1_21_3/$path.json")!!))
         resourcePack.unknownFile("emojy_1_21_3/$path.fsh", Writable.copyInputStream(emojy.plugin.getResource("emojy_1_21_3/$path.fsh")!!))
         resourcePack.unknownFile("emojy_1_21_3/$path.vsh", Writable.copyInputStream(emojy.plugin.getResource("emojy_1_21_3/$path.vsh")!!))
+
+        resourcePack.unknownFile("emojy_1_21_6/$path.json", Writable.copyInputStream(emojy.plugin.getResource("emojy_1_21_6/$path.json")!!))
+        resourcePack.unknownFile("emojy_1_21_6/$path.fsh", Writable.copyInputStream(emojy.plugin.getResource("emojy_1_21_6/$path.fsh")!!))
+        resourcePack.unknownFile("emojy_1_21_6/$path.vsh", Writable.copyInputStream(emojy.plugin.getResource("emojy_1_21_6/$path.vsh")!!))
     }
 }
