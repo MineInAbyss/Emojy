@@ -1,10 +1,12 @@
 #version 150
 
-#moj_import <fog.glsl>
+#moj_import <minecraft:fog.glsl>
 
 uniform sampler2D Sampler0;
+
 uniform vec4 ColorModulator;
-uniform float FogStart, FogEnd;
+uniform float FogStart;
+uniform float FogEnd;
 uniform vec4 FogColor;
 
 in float vertexDistance;

@@ -29,7 +29,7 @@ void main() {
   vertexColor = Color * texelFetch(Sampler2, UV2 / 16, 0);
   texCoord0 = UV0;
 
-  //Emojy Animated Glyphs - start
+  //Emojy GIFs - start
   vec2 dimensions = textureSize(Sampler0, 0);
   ivec2 quadrantUV = ivec2(UV0 * dimensions);
   vec4 quadrant = texelFetch(Sampler0, quadrantUV, 0);
@@ -79,5 +79,5 @@ void main() {
     vertexColor = vec4(Color.rgb, Color.a * visible) * texelFetch(Sampler2, UV2 / 16, 0);
     texCoord0 = newUV0;
   }
-  //Emojy Animated Glyphs - end
+  //Emojy GIFs - end
 }
