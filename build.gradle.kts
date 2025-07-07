@@ -8,7 +8,7 @@ plugins {
     id("com.mineinabyss.conventions.autoversion")
     id("xyz.jpenilla.run-paper") version "2.3.1" // Adds runServer and runMojangMappedServer tasks for testing
     id("net.minecrell.plugin-yml.paper") version "0.6.0"
-    id("io.papermc.paperweight.userdev") version "2.0.0-beta.17"
+    id("io.papermc.paperweight.userdev") version "2.0.0-beta.18"
 }
 
 paperweight.reobfArtifactConfiguration.set(ReobfArtifactConfiguration.MOJANG_PRODUCTION)
@@ -39,13 +39,14 @@ dependencies {
     compileOnly(idofrontLibs.minecraft.mccoroutine)
 
     // Shaded
-    paperweight.paperDevBundle("1.21.5-R0.1-SNAPSHOT") //NMS
+    paperweight.paperDevBundle("1.21.7-R0.1-SNAPSHOT") //NMS
     implementation(project(path = ":core"))
     implementation(project(path = ":v1_21_R1"))
     implementation(project(path = ":v1_21_R2"))
     implementation(project(path = ":v1_21_R3"))
     implementation(project(path = ":v1_21_R4"))
     implementation(project(path = ":v1_21_R5"))
+    implementation(project(path = ":v1_21_R6"))
 }
 
 tasks {

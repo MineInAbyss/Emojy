@@ -26,14 +26,10 @@ dependencies {
     // Shaded
     implementation(idofrontLibs.bundles.idofront.core)
     implementation(project(":core"))
-    paperweight.paperDevBundle("1.21.3-R0.1-SNAPSHOT") //NMS
+    paperweight.paperDevBundle("1.21.7-R0.1-SNAPSHOT") //NMS
 }
 
 tasks {
-
-    build {
-        dependsOn(reobfJar)
-    }
 
     compileJava {
         options.encoding = Charsets.UTF_8.name()
