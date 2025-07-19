@@ -7,6 +7,7 @@ import com.mineinabyss.emojy.transformEmotes
 import com.mineinabyss.emojy.unescapeEmoteIds
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import io.netty.buffer.ByteBuf
+import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelDuplexHandler
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelPromise
@@ -18,13 +19,18 @@ import net.minecraft.core.component.DataComponentMap
 import net.minecraft.core.component.DataComponentPredicate
 import net.minecraft.core.component.DataComponents
 import net.minecraft.core.component.PatchedDataComponentMap
+import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.chat.ChatType
 import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.ComponentSerialization
 import net.minecraft.network.chat.MutableComponent
 import net.minecraft.network.chat.Style
 import net.minecraft.network.chat.contents.PlainTextContents.LiteralContents
 import net.minecraft.network.chat.contents.TranslatableContents
+import net.minecraft.network.chat.numbers.BlankFormat
+import net.minecraft.network.chat.numbers.NumberFormat
+import net.minecraft.network.chat.numbers.NumberFormatTypes
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.ClientboundDisconnectPacket
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
@@ -33,6 +39,7 @@ import net.minecraft.network.protocol.game.*
 import net.minecraft.network.syncher.EntityDataSerializer
 import net.minecraft.network.syncher.EntityDataSerializers
 import net.minecraft.network.syncher.SynchedEntityData
+import net.minecraft.server.MinecraftServer
 import net.minecraft.server.ServerLinks
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.item.ItemStack
@@ -40,6 +47,7 @@ import net.minecraft.world.item.component.ItemLore
 import net.minecraft.world.item.trading.ItemCost
 import net.minecraft.world.item.trading.MerchantOffer
 import net.minecraft.world.item.trading.MerchantOffers
+import net.minecraft.world.scores.Team
 import org.bukkit.craftbukkit.entity.CraftPlayer
 import org.bukkit.craftbukkit.inventory.CraftItemStack
 import org.bukkit.entity.Player
@@ -49,17 +57,15 @@ import kotlin.jvm.optionals.getOrNull
 import kotlin.reflect.KClass
 
 class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
-    private val serverPlayer: ServerPlayer = (player as CraftPlayer).handle
-    private val registryAccess = serverPlayer.server.registryAccess()
-    private val protocolInfo = GameProtocols.CLIENTBOUND_TEMPLATE.bind(RegistryFriendlyByteBuf.decorator(registryAccess))
 
     override fun write(ctx: ChannelHandlerContext, msg: Any, promise: ChannelPromise?) {
         super.write(ctx, when (msg) {
             is Packet<*> -> transformPacket(msg) ?: return
             is ByteBuf -> runCatching {
-                val wrappedBuf = RegistryFriendlyByteBuf(msg, registryAccess)
-                transformPacket(protocolInfo.codec().decode(wrappedBuf)) ?: return
+                val decodeBuf = RegistryFriendlyByteBuf(msg, registryAccess)
+                transformPacket(protocolInfo.codec().decode(decodeBuf)) ?: return
             }.getOrDefault(msg)
+
             else -> msg
         }, promise)
     }
@@ -69,67 +75,135 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
         return super.channelRead(ctx, transformPacket(msg) ?: return)
     }
 
-    inline fun <reified T : Packet<*>> registerTransformer(noinline transformer: (T) -> Packet<*>?) =
-        T::class to transformer as (Packet<*>) -> Packet<*>
+    private inline fun <reified T : Packet<*>> registerTransformer(noinline transformer: (T) -> Packet<*>?) {
+        packetTransformers[T::class.java] = { packet ->
+            if (packet is T) transformer(packet)
+            else packet
+        }
+    }
 
-    inline fun <reified T : Packet<*>> registerReader(noinline reader: (T) -> Unit): Pair<KClass<T>, (Packet<*>) -> Packet<*>> =
-        T::class to { packet -> (packet as? T)?.also { reader(it) } ?: packet }
+    private inline fun <reified T : Packet<*>> registerReader(noinline reader: (T) -> Unit) {
+        packetTransformers[T::class.java] = { packet ->
+            if (packet.javaClass == T::class.java) reader(packet as T)
+            packet // Return the original packet unchanged
+        }
+    }
+
+    private inline fun <reified T : Packet<*>> registerIgnored() {
+        packetTransformers[T::class.java] = { packet -> packet }
+    }
+
 
     fun transformPacket(packet: Packet<*>): Packet<*>? {
-        val entry = packetTransformers[packet::class] ?: return packet
+        val entry = packetTransformers[packet::class.java] ?: return packet
         return runCatching { entry.invoke(packet) }.onFailure { return packet }.getOrNull()
     }
 
-    private val packetTransformers: Map<KClass<out Packet<*>>, (Packet<*>) -> Packet<*>> = Object2ObjectOpenHashMap(mapOf(
+    private val packetTransformers: MutableMap<Class<out Packet<*>>, (Packet<*>) -> Packet<*>?> = Object2ObjectOpenHashMap()
+
+    init {
+        registerIgnored<ClientboundSetEntityMotionPacket>()
+        registerIgnored<ClientboundEntityPositionSyncPacket>()
+        registerIgnored<ClientboundRotateHeadPacket>()
+        registerIgnored<ClientboundMoveEntityPacket>()
+        registerIgnored<ClientboundMoveEntityPacket.Pos>()
+        registerIgnored<ClientboundMoveEntityPacket.Rot>()
+        registerIgnored<ClientboundMoveEntityPacket.PosRot>()
+        registerIgnored<ClientboundSetTimePacket>()
+
         registerTransformer<ClientboundBundlePacket> {
             ClientboundBundlePacket(it.subPackets().map(::transformPacket) as Iterable<Packet<in ClientGamePacketListener>?>)
-        },
+        }
         registerTransformer<ClientboundServerLinksPacket> {
             ClientboundServerLinksPacket(it.links.map { ServerLinks.UntrustedEntry(it.type.mapRight { it.transformEmotes() }, it.link) })
-        },
+        }
         registerTransformer<ClientboundSetScorePacket> {
             ClientboundSetScorePacket(it.owner, it.objectiveName, it.score, it.display.map { it.transformEmotes() }, it.numberFormat)
-        },
-        registerReader<ClientboundSetObjectivePacket> { packet ->
-            setObjectiveDisplayNameField.set(packet, packet.displayName.transformEmotes())
-        },
+        }
+        registerTransformer<ClientboundSetObjectivePacket> { packet ->
+            if (packet.method != 0 && packet.method != 2) return@registerTransformer packet
+            val displayName = packet.displayName?.transformEmotes() ?: return@registerTransformer packet
+            val buf = RegistryFriendlyByteBuf(Unpooled.buffer(), registryAccess)
+
+            try {
+                buf.writeUtf(packet.objectiveName)
+                buf.writeByte(packet.method)
+                ComponentSerialization.TRUSTED_STREAM_CODEC.encode(buf, displayName)
+                buf.writeEnum(packet.renderType)
+                NumberFormatTypes.OPTIONAL_STREAM_CODEC.encode(buf, packet.numberFormat)
+
+                ClientboundSetObjectivePacket.STREAM_CODEC.decode(buf)
+            } finally {
+                buf.release()
+            }
+        }
+        registerTransformer<ClientboundSetPlayerTeamPacket> { packet ->
+            val parameters = packet.parameters.getOrNull() ?: return@registerTransformer packet
+            val method = packet.teamAction?.ordinal ?: packet.playerAction?.ordinal ?: EMPTY_TEAM_ACTION
+            val buf = RegistryFriendlyByteBuf(Unpooled.buffer(), registryAccess)
+
+            val shouldHavePlayerList = method == 0 || method == 3 || method == 4
+            val shouldHaveParameters = method == 0 || method == 2
+
+            try {
+                buf.writeUtf(packet.name)
+                buf.writeByte(method)
+
+                if (shouldHaveParameters) {
+                    ComponentSerialization.TRUSTED_STREAM_CODEC.encode(buf, parameters.displayName.transformEmotes())
+                    buf.writeByte(parameters.options)
+                    buf.writeUtf(parameters.nametagVisibility ?: Team.Visibility.ALWAYS.name)
+                    buf.writeUtf(parameters.collisionRule ?: Team.CollisionRule.ALWAYS.name)
+                    buf.writeEnum(parameters.color)
+                    ComponentSerialization.TRUSTED_STREAM_CODEC.encode(buf, parameters.playerPrefix.transformEmotes())
+                    ComponentSerialization.TRUSTED_STREAM_CODEC.encode(buf, parameters.playerSuffix.transformEmotes())
+                }
+
+                if (shouldHavePlayerList) buf.writeCollection(packet.players, FriendlyByteBuf::writeUtf)
+
+                // Return the modified packet
+                ClientboundSetPlayerTeamPacket.STREAM_CODEC.decode(buf)
+            } finally {
+                buf.release()
+            }
+        }
         registerTransformer<ClientboundServerDataPacket> {
             ClientboundServerDataPacket(it.motd.transformEmotes(), it.iconBytes)
-        },
+        }
         registerTransformer<ClientboundDisguisedChatPacket> {
             ClientboundDisguisedChatPacket(it.message.transformEmotes(true).unescapeEmoteIds(), it.chatType)
-        },
+        }
         registerTransformer<ClientboundPlayerChatPacket> {
             ClientboundPlayerChatPacket(
                 it.sender, it.index, it.signature, it.body,
                 (it.unsignedContent ?: PaperAdventure.asVanilla(it.body.content.miniMsg()))?.transformEmotes(true)?.unescapeEmoteIds(),
-                it.filterMask, ChatType.bind(it.chatType.chatType.unwrapKey().get(), serverPlayer.registryAccess(), it.chatType.name.transformEmotes(true))
+                it.filterMask, ChatType.bind(it.chatType.chatType.unwrapKey().get(), registryAccess, it.chatType.name.transformEmotes(true))
             )
-        },
+        }
         registerTransformer<ClientboundSystemChatPacket> {
             ClientboundSystemChatPacket(it.content.transformEmotes(true).unescapeEmoteIds(), it.overlay)
-        },
+        }
         registerTransformer<ClientboundSetTitleTextPacket> {
             ClientboundSetTitleTextPacket(it.text.transformEmotes())
-        },
+        }
         registerTransformer<ClientboundSetSubtitleTextPacket> {
             ClientboundSetSubtitleTextPacket(it.text.transformEmotes())
-        },
+        }
         registerTransformer<ClientboundSetActionBarTextPacket> {
             ClientboundSetActionBarTextPacket(it.text.transformEmotes())
-        },
+        }
         registerTransformer<ClientboundOpenScreenPacket> {
             ClientboundOpenScreenPacket(it.containerId, it.type, it.title.transformEmotes())
-        },
+        }
         registerTransformer<ClientboundTabListPacket> {
             ClientboundTabListPacket(it.header.transformEmotes(), it.footer.transformEmotes())
-        },
+        }
         registerTransformer<ClientboundResourcePackPushPacket> {
             ClientboundResourcePackPushPacket(it.id, it.url, it.hash, it.required, it.prompt.map { it.transformEmotes() })
-        },
+        }
         registerTransformer<ClientboundDisconnectPacket> {
             ClientboundDisconnectPacket(it.reason.transformEmotes())
-        },
+        }
         registerTransformer<ClientboundSetEntityDataPacket> {
             ClientboundSetEntityDataPacket(it.id, it.packedItems.map {
                 when (val value = it.value) {
@@ -152,7 +226,7 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
                     else -> it
                 }
             })
-        },
+        }
         registerTransformer<ClientboundPlayerInfoUpdatePacket> {
             ClientboundPlayerInfoUpdatePacket(it.actions(), it.entries().map { e ->
                 ClientboundPlayerInfoUpdatePacket.Entry(
@@ -160,10 +234,10 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
                     e.displayName?.transformEmotes(), e.showHat, e.listOrder, e.chatSession
                 )
             })
-        },
+        }
         registerTransformer<ClientboundContainerSetSlotPacket> {
             ClientboundContainerSetSlotPacket(it.containerId, it.stateId, it.slot, it.item.transformItemNameLore())
-        },
+        }
         registerTransformer<ClientboundMerchantOffersPacket> {
             ClientboundMerchantOffersPacket(it.containerId, MerchantOffers().apply {
                 addAll(it.offers.map { offer ->
@@ -173,7 +247,7 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
                     )
                 })
             }, it.villagerLevel, it.villagerXp, it.showProgress(), it.canRestock())
-        },
+        }
         registerTransformer<ClientboundContainerSetContentPacket> {
             ClientboundContainerSetContentPacket(
                 it.containerId, it.stateId, it.items.mapTo(NonNullList.create()) { item ->
@@ -188,7 +262,7 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
                 }, it.carriedItem
             )
         }
-    ))
+    }
 
     fun ItemCost.transform() = ItemCost(item, count, components.transformItemNameLore(player), itemStack)
 
@@ -255,6 +329,14 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
     }
 
     companion object {
-        private val setObjectiveDisplayNameField = ClientboundSetObjectivePacket::class.java.getDeclaredField("displayName").apply { isAccessible = true }
+        private val bossbarOperationTypeClass: Class<out Enum<*>>? = runCatching {
+            Class.forName("net.minecraft.network.protocol.game.ClientboundBossEventPacket\$OperationType")
+                .asSubclass(Enum::class.java) // Ensure the class is an Enum type
+        }.getOrNull()
+        private const val EMPTY_TEAM_ACTION = 2 // Because the int can return a value not tied to any action
+
+        private val registryAccess = MinecraftServer.getServer().registryAccess()
+        private val decorator = RegistryFriendlyByteBuf.decorator(registryAccess)
+        private val protocolInfo = GameProtocols.CLIENTBOUND_TEMPLATE.bind(decorator)
     }
 }
