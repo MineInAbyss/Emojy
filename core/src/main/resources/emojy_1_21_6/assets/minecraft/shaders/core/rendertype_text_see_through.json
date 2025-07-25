@@ -4,8 +4,8 @@
     "srcrgb": "srcalpha",
     "dstrgb": "1-srcalpha"
   },
-  "vertex": "minecraft:core/rendertype_text",
-  "fragment": "minecraft:core/rendertype_text",
+  "vertex": "minecraft:core/rendertype_text_see_through",
+  "fragment": "minecraft:core/rendertype_text_see_through",
   "attributes": [
     "Position",
     "Color",

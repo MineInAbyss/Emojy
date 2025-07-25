@@ -72,6 +72,7 @@ object EmojyGenerator {
             OverlayEntry.of(PackFormat.format(42, 42, 46), "emojy_1_21_3"),
             OverlayEntry.of(PackFormat.format(63, 63, 99), "emojy_1_21_6")
         ))
+        val classloader = emojy.plugin.javaClass.classLoader
 
         var path = "assets/minecraft/shaders/core/rendertype_text"
         resourcePack.unknownFile("emojy_1_21_1/$path.json", Writable.copyInputStream(emojy.plugin.getResource("emojy_1_21_1/$path.json")!!))
@@ -98,5 +99,8 @@ object EmojyGenerator {
         resourcePack.unknownFile("emojy_1_21_6/$path.json", Writable.copyInputStream(emojy.plugin.getResource("emojy_1_21_6/$path.json")!!))
         resourcePack.unknownFile("emojy_1_21_6/$path.fsh", Writable.copyInputStream(emojy.plugin.getResource("emojy_1_21_6/$path.fsh")!!))
         resourcePack.unknownFile("emojy_1_21_6/$path.vsh", Writable.copyInputStream(emojy.plugin.getResource("emojy_1_21_6/$path.vsh")!!))
+
+        path = "assets/minecraft/shaders/include/emojy_gif_utils.glsl"
+        resourcePack.unknownFile("emojy_1_21_6/$path", Writable.resource(classloader, "emojy_1_21_6/$path"))
     }
 }
