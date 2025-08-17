@@ -24,7 +24,7 @@ object EmojyGenerator {
     val resourcePack = ResourcePack.resourcePack()
 
     fun generateResourcePack() {
-        ResourcePacks.clearResourcePack(resourcePack)
+        ResourcePacks.clearPack(resourcePack)
         emojy.plugin.dataFolder.resolve("assets").deleteRecursively()
 
         val textureFiles = emotesFolder.walkTopDown().filter { it.isFile }.associateBy { it.name }

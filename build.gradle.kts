@@ -21,6 +21,7 @@ allprojects {
     repositories {
         maven("https://repo.mineinabyss.com/releases")
         maven("https://repo.mineinabyss.com/snapshots")
+        maven("https://repo.nexomc.com/releases")
         maven("https://repo.nexomc.com/snapshots")
         mavenLocal()
     }
@@ -28,6 +29,10 @@ allprojects {
     dependencies {
         implementation("com.jeff-media:MorePersistentDataTypes:2.4.0")
     }
+}
+
+repositories {
+    mavenLocal()
 }
 
 dependencies {
