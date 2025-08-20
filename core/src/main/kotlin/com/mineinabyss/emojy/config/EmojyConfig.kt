@@ -37,6 +37,7 @@ data class EmojyConfig(
     val requirePermissions: Boolean = true,
     val supportForceUnicode: Boolean = true,
     val logLevel: Severity = Severity.Debug,
+    val includeShader: Boolean = true,
     val emojyList: EmojyList = EmojyList(),
     val supportedLanguages: Set<String> = mutableSetOf("en_us"),
 ) {
