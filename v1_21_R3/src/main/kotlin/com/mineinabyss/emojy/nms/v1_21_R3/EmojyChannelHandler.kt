@@ -11,6 +11,7 @@ import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelDuplexHandler
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelPromise
+import io.netty.util.ReferenceCountUtil
 import io.papermc.paper.adventure.AdventureComponent
 import io.papermc.paper.adventure.PaperAdventure
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
@@ -61,10 +62,17 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
     override fun write(ctx: ChannelHandlerContext, msg: Any, promise: ChannelPromise?) {
         super.write(ctx, when (msg) {
             is Packet<*> -> transformPacket(msg) ?: return
-            is ByteBuf -> runCatching {
-                val decodeBuf = RegistryFriendlyByteBuf(msg, registryAccess)
-                transformPacket(protocolInfo.codec().decode(decodeBuf)) ?: return
-            }.getOrDefault(msg)
+            is ByteBuf -> {
+                val copy = msg.retainedDuplicate()
+                val transformed = runCatching {
+                    val decodeBuf = RegistryFriendlyByteBuf(msg, registryAccess)
+                    val decoded = protocolInfo.codec().decode(decodeBuf)
+                    transformPacket(decoded) ?: return run { ReferenceCountUtil.release(msg) }
+                }.onSuccess { ReferenceCountUtil.release(msg) }.getOrDefault(msg)
+
+                ReferenceCountUtil.release(copy)
+                transformed
+            }
 
             else -> msg
         }, promise)
