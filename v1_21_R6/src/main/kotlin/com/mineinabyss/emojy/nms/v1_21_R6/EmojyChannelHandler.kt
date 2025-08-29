@@ -15,6 +15,8 @@ import io.netty.util.ReferenceCountUtil
 import io.papermc.paper.adventure.AdventureComponent
 import io.papermc.paper.adventure.PaperAdventure
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
+import net.minecraft.core.Holder
+import net.minecraft.core.HolderSet
 import net.minecraft.core.NonNullList
 import net.minecraft.core.component.DataComponentExactPredicate
 import net.minecraft.core.component.DataComponentMap
@@ -36,26 +38,41 @@ import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.ClientboundDisconnectPacket
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
 import net.minecraft.network.protocol.common.ClientboundServerLinksPacket
+import net.minecraft.network.protocol.common.ClientboundShowDialogPacket
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.syncher.EntityDataSerializer
 import net.minecraft.network.syncher.EntityDataSerializers
 import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.ServerLinks
-import net.minecraft.server.level.ServerPlayer
+import net.minecraft.server.dialog.ActionButton
+import net.minecraft.server.dialog.CommonButtonData
+import net.minecraft.server.dialog.CommonDialogData
+import net.minecraft.server.dialog.ConfirmationDialog
+import net.minecraft.server.dialog.Dialog
+import net.minecraft.server.dialog.DialogListDialog
+import net.minecraft.server.dialog.Input
+import net.minecraft.server.dialog.MultiActionDialog
+import net.minecraft.server.dialog.NoticeDialog
+import net.minecraft.server.dialog.ServerLinksDialog
+import net.minecraft.server.dialog.body.DialogBody
+import net.minecraft.server.dialog.body.ItemBody
+import net.minecraft.server.dialog.body.PlainMessage
+import net.minecraft.server.dialog.input.BooleanInput
+import net.minecraft.server.dialog.input.NumberRangeInput
+import net.minecraft.server.dialog.input.SingleOptionInput
+import net.minecraft.server.dialog.input.TextInput
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.component.ItemLore
 import net.minecraft.world.item.trading.ItemCost
 import net.minecraft.world.item.trading.MerchantOffer
 import net.minecraft.world.item.trading.MerchantOffers
 import net.minecraft.world.scores.Team
-import org.bukkit.craftbukkit.entity.CraftPlayer
 import org.bukkit.craftbukkit.inventory.CraftItemStack
 import org.bukkit.entity.Player
 import org.bukkit.inventory.AnvilInventory
 import java.util.*
 import kotlin.jvm.optionals.getOrNull
-import kotlin.reflect.KClass
 
 class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
 
@@ -203,6 +220,9 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
         registerTransformer<ClientboundOpenScreenPacket> {
             ClientboundOpenScreenPacket(it.containerId, it.type, it.title.transformEmotes())
         }
+        registerTransformer<ClientboundShowDialogPacket> { packet ->
+            ClientboundShowDialogPacket(packet.dialog.transform())
+        }
         registerTransformer<ClientboundTabListPacket> {
             ClientboundTabListPacket(it.header.transformEmotes(), it.footer.transformEmotes())
         }
@@ -326,6 +346,59 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
         } ?: map.set(DataComponents.CUSTOM_NAME, map.get(DataComponents.CUSTOM_NAME)?.transformEmotes())
 
         return DataComponentExactPredicate.allOf(map)
+    }
+
+    private fun Holder<Dialog>.transform(): Holder<Dialog> {
+        return Holder.direct(value().transform())
+    }
+
+    private fun Dialog.transform(): Dialog {
+        val common = common()
+        val newCommon = CommonDialogData(
+            common.title.transformEmotes(),
+            common.externalTitle.map { it.transformEmotes() },
+            common.canCloseWithEscape, common.pause,
+            common.afterAction, common.body.map(::transform),
+            common.inputs.map(::transform)
+        )
+
+        return when (this) {
+            is ConfirmationDialog -> ConfirmationDialog(newCommon, transform(yesButton), transform(noButton))
+            is NoticeDialog -> NoticeDialog(newCommon, transform(action))
+            is ServerLinksDialog -> ServerLinksDialog(newCommon, exitAction.map(::transform), columns, buttonWidth)
+            is MultiActionDialog -> MultiActionDialog(newCommon, actions.map(::transform), exitAction.map(::transform), columns)
+            is DialogListDialog -> DialogListDialog(newCommon, HolderSet.direct(dialogs.map { it.transform() }), exitAction.map(::transform), columns, buttonWidth)
+            else -> this
+        }
+    }
+
+    private fun transform(input: ActionButton): ActionButton {
+        val button = CommonButtonData(
+            input.button.label.transformEmotes(),
+            input.button.tooltip.map { it.transformEmotes() },
+            input.button.width
+        )
+        return ActionButton(button, input.action)
+    }
+
+    private fun <T : DialogBody> transform(input: T): T {
+        return when (input) {
+            is PlainMessage -> PlainMessage(input.contents.transformEmotes(), input.width)
+            is ItemBody -> ItemBody(input.item.transformItemNameLore(), input.description.map(::transform), input.showDecorations, input.showTooltip, input.width, input.height)
+            else -> this
+        } as T
+    }
+
+    private fun transform(input: Input): Input {
+        val control = when (val control = input.control) {
+            is BooleanInput -> BooleanInput(control.label.transformEmotes(), control.initial, control.onTrue, control.onFalse)
+            is NumberRangeInput -> NumberRangeInput(control.width, control.label.transformEmotes(), control.labelFormat, control.rangeInfo)
+            is SingleOptionInput -> SingleOptionInput(control.width, control.entries, control.label.transformEmotes(), control.labelVisible)
+            is TextInput -> TextInput(control.width, control.label.transformEmotes(), control.labelVisible, control.initial, control.maxLength, control.multiline)
+            else -> control
+        }
+
+        return Input(input.key, control)
     }
 
     fun Component.escapeEmoteIDs(): Component {
