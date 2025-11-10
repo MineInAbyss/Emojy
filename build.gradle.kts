@@ -44,13 +44,14 @@ dependencies {
     compileOnly(idofrontLibs.minecraft.mccoroutine)
 
     // Shaded
-    paperweight.paperDevBundle("1.21.8-R0.1-SNAPSHOT") //NMS
+    paperweight.paperDevBundle("1.21.10-R0.1-SNAPSHOT") //NMS
     implementation(project(path = ":core"))
     implementation(project(path = ":v1_21_R1"))
     implementation(project(path = ":v1_21_R2"))
     implementation(project(path = ":v1_21_R3"))
     implementation(project(path = ":v1_21_R4"))
     implementation(project(path = ":v1_21_R6"))
+    implementation(project(path = ":v1_21_R8"))
 }
 
 tasks {
