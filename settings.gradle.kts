@@ -35,4 +35,4 @@ dependencyResolutionManagement {
     }
 }
 
-include("core", "v1_21_R1", "v1_21_R2", "v1_21_R3", "v1_21_R4", "v1_21_R6", "v1_21_R8")
+include("core", "v1_21_R1", "v1_21_R2", "v1_21_R3", "v1_21_R4", "v1_21_R6", "v1_21_R8", "v1_21_R10")

@@ -3,7 +3,7 @@ import io.papermc.paperweight.userdev.ReobfArtifactConfiguration
 plugins {
     id("com.mineinabyss.conventions.kotlin.jvm")
     id("com.mineinabyss.conventions.autoversion")
-    id("io.papermc.paperweight.userdev") version "2.0.0-beta.18"
+    id("io.papermc.paperweight.userdev") version "2.0.0-beta.19"
 }
 
 repositories {
@@ -26,7 +26,7 @@ dependencies {
     // Shaded
     implementation(idofrontLibs.bundles.idofront.core)
     implementation(project(":core"))
-    paperweight.paperDevBundle("1.21.8-R0.1-SNAPSHOT") //NMS
+    paperweight.paperDevBundle("1.21.7-R0.1-SNAPSHOT") //NMS
 }
 
 tasks {
