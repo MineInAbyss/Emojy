@@ -59,7 +59,8 @@ object EmojyGenerator {
         }
         Font.font(emojyConfig.spaceFont, spaceProvider).addTo(resourcePack)
 
-        generateGifShaderFiles(resourcePack)
+        if (emojyConfig.generateShader)
+            generateGifShaderFiles(resourcePack)
 
         resourcePack.packMeta(48, "")
 
