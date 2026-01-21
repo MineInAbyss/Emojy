@@ -32,6 +32,7 @@ data class EmojyConfig(
     val defaultHeight: Int = 7,
     val defaultAscent: Int = 7,
     val defaultGifType: Gif.GifType = Gif.GifType.SHADER,
+    val generateShader: Boolean = true,
     val spaceFont: @Serializable(KeySerializer::class) Key = Key.key("minecraft:space"),
 
     val requirePermissions: Boolean = true,
