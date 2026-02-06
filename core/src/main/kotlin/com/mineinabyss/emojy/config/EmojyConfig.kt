@@ -26,9 +26,11 @@ const val SPACE_PERMISSION = "emojy.space"
 
 @Serializable
 data class EmojyConfig(
+    val defaultPackFormat: Int = 75,
     val defaultNamespace: String = "emotes",
     val defaultFolder: String = "emotes",
     val defaultFont: @Serializable(KeySerializer::class) Key = Key.key("emotes:emotes"),
+    val defaultAtlas: @Serializable(KeySerializer::class) Key? = null,
     val defaultHeight: Int = 7,
     val defaultAscent: Int = 7,
     val defaultGifType: Gif.GifType = Gif.GifType.SHADER,

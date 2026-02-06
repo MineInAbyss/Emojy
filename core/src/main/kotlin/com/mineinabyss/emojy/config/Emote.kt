@@ -19,6 +19,7 @@ import net.kyori.adventure.text.event.HoverEvent.hoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.entity.Player
 import team.unnamed.creative.ResourcePack
+import team.unnamed.creative.atlas.Atlas.atlas
 import team.unnamed.creative.font.Font
 import team.unnamed.creative.font.FontProvider
 
@@ -28,8 +29,8 @@ data class Emote(
     @SerialName("template") @EncodeDefault(NEVER) private val _template: String? = null,
     @EncodeDefault(NEVER) @Transient val template: EmojyTemplate? = templates.find { it.id == _template },
 
-    @EncodeDefault(NEVER) val font: @Serializable(KeySerializer::class) Key =
-        template?.font ?: emojyConfig.defaultFont,
+    @EncodeDefault(NEVER) val font: @Serializable(KeySerializer::class) Key = template?.font ?: emojyConfig.defaultFont,
+    @EncodeDefault(NEVER) val atlas: @Serializable(KeySerializer::class) Key? = template?.atlas ?: emojyConfig.defaultAtlas,
     @SerialName("texture") @EncodeDefault(NEVER) private val _texture: @Serializable(KeySerializer::class) Key =
         template?.texture ?: Key.key("${emojyConfig.defaultNamespace}:${emojyConfig.defaultFolder}/${id.lowercase()}.png"),
     @EncodeDefault(NEVER) val height: Int = template?.height ?: emojyConfig.defaultHeight,
@@ -76,8 +77,10 @@ data class Emote(
     private val permission get() = "emojy.emote.$id"
     private val fontPermission get() = "emojy.font.$font"
     val fontProvider by lazy { FontProvider.bitMap(texture, height, ascent, unicodes) }
-    fun appendFont(resourcePack: ResourcePack) =
-        (resourcePack.font(font)?.toBuilder() ?: Font.font().key(font)).addProvider(fontProvider).build().addTo(resourcePack)
+    fun appendFont(resourcePack: ResourcePack) {
+        val font = resourcePack.font(font)?.toBuilder() ?: Font.font().key(font)
+        font.addProvider(fontProvider).build().addTo(resourcePack)
+    }
 
     fun checkPermission(player: Player?) =
         !emojyConfig.requirePermissions || player?.hasPermission(permission) != false || player.hasPermission(fontPermission)

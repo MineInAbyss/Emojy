@@ -19,6 +19,7 @@ data class EmojyTemplates(
             "example_template",
             Key.key("example_namespace:example/texture.png"),
             Key.key("example_namespace:example"),
+            null,
             8,
             8
         )
@@ -49,6 +50,7 @@ data class EmojyTemplate(
     @Transient val id: String = "",
     @EncodeDefault(NEVER) val texture: @Serializable(KeySerializer::class) Key? = null,
     @EncodeDefault(NEVER) val font: @Serializable(KeySerializer::class) Key? = null,
+    @EncodeDefault(NEVER) val atlas: @Serializable(KeySerializer::class) Key? = null,
     @EncodeDefault(NEVER) val height: Int? = null,
     @EncodeDefault(NEVER) val ascent: Int? = null,
     @EncodeDefault(NEVER) val bitmapWidth: Int? = null,

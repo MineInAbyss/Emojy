@@ -3,8 +3,12 @@ package com.mineinabyss.emojy
 import com.mineinabyss.idofront.font.Space
 import com.mineinabyss.idofront.font.Space.Companion.toNumber
 import com.mineinabyss.idofront.resourcepacks.ResourcePacks
+import com.mineinabyss.idofront.util.removeSuffix
 import net.kyori.adventure.key.Key
 import team.unnamed.creative.ResourcePack
+import team.unnamed.creative.atlas.Atlas
+import team.unnamed.creative.atlas.AtlasSource
+import team.unnamed.creative.atlas.SingleAtlasSource
 import team.unnamed.creative.base.Writable
 import team.unnamed.creative.font.BitMapFontProvider
 import team.unnamed.creative.font.Font
@@ -50,7 +54,6 @@ object EmojyGenerator {
 
             texture?.also { Texture.texture(emote.texture, Writable.file(it)).addTo(resourcePack) }
             emote.appendFont(resourcePack)
-
         }
 
         emojy.gifs.forEach {
@@ -62,7 +65,14 @@ object EmojyGenerator {
         if (emojyConfig.generateShader)
             generateGifShaderFiles(resourcePack)
 
-        resourcePack.packMeta(48, "")
+        emojy.emotes.filter { it.atlas != null }.groupBy { it.atlas }.forEach { (atlas, emotes) ->
+            val sources = emotes.map { AtlasSource.single(it.texture.removeSuffix(".png")) }
+            val atlas = resourcePack.atlas(atlas!!)?.toBuilder() ?: Atlas.atlas().key(atlas)
+            sources.forEach(atlas::addSource)
+            resourcePack.atlas(atlas.build())
+        }
+
+        resourcePack.packMeta(emojyConfig.defaultPackFormat, "")
 
         MinecraftResourcePackWriter.minecraft().writeToZipFile(emojy.plugin.dataFolder.resolve("pack.zip"), resourcePack)
     }
