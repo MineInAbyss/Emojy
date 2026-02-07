@@ -10,12 +10,17 @@ import com.mineinabyss.idofront.di.DI
 import com.mineinabyss.idofront.messaging.ComponentLogger
 import com.mineinabyss.idofront.messaging.injectLogger
 import com.mineinabyss.idofront.messaging.observeLogger
+import com.mineinabyss.idofront.textcomponents.IdofrontTextComponents
 import net.kyori.adventure.translation.GlobalTranslator
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.*
 import kotlin.io.path.div
 
 class EmojyPlugin : JavaPlugin() {
+
+    override fun onLoad() {
+        IdofrontTextComponents.addResolver(EmojyTags.RESOLVER)
+    }
 
     override fun onEnable() {
         createEmojyContext()
