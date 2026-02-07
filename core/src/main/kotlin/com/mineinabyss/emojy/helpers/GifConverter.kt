@@ -55,9 +55,9 @@ object GifConverter {
     }
 
     private fun generateFrame(image: BufferedImage, start: Int, stop: Int, total: Int): BufferedImage {
-        val (iWidth, iHeight) = image.width to image.height
-        val frame = BufferedImage(iWidth + 2, iHeight + 2, BufferedImage.TYPE_INT_ARGB)
-        frame.setRGB(1, 1, iWidth, iHeight, image.getRGB(0, 0, iWidth, iHeight, null, 0, iWidth), 0, iWidth)
+        val (iWidth, iHeight) = min(image.width + 2, 256) to min(image.height + 2, 256)
+        val frame = BufferedImage(iWidth, iHeight, BufferedImage.TYPE_INT_ARGB)
+        frame.setRGB(1, 1, iWidth-2, iHeight-2, image.getRGB(0, 0, iWidth-2, iHeight-2, null, 0, iWidth-2), 0, iWidth-2)
 
         val width = frame.width - 1
         val height = frame.height - 1

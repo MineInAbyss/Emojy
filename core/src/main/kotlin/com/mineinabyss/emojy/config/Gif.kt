@@ -53,10 +53,10 @@ data class Gif(
     @Transient val permission = "emojy.gif.$id"
     @Transient val baseRegex = "(?<!\\\\):$id:".toRegex()
     @Transient val escapedRegex = "\\\\:$id:".toRegex()
-
+    @Transient private var aspectRatio = 0f
+    
     val gifFile by lazy { emojy.plugin.dataFolder.resolve("gifs/${id}.gif").apply { parentFile.mkdirs() } }
     val gifSpriteSheet by lazy { emojy.plugin.dataFolder.resolve("gifs/${id}.png").apply { parentFile.mkdirs() } }
-    private var aspectRatio = 0f
 
     enum class GifType {
         SHADER, OBFUSCATION
