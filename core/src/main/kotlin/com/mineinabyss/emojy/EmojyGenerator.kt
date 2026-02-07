@@ -1,5 +1,6 @@
 package com.mineinabyss.emojy
 
+import com.mineinabyss.emojy.config.Gif
 import com.mineinabyss.idofront.font.Space
 import com.mineinabyss.idofront.font.Space.Companion.toNumber
 import com.mineinabyss.idofront.resourcepacks.ResourcePacks
@@ -62,8 +63,7 @@ object EmojyGenerator {
         }
         Font.font(emojyConfig.spaceFont, spaceProvider).addTo(resourcePack)
 
-        if (emojyConfig.generateShader)
-            generateGifShaderFiles(resourcePack)
+        if (emojyConfig.generateShader) generateGifShaderFiles(resourcePack)
 
         emojy.emotes.filter { it.atlas != null }.groupBy { it.atlas }.forEach { (atlas, emotes) ->
             val sources = emotes.map { AtlasSource.single(it.texture.removeSuffix(".png")) }

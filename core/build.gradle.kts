@@ -25,9 +25,6 @@ dependencies {
 
     compileOnly(idofrontLibs.creative.api)
     compileOnly(idofrontLibs.creative.serializer.minecraft)
-
-    // Shaded
-    implementation("com.aaaaahhhhh.bananapuncher714:GifConverter:1.0")
 }
 
 publishing {

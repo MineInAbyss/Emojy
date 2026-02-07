@@ -1,17 +1,14 @@
 package com.mineinabyss.emojy.config
 
-import com.aaaaahhhhhhh.bananapuncher714.gifconverter.GifConverter
 import com.mineinabyss.emojy.EmojyGenerator.gifFolder
 import com.mineinabyss.emojy.emojy
 import com.mineinabyss.emojy.emojyConfig
+import com.mineinabyss.emojy.helpers.GifConverter
 import com.mineinabyss.emojy.spaceComponent
 import com.mineinabyss.idofront.serialization.KeySerializer
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
-import java.awt.AlphaComposite
-import java.awt.image.BufferedImage
-import java.io.File
-import javax.imageio.ImageIO
+import com.mineinabyss.idofront.util.appendSuffix
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.EncodeDefault.Mode.NEVER
 import kotlinx.serialization.SerialName
@@ -24,14 +21,20 @@ import net.kyori.adventure.text.event.HoverEvent.hoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.format.TextDecoration
+import net.kyori.adventure.text.`object`.ObjectContents
 import org.bukkit.entity.Player
 import team.unnamed.creative.ResourcePack
+import team.unnamed.creative.atlas.Atlas
 import team.unnamed.creative.base.Writable
 import team.unnamed.creative.font.Font
 import team.unnamed.creative.font.FontProvider
+import team.unnamed.creative.font.SpaceFontProvider
 import team.unnamed.creative.texture.Texture
+import java.awt.AlphaComposite
+import java.awt.image.BufferedImage
+import java.io.File
+import javax.imageio.ImageIO
 import kotlin.math.roundToInt
-import kotlin.properties.Delegates
 
 @Serializable
 data class Gif(
@@ -88,15 +91,19 @@ data class Gif(
     }
 
     fun font() = Font.font(font, fontProvider(), gifAdvance())
-    private fun gifAdvance() =
-        FontProvider.space().advance(unicode(frameCount), offset ?:(-(height * aspectRatio).roundToInt() - 1))
-            .build()
+    private fun gifAdvance(): SpaceFontProvider {
+        val offset = offset ?: (-(height * aspectRatio).roundToInt() - 1)
+        return FontProvider.space().advance(unicode(frameCount), offset).build()
+    }
 
-    private fun fontProvider() =
-        FontProvider.bitMap(Key.key("${framePath.asString()}.png"), height, ascent, (0 until frameCount).map(::unicode))
+    private fun fontProvider(): FontProvider {
+        val characters = (0 until frameCount).map(::unicode)
+        return FontProvider.bitMap(framePath.appendSuffix(".png"), height, ascent, characters)
+    }
 
-    fun checkPermission(player: Player?) =
-        !emojyConfig.requirePermissions || player == null || player.hasPermission(permission)
+    fun checkPermission(player: Player?): Boolean {
+        return !emojyConfig.requirePermissions || player == null || player.hasPermission(permission)
+    }
 
     fun formattedUnicode(appendSpace: Boolean = false, insert: Boolean = true): Component {
         var bitmap = unicode().miniMsg().font(font).color(TextColor.fromHexString("#FEFEFE"))
@@ -114,12 +121,12 @@ data class Gif(
         runCatching {
             val gifFolder = gifFolder.resolve(id)
 
-            if (gifFile.exists()) GifConverter.splitGif(gifFile, calculateFramecount())
+            if (gifFile.exists()) GifConverter.splitGif(this, calculateFramecount())
             else if (!gifSpriteSheet.exists() && !gifFolder.exists()) emojy.logger.w("No .gif or sprite-sheet found for $id")
             createSpritesheet(gifFolder)
 
-            if (gifSpriteSheet.exists()) Texture.texture(Key.key("${framePath.asString()}.png"), Writable.file(gifSpriteSheet)).addTo(resourcePack)
-            else emojy.logger.w("Could not find sprite-sheet for ${id}")
+            if (gifSpriteSheet.exists()) Texture.texture(framePath.appendSuffix(".png"), Writable.file(gifSpriteSheet)).addTo(resourcePack)
+            else emojy.logger.w("Could not find sprite-sheet for $id")
             gifFolder.deleteRecursively()
         }.onFailure {
             emojy.logger.d("Could not generate split gif for ${id}.gif: ${it.message}")
