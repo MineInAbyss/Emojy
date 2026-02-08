@@ -25,14 +25,9 @@ import net.kyori.adventure.text.`object`.ObjectContents
 import org.bukkit.entity.Player
 import team.unnamed.creative.ResourcePack
 import team.unnamed.creative.atlas.Atlas
-import team.unnamed.creative.base.Writable
 import team.unnamed.creative.font.Font
 import team.unnamed.creative.font.FontProvider
 import team.unnamed.creative.font.SpaceFontProvider
-import team.unnamed.creative.texture.Texture
-import java.awt.AlphaComposite
-import java.awt.image.BufferedImage
-import java.io.File
 import javax.imageio.ImageIO
 import kotlin.math.roundToInt
 
@@ -54,12 +49,12 @@ data class Gif(
     @Transient val baseRegex = "(?<!\\\\):$id:".toRegex()
     @Transient val escapedRegex = "\\\\:$id:".toRegex()
     @Transient private var aspectRatio = 0f
-    
+
     val gifFile by lazy { emojy.plugin.dataFolder.resolve("gifs/${id}.gif").apply { parentFile.mkdirs() } }
     val gifSpriteSheet by lazy { emojy.plugin.dataFolder.resolve("gifs/${id}.png").apply { parentFile.mkdirs() } }
 
     enum class GifType {
-        SHADER, OBFUSCATION
+        SHADER, OBFUSCATION, SPRITE
     }
 
     private fun unicode(index: Int): String = Character.toChars(PRIVATE_USE_FIRST + index).first().toString()
@@ -71,6 +66,8 @@ data class Gif(
 
             GifType.OBFUSCATION -> Component.text(unicode(0), NamedTextColor.WHITE)
                 .decorate(TextDecoration.OBFUSCATED).font(font).serialize()
+
+            GifType.SPRITE -> Component.`object`(ObjectContents.sprite(Atlas.GUI, framePath)).serialize()
         }
     }
 
@@ -121,36 +118,10 @@ data class Gif(
         runCatching {
             val gifFolder = gifFolder.resolve(id)
 
-            if (gifFile.exists()) GifConverter.splitGif(this, calculateFramecount())
-            else if (!gifSpriteSheet.exists() && !gifFolder.exists()) emojy.logger.w("No .gif or sprite-sheet found for $id")
-            createSpritesheet(gifFolder)
-
-            if (gifSpriteSheet.exists()) Texture.texture(framePath.appendSuffix(".png"), Writable.file(gifSpriteSheet)).addTo(resourcePack)
-            else emojy.logger.w("Could not find sprite-sheet for $id")
+            GifConverter(this, resourcePack).splitGif(calculateFramecount())
             gifFolder.deleteRecursively()
         }.onFailure {
             emojy.logger.d("Could not generate split gif for ${id}.gif: ${it.message}")
         }
-    }
-
-    private fun createSpritesheet(gifFolder: File) {
-        val frames = gifFolder.listFiles()
-            ?.filter { it.isFile && it.extension == "png" }
-            ?.sortedBy { it.nameWithoutExtension.toIntOrNull() }
-            ?: return emojy.logger.w("No frame files found in $gifFolder")
-
-        val (frameWidth, frameHeight) = ImageIO.read(frames.first()).let { it.width to it.height }
-        val spritesheet = BufferedImage(frameWidth, frameCount * frameHeight, BufferedImage.TYPE_INT_ARGB)
-        val graphics = spritesheet.createGraphics()
-        graphics.composite = AlphaComposite.Src
-
-        frames.forEachIndexed { index, frameFile ->
-            val y = index * frameHeight
-            graphics.drawImage(ImageIO.read(frameFile), 0, y, null)
-        }
-        graphics.dispose()
-
-        ImageIO.write(spritesheet, "png", gifSpriteSheet)
-
     }
 }

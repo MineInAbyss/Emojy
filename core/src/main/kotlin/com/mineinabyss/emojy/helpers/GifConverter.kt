@@ -1,19 +1,23 @@
 package com.mineinabyss.emojy.helpers
 
 import com.mineinabyss.emojy.config.Gif
+import com.mineinabyss.emojy.emojy
 import com.mineinabyss.idofront.util.appendSuffix
-import com.mineinabyss.idofront.util.replace
+import team.unnamed.creative.ResourcePack
 import team.unnamed.creative.base.Writable
+import team.unnamed.creative.metadata.Metadata
+import team.unnamed.creative.metadata.animation.AnimationMeta
 import team.unnamed.creative.texture.Texture
 import java.awt.AlphaComposite
 import java.awt.Image
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
+import kotlin.math.min
 
-object GifConverter {
+class GifConverter(val gif: Gif, val resourcePack: ResourcePack) {
 
-    fun splitGif(gif: Gif, frameCount: Int): Texture {
+    fun splitGif(frameCount: Int) {
         val decoder = GifDecoder()
         gif.gifFile.inputStream().use(decoder::read)
         decoder.setFrameCount(frameCount)
@@ -21,21 +25,24 @@ object GifConverter {
         var time = 0
         val totalTime = (0 until decoder.getFrameCount()).sumOf(decoder::getDelay)
 
-        val frames = (0 until decoder.getFrameCount()).mapNotNull {
-            val delay = decoder.getDelay(it)
-            val start = time
-            time += delay
-            val end = time
-            val image = toBufferedImage(decoder.getFrame(it) ?: return@mapNotNull null)
-            generateFrame(image, start, end, totalTime)
+        val frames = buildList {
+            if (gif.type == Gif.GifType.SPRITE) repeat(decoder.getFrameCount()) { this += decoder.getFrame(it) ?: return@repeat }
+            else repeat(decoder.getFrameCount()) {
+                val delay = decoder.getDelay(it)
+                val start = time
+                time += delay
+                val end = time
+                val image = toBufferedImage(decoder.getFrame(it) ?: return@repeat)
+                this += generateFrame(image, start, end, totalTime)
+            }
         }
 
-        return createSpritesheet(frames, gif)
+        resourcePack.texture(createSpritesheet(frames))
     }
 
-    private fun createSpritesheet(frames: List<BufferedImage>, gif: Gif): Texture {
+    private fun createSpritesheet(frames: List<BufferedImage>): Texture {
         val (width, height) = frames.first().let { it.width to it.height }
-        val spritesheet = BufferedImage(frames.size * width, height, BufferedImage.TYPE_INT_ARGB)
+        val spritesheet = BufferedImage(width, frames.size * height, BufferedImage.TYPE_INT_ARGB)
         val g = spritesheet.createGraphics()
         g.composite = AlphaComposite.Src
 
@@ -44,14 +51,17 @@ object GifConverter {
         }
         g.dispose()
 
-        val data = runCatching {
+        val data = Writable.bytes(runCatching {
             ByteArrayOutputStream().use { out ->
                 ImageIO.write(spritesheet, "png", out)
                 out.toByteArray()
             }
-        }.onFailure { it.printStackTrace() }.getOrDefault(byteArrayOf())
+        }.onFailure { it.printStackTrace() }.getOrDefault(byteArrayOf()))
 
-        return Texture.texture(gif.framePath.appendSuffix(".png"), Writable.bytes(data))
+        return if (gif.type == Gif.GifType.SPRITE) {
+            val meta = AnimationMeta.animation().width(width).height(height).build()
+            Texture.texture(gif.framePath.appendSuffix(".png"), data, Metadata.metadata().addPart(meta).build())
+        } else Texture.texture(gif.framePath.appendSuffix(".png"), data)
     }
 
     private fun generateFrame(image: BufferedImage, start: Int, stop: Int, total: Int): BufferedImage {

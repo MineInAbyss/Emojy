@@ -129,7 +129,7 @@ class GifDecoder {
     }
 
     fun getFrame(n: Int): BufferedImage? {
-        return if (n in 0 until frameCount) frames[n].image else null
+        return frames.getOrNull(n)?.image
     }
 
     fun read(writable: Writable): Int {

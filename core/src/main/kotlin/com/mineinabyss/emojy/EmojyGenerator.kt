@@ -15,6 +15,7 @@ import team.unnamed.creative.font.BitMapFontProvider
 import team.unnamed.creative.font.Font
 import team.unnamed.creative.font.FontProvider
 import team.unnamed.creative.font.SpaceFontProvider
+import team.unnamed.creative.metadata.animation.AnimationMeta
 import team.unnamed.creative.metadata.overlays.OverlayEntry
 import team.unnamed.creative.metadata.overlays.OverlaysMeta
 import team.unnamed.creative.metadata.pack.PackFormat
@@ -57,11 +58,17 @@ object EmojyGenerator {
             emote.appendFont(resourcePack)
         }
 
+        val spriteAtlas = resourcePack.atlas(Atlas.GUI)?.toBuilder() ?: Atlas.atlas().key(Atlas.GUI)
         emojy.gifs.forEach {
             it.generateSplitGif(resourcePack)
-            it.font().addTo(resourcePack)
+            if (it.type == Gif.GifType.SPRITE) {
+                spriteAtlas.addSource(AtlasSource.single(it.framePath))
+            } else {
+                it.font().addTo(resourcePack)
+            }
         }
-        Font.font(emojyConfig.spaceFont, spaceProvider).addTo(resourcePack)
+        if (!spriteAtlas.sources().isNullOrEmpty()) resourcePack.atlas(spriteAtlas.build())
+        resourcePack.font(Font.font(emojyConfig.spaceFont, spaceProvider))
 
         if (emojyConfig.generateShader) generateGifShaderFiles(resourcePack)
 
