@@ -22,18 +22,19 @@ class GifConverter(val gif: Gif, val resourcePack: ResourcePack) {
         gif.gifFile.inputStream().use(decoder::read)
         decoder.setFrameCount(frameCount)
 
-        var time = 0
-        val totalTime = (0 until decoder.getFrameCount()).sumOf(decoder::getDelay)
-
         val frames = buildList {
-            if (gif.type == Gif.GifType.SPRITE) repeat(decoder.getFrameCount()) { this += decoder.getFrame(it) ?: return@repeat }
-            else repeat(decoder.getFrameCount()) {
-                val delay = decoder.getDelay(it)
-                val start = time
-                time += delay
-                val end = time
-                val image = toBufferedImage(decoder.getFrame(it) ?: return@repeat)
-                this += generateFrame(image, start, end, totalTime)
+            if (gif.type == Gif.GifType.SPRITE) repeat(decoder.getFrameCount()) { this += decoder.getFrame(it)?.let(::toBufferedImage) ?: return@repeat }
+            else {
+                var time = 0
+                val totalTime = (0 until decoder.getFrameCount()).sumOf(decoder::getDelay)
+                repeat(decoder.getFrameCount()) {
+                    val delay = decoder.getDelay(it)
+                    val start = time
+                    time += delay
+                    val end = time
+                    val image = toBufferedImage(decoder.getFrame(it)?.let(::toBufferedImage) ?: return@repeat)
+                    this += generateFrame(image, start, end, totalTime)
+                }
             }
         }
 
@@ -47,7 +48,7 @@ class GifConverter(val gif: Gif, val resourcePack: ResourcePack) {
         g.composite = AlphaComposite.Src
 
         frames.forEachIndexed { i, frame ->
-            g.drawImage(frame, i * width, 0, width, height, null)
+            g.drawImage(frame, 0, i * height, width, height, null)
         }
         g.dispose()
 
