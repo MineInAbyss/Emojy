@@ -261,11 +261,11 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
                     val bukkit = CraftItemStack.asBukkitCopy(item)
 
                     if (inv is AnvilInventory && inv.firstItem == bukkit) {
-                        item.get(DataComponents.CUSTOM_DATA)?.copyTag()?.getCompound("PublicBukkitValues")?.getOrNull()?.getString(ORIGINAL_ITEM_RENAME_TEXT.toString())?.getOrNull()?.let { og ->
+                        item.get(DataComponents.CUSTOM_DATA)?.unsafe?.getString(ORIGINAL_ITEM_RENAME_TEXT.toString())?.getOrNull()?.let { og ->
                             item.copy().apply { set(DataComponents.CUSTOM_NAME, Component.literal(og)) }
                         } ?: item.transformItemNameLore()
                     } else item.transformItemNameLore()
-                }, it.carriedItem
+                }, it.carriedItem.transformItemNameLore()
             )
         }
     }
@@ -292,19 +292,20 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
     }
 
     private fun ItemStack.transformItemNameLore(): ItemStack {
-        return copy().apply {
-            set(DataComponents.ITEM_NAME, get(DataComponents.ITEM_NAME)?.transformEmotes())
-            set(DataComponents.LORE, get(DataComponents.LORE)?.let { itemLore ->
-                ItemLore(
-                    itemLore.lines.map { l -> l.transformEmotes().copy().withStyle { it.withItalic(false) } },
-                    itemLore.styledLines.map { Component.empty().setStyle(Style.EMPTY).append(it.transformEmotes()) }
-                )
-            })
-            val customData = get(DataComponents.CUSTOM_DATA)?.copyTag()?.getCompound("PublicBukkitValues")?.getOrNull()
-            customData?.getString(ORIGINAL_ITEM_RENAME_TEXT.toString())?.getOrNull()?.takeIf { it.isNotEmpty() }?.let {
-                set(DataComponents.CUSTOM_NAME, PaperAdventure.asVanilla(it.escapeEmoteIDs(player).transformEmotes().unescapeEmoteIds().miniMsg()))
-            } ?: set(DataComponents.CUSTOM_NAME, get(DataComponents.CUSTOM_NAME)?.transformEmotes())
-        }
+        set(DataComponents.ITEM_NAME, get(DataComponents.ITEM_NAME)?.transformEmotes())
+        set(DataComponents.LORE, get(DataComponents.LORE)?.let { itemLore ->
+            ItemLore(
+                itemLore.lines.map { l -> l.transformEmotes().copy().withStyle { it.withItalic(false) } },
+                itemLore.styledLines.map { Component.empty().setStyle(Style.EMPTY).append(it.transformEmotes()) }
+            )
+        })
+
+        val customName = get(DataComponents.CUSTOM_DATA)?.unsafe?.getString(ORIGINAL_ITEM_RENAME_TEXT.toString())?.getOrNull()?.takeIf { it.isNotEmpty() }
+            ?.miniMsg()?.escapeEmoteIDs(player)?.transformEmotes()?.unescapeEmoteIds()?.let(PaperAdventure::asVanilla)
+            ?: get(DataComponents.CUSTOM_NAME)?.transformEmotes()
+        set(DataComponents.CUSTOM_NAME, customName)
+
+        return this
     }
 
     private fun DataComponentExactPredicate.transformItemNameLore(player: Player): DataComponentExactPredicate {
@@ -318,10 +319,10 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
             )
         })
 
-        val customData = map.get(DataComponents.CUSTOM_DATA)?.copyTag()?.getCompound("PublicBukkitValues")?.getOrNull()
-        customData?.getString(ORIGINAL_ITEM_RENAME_TEXT.toString())?.getOrNull()?.takeIf { it.isNotEmpty() }?.let {
-            map.set(DataComponents.CUSTOM_NAME, PaperAdventure.asVanilla(it.miniMsg().escapeEmoteIDs(player).transformEmotes().unescapeEmoteIds()))
-        } ?: map.set(DataComponents.CUSTOM_NAME, map.get(DataComponents.CUSTOM_NAME)?.transformEmotes())
+        val customName = map.get(DataComponents.CUSTOM_DATA)?.unsafe?.getString(ORIGINAL_ITEM_RENAME_TEXT.toString())?.getOrNull()?.takeIf { it.isNotEmpty() }
+            ?.miniMsg()?.escapeEmoteIDs(player)?.transformEmotes()?.unescapeEmoteIds()?.let(PaperAdventure::asVanilla)
+            ?: map.get(DataComponents.CUSTOM_NAME)?.transformEmotes()
+        map.set(DataComponents.CUSTOM_NAME, customName)
 
         return DataComponentExactPredicate.allOf(map)
     }

@@ -22,6 +22,7 @@ object EmojyTags {
         val emoteId = args.popOr("A glyph value is required").value()
         val emote = emojy.emotes.find { it.id == emoteId }
         if (emote == null || emote.atlas == null || !emote.checkPermission(player)) return@resolver null
+
         val arguments = mutableListOf<String>()
         while (args.hasNext()) arguments.add(args.pop().value())
         val colorable = NamedTextColor.WHITE.takeUnless { "c" in arguments || "colorable" in arguments }
@@ -30,9 +31,5 @@ object EmojyTags {
         val sprite = ObjectContents.sprite(emote.atlas, emote.texture.removeSuffix(".png"))
 
         Tag.selfClosingInserting(Component.`object`(sprite).color(colorable).shadowColor(shadowColor))
-    }
-
-    fun containsTag(string: String): Boolean {
-        return string.contains("<$EMOJY:")
     }
 }

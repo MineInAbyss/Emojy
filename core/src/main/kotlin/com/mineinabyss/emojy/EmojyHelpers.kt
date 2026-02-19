@@ -4,14 +4,24 @@ import com.mineinabyss.emojy.config.SPACE_PERMISSION
 import com.mineinabyss.idofront.font.Space
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
+import com.mineinabyss.idofront.util.removeSuffix
+import com.mineinabyss.idofront.util.toColor
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextComponent
 import net.kyori.adventure.text.TextReplacementConfig
+import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.ShadowColor
+import net.kyori.adventure.text.minimessage.tag.Tag
+import net.kyori.adventure.text.minimessage.tag.resolver.ArgumentQueue
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
+import net.kyori.adventure.text.`object`.ObjectContents
 import net.kyori.adventure.translation.GlobalTranslator
+import org.bukkit.Bukkit
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
 import java.util.*
+import java.util.regex.Pattern
 
 val spaceRegex: Regex = "(?<!\\\\):space_(-?\\d+):".toRegex()
 val escapedSpaceRegex: Regex = "\\\\(:space_(-?\\d+):)".toRegex()
@@ -35,6 +45,22 @@ val SPACE_REPLACEMENT_CONFIG = TextReplacementConfig.builder()
     .match(spaceRegex.pattern)
     .replacement { matchResult, _ ->
         spaceComponent(matchResult.group(1).toIntOrNull() ?: return@replacement null)
+    }.build()
+
+val SPRITE_REPLACEMENT_CONFIG = TextReplacementConfig.builder()
+    .match(Pattern.compile("""<(emojy):(\w+(?::(?:c|colorable|s|shadow)(?::[\w#]+)?)*)>"""))
+    .replacement { result, _ ->
+        val args = result.group().substringAfter("<emojy:").substringBefore(">").split(":")
+        val id = args.firstOrNull() ?: return@replacement null
+        val emote = emojy.emotes.find { it.id == id }?.takeIf { it.atlas != null }
+            ?: return@replacement Component.text("<emojy:$id>")
+
+        val sprite = ObjectContents.sprite(emote.atlas!!, emote.texture.removeSuffix(".png"))
+        val color = NamedTextColor.WHITE.takeUnless { args.any { it == "colorable" || it == "c" } }
+        val shadow = args.elementAtOrNull(args.indexOfFirst { it == "shadow" || it == "s" } + 1)
+            ?.toColor()?.asARGB()?.let(ShadowColor::shadowColor) ?: ShadowColor.none()
+
+        Component.`object`(sprite).color(color).shadowColor(shadow)
     }.build()
 
 private fun Component.asFlatTextContent(): String {
@@ -122,7 +148,7 @@ fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): 
     }
 
 
-    component = component.replaceText(SPACE_REPLACEMENT_CONFIG)
+    component = component.replaceText(SPACE_REPLACEMENT_CONFIG).replaceText(SPRITE_REPLACEMENT_CONFIG)
 
     return component
 }

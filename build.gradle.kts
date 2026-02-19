@@ -91,6 +91,16 @@ paper {
     authors = listOf("boy0000")
     apiVersion = "1.21"
 
+    bootstrapper = "com.mineinabyss.emojy.EmojyBootstrap"
+
+    bootstrapDependencies {
+        register("Idofront") {
+            required = true
+            load = PaperPluginDescription.RelativeLoadOrder.BEFORE
+            joinClasspath = true
+        }
+    }
+
     serverDependencies {
         register("Idofront") {
             required = true
