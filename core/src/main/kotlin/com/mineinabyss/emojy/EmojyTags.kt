@@ -27,7 +27,7 @@ object EmojyTags {
         while (args.hasNext()) arguments.add(args.pop().value())
         val colorable = NamedTextColor.WHITE.takeUnless { "c" in arguments || "colorable" in arguments }
         val shadowColor = arguments.indexOf("shadow").takeIf { it != -1 }?.let { arguments.elementAtOrNull(it+1) }?.toColor()
-            ?.let { ShadowColor.shadowColor(it.asARGB()) }
+            ?.let { ShadowColor.shadowColor(it.asARGB()) } ?: ShadowColor.none()
         val sprite = ObjectContents.sprite(emote.atlas, emote.texture.removeSuffix(".png"))
 
         Tag.selfClosingInserting(Component.`object`(sprite).color(colorable).shadowColor(shadowColor))

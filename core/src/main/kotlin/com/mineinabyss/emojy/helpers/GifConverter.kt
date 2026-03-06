@@ -1,7 +1,6 @@
 package com.mineinabyss.emojy.helpers
 
 import com.mineinabyss.emojy.config.Gif
-import com.mineinabyss.emojy.emojy
 import com.mineinabyss.idofront.util.appendSuffix
 import team.unnamed.creative.ResourcePack
 import team.unnamed.creative.base.Writable
@@ -22,21 +21,17 @@ class GifConverter(val gif: Gif, val resourcePack: ResourcePack) {
         gif.gifFile.inputStream().use(decoder::read)
         decoder.setFrameCount(frameCount)
 
-        val frames = buildList {
-            if (gif.type == Gif.GifType.SPRITE) repeat(decoder.getFrameCount()) { this += decoder.getFrame(it)?.let(::toBufferedImage) ?: return@repeat }
-            else {
-                var time = 0
-                val totalTime = (0 until decoder.getFrameCount()).sumOf(decoder::getDelay)
-                repeat(decoder.getFrameCount()) {
-                    val delay = decoder.getDelay(it)
-                    val start = time
-                    time += delay
-                    val end = time
-                    val image = toBufferedImage(decoder.getFrame(it)?.let(::toBufferedImage) ?: return@repeat)
-                    this += generateFrame(image, start, end, totalTime)
-                }
-            }
-        }
+        var time = 0
+        val totalTime = (0 until decoder.getFrameCount()).sumOf(decoder::getDelay)
+        val frames = List(decoder.getFrameCount()) {
+            val image = decoder.getFrame(it)?.let(::toBufferedImage) ?: return@List null
+            if (gif.type == Gif.GifType.SPRITE) return@List image
+
+            val start = time
+            time += decoder.getDelay(it)
+            val end = time
+            generateFrame(image, start, end, totalTime)
+        }.filterNotNull()
 
         resourcePack.texture(createSpritesheet(frames))
     }
