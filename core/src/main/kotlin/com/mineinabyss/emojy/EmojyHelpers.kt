@@ -6,6 +6,7 @@ import com.mineinabyss.idofront.textcomponents.miniMsg
 import com.mineinabyss.idofront.textcomponents.serialize
 import com.mineinabyss.idofront.util.removeSuffix
 import com.mineinabyss.idofront.util.toColor
+import io.papermc.paper.command.brigadier.argument.ArgumentTypes.player
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextComponent

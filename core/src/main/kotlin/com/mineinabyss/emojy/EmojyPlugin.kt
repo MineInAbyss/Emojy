@@ -51,9 +51,9 @@ class EmojyPlugin : JavaPlugin() {
             override val plugin: EmojyPlugin = this@EmojyPlugin
             override val emotes: Array<Emote> = config("emotes", dataPath, Emotes()).getOrLoad().emotes.toTypedArray()
             override val gifs: Array<Gif> = config("gifs", dataPath, Gifs()).getOrLoad().gifs.toTypedArray()
-            override val languages: Array<EmojyLanguage> = emojyConfig.supportedLanguages.map {
-                EmojyLanguage(it.split("_").let { l -> Locale(l.first(), l.last().uppercase()) },
-                    config<Map<String, String>>(it, dataPath / "languages", mapOf()).getOrLoad())
+            override val languages: Array<EmojyLanguage> = emojyConfig.supportedLanguages.map { langKey ->
+                EmojyLanguage(Locale.forLanguageTag(langKey.replace("_", "-").replaceFirstChar { it.uppercase() }),
+                    config<Map<String, String>>(langKey, dataPath / "languages", mapOf()).getOrLoad())
             }.toTypedArray()
             override val logger by plugin.observeLogger()
             override val handler: IEmojyNMSHandler = EmojyNMSHandlers.setup(this@EmojyPlugin)

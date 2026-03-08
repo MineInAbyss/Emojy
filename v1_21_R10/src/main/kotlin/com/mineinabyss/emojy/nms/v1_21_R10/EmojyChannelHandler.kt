@@ -2,13 +2,8 @@ package com.mineinabyss.emojy.nms.v1_21_R10
 
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.ticks
-import com.mineinabyss.emojy.ORIGINAL_ITEM_RENAME_TEXT
-import com.mineinabyss.emojy.SPRITE_REPLACEMENT_CONFIG
-import com.mineinabyss.emojy.emojy
-import com.mineinabyss.emojy.escapeEmoteIDs
+import com.mineinabyss.emojy.*
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
-import com.mineinabyss.emojy.transformEmotes
-import com.mineinabyss.emojy.unescapeEmoteIds
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
@@ -31,7 +26,6 @@ import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.HashedStack
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.chat.ChatType
-import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.ComponentSerialization
 import net.minecraft.network.chat.MutableComponent
 import net.minecraft.network.chat.Style
@@ -49,16 +43,7 @@ import net.minecraft.network.syncher.EntityDataSerializers
 import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.ServerLinks
-import net.minecraft.server.dialog.ActionButton
-import net.minecraft.server.dialog.CommonButtonData
-import net.minecraft.server.dialog.CommonDialogData
-import net.minecraft.server.dialog.ConfirmationDialog
-import net.minecraft.server.dialog.Dialog
-import net.minecraft.server.dialog.DialogListDialog
-import net.minecraft.server.dialog.Input
-import net.minecraft.server.dialog.MultiActionDialog
-import net.minecraft.server.dialog.NoticeDialog
-import net.minecraft.server.dialog.ServerLinksDialog
+import net.minecraft.server.dialog.*
 import net.minecraft.server.dialog.body.DialogBody
 import net.minecraft.server.dialog.body.ItemBody
 import net.minecraft.server.dialog.body.PlainMessage
@@ -77,6 +62,8 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.AnvilInventory
 import java.util.*
 import kotlin.jvm.optionals.getOrNull
+
+typealias NMSComponent = net.minecraft.network.chat.Component
 
 class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
 
@@ -200,17 +187,17 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
             ClientboundServerDataPacket(it.motd.transformEmotes(), it.iconBytes)
         }
         registerTransformer<ClientboundDisguisedChatPacket> {
-            ClientboundDisguisedChatPacket(it.message.transformEmotes(true).unescapeEmoteIds(), it.chatType)
+            ClientboundDisguisedChatPacket(it.message.transformEmotes(insert = true).unescapeEmoteIds(), it.chatType)
         }
         registerTransformer<ClientboundPlayerChatPacket> {
             ClientboundPlayerChatPacket(
                 it.globalIndex, it.sender, it.index, it.signature, it.body,
-                (it.unsignedContent ?: PaperAdventure.asVanilla(it.body.content.miniMsg()))?.transformEmotes(true)?.unescapeEmoteIds(),
-                it.filterMask, ChatType.bind(it.chatType.chatType.unwrapKey().get(), registryAccess, it.chatType.name.transformEmotes(true))
+                (it.unsignedContent ?: PaperAdventure.asVanilla(it.body.content.miniMsg()))?.transformEmotes(insert = true)?.unescapeEmoteIds(),
+                it.filterMask, ChatType.bind(it.chatType.chatType.unwrapKey().get(), registryAccess, it.chatType.name.transformEmotes(insert = true))
             )
         }
         registerTransformer<ClientboundSystemChatPacket> {
-            ClientboundSystemChatPacket(it.content.transformEmotes(true).unescapeEmoteIds(), it.overlay)
+            ClientboundSystemChatPacket(it.content.transformEmotes(insert = true).unescapeEmoteIds(), it.overlay)
         }
         registerTransformer<ClientboundSetTitleTextPacket> {
             ClientboundSetTitleTextPacket(it.text.transformEmotes())
@@ -236,28 +223,8 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
         registerTransformer<ClientboundDisconnectPacket> {
             ClientboundDisconnectPacket(it.reason.transformEmotes())
         }
-        registerTransformer<ClientboundSetEntityDataPacket> {
-            ClientboundSetEntityDataPacket(it.id, it.packedItems.map {
-                when (val value = it.value) {
-                    is AdventureComponent -> SynchedEntityData.DataValue(
-                        it.id, it.serializer as EntityDataSerializer<AdventureComponent>,
-                        AdventureComponent(value.`adventure$component`().transformEmotes())
-                    )
-
-                    is Component -> SynchedEntityData.DataValue(it.id, EntityDataSerializers.COMPONENT, value.transformEmotes())
-                    is Optional<*> -> when (val comp = value.getOrNull()) {
-                        is AdventureComponent -> SynchedEntityData.DataValue(
-                            it.id, it.serializer as EntityDataSerializer<Optional<AdventureComponent>>,
-                            Optional.of(AdventureComponent(comp.`adventure$component`().transformEmotes()))
-                        )
-
-                        is Component -> SynchedEntityData.DataValue(it.id, EntityDataSerializers.OPTIONAL_COMPONENT, Optional.of(comp.transformEmotes()))
-                        else -> it
-                    }
-
-                    else -> it
-                }
-            })
+        registerTransformer<ClientboundSetEntityDataPacket> { packet ->
+            ClientboundSetEntityDataPacket(packet.id, packet.packedItems.map { transformSynchedData(it) })
         }
         registerTransformer<ClientboundPlayerInfoUpdatePacket> {
             ClientboundPlayerInfoUpdatePacket(it.actions(), it.entries().map { e ->
@@ -288,7 +255,7 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
 
                     if (inv is AnvilInventory && inv.firstItem == bukkit) {
                         item.get(DataComponents.CUSTOM_DATA)?.unsafe?.getString(ORIGINAL_ITEM_RENAME_TEXT.toString())?.getOrNull()?.let { og ->
-                            item.apply { set(DataComponents.CUSTOM_NAME, Component.literal(og)) }
+                            item.apply { set(DataComponents.CUSTOM_NAME, NMSComponent.literal(og)) }
                         } ?: item.transformItemNameLore()
                     } else item.transformItemNameLore()
                 }, it.carriedItem.transformItemNameLore()
@@ -305,7 +272,7 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
 
     fun ItemCost.transform() = ItemCost(item, count, components.transformItemNameLore(player), itemStack)
 
-    fun Component.transformEmotes(insert: Boolean = false, locale: Locale? = player.locale()): Component {
+    fun NMSComponent.transformEmotes(locale: Locale? = player.locale(), insert: Boolean = false): NMSComponent {
         return when {
             this is AdventureComponent -> this.`adventure$component`()
             // Sometimes a NMS component is partially Literal, so ensure entire thing is just one LiteralContent with no extra data
@@ -314,9 +281,9 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
 
             contents is TranslatableContents -> {
                 val contents = contents as TranslatableContents
-                val args = contents.args.map { (it as? Component)?.transformEmotes(insert, locale) ?: it }.toTypedArray()
+                val args = contents.args.map { (it as? NMSComponent)?.transformEmotes(locale, insert) ?: it }.toTypedArray()
                 return MutableComponent.create(TranslatableContents(contents.key, contents.fallback, args)).setStyle(style).apply {
-                    siblings.map { it.transformEmotes(insert, locale) }.forEach(::append)
+                    siblings.map { it.transformEmotes(locale, insert) }.forEach(::append)
                 }
             }
 
@@ -329,7 +296,7 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
         set(DataComponents.LORE, get(DataComponents.LORE)?.let { itemLore ->
             ItemLore(
                 itemLore.lines.map { l -> l.transformEmotes().copy().withStyle { it.withItalic(false) } },
-                itemLore.styledLines.map { Component.empty().setStyle(Style.EMPTY).append(it.transformEmotes()) }
+                itemLore.styledLines.map { NMSComponent.empty().setStyle(Style.EMPTY).append(it.transformEmotes()) }
             )
         })
 
@@ -348,7 +315,7 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
         map.set(DataComponents.LORE, map.get(DataComponents.LORE)?.let { itemLore ->
             ItemLore(
                 itemLore.lines.map { l -> l.transformEmotes().copy().withStyle { it.withItalic(false) } },
-                itemLore.styledLines.map { Component.empty().setStyle(Style.EMPTY).append(it.transformEmotes()) }
+                itemLore.styledLines.map { NMSComponent.empty().setStyle(Style.EMPTY).append(it.transformEmotes()) }
             )
         })
 
@@ -359,6 +326,24 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
 
         return DataComponentExactPredicate.allOf(map)
     }
+
+    fun <T : Any> transformSynchedData(data: SynchedEntityData.DataValue<T>): SynchedEntityData.DataValue<T> =
+        when (val value = data.value) {
+            is AdventureComponent -> SynchedEntityData.DataValue(
+                data.id, data.serializer as EntityDataSerializer<AdventureComponent>,
+                AdventureComponent(value.`adventure$component`().transformEmotes(player.locale()))
+            )
+            is NMSComponent -> SynchedEntityData.DataValue(data.id, EntityDataSerializers.COMPONENT, value.transformEmotes(locale = player.locale()))
+            is Optional<*> -> when (val comp = value.getOrNull()) {
+                is AdventureComponent -> SynchedEntityData.DataValue(
+                    data.id, data.serializer as EntityDataSerializer<Optional<AdventureComponent>>,
+                    Optional.of(AdventureComponent(comp.`adventure$component`().transformEmotes(player.locale())))
+                )
+                is NMSComponent -> SynchedEntityData.DataValue(data.id, EntityDataSerializers.OPTIONAL_COMPONENT, Optional.of(comp.transformEmotes(locale = player.locale())))
+                else -> data
+            }
+            else -> data
+        } as SynchedEntityData.DataValue<T>
 
     private fun Holder<Dialog>.transform(): Holder<Dialog> {
         return Holder.direct(value().transform())
@@ -413,11 +398,11 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
         return Input(input.key, control)
     }
 
-    fun Component.escapeEmoteIDs(): Component {
+    fun NMSComponent.escapeEmoteIDs(): NMSComponent {
         return PaperAdventure.asVanilla((PaperAdventure.asAdventure(this)).escapeEmoteIDs(player))
     }
 
-    fun Component.unescapeEmoteIds(): Component {
+    fun NMSComponent.unescapeEmoteIds(): NMSComponent {
         return PaperAdventure.asVanilla(PaperAdventure.asAdventure(this).unescapeEmoteIds())
     }
 
