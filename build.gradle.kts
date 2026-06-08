@@ -2,16 +2,12 @@ import io.papermc.paperweight.userdev.ReobfArtifactConfiguration
 import net.minecrell.pluginyml.paper.PaperPluginDescription
 
 plugins {
-    id("com.mineinabyss.conventions.kotlin.jvm")
-    id("com.mineinabyss.conventions.papermc")
-    id("com.mineinabyss.conventions.copyjar")
-    id("com.mineinabyss.conventions.autoversion")
-    id("xyz.jpenilla.run-paper") version "2.3.1" // Adds runServer and runMojangMappedServer tasks for testing
-    id("net.minecrell.plugin-yml.paper") version "0.6.0"
-    id("io.papermc.paperweight.userdev") version "2.0.0-beta.19"
+    alias(miaLibs.plugins.mia.kotlin.jvm)
+    alias(miaLibs.plugins.mia.papermc)
+    alias(miaLibs.plugins.mia.copyjar)
+    alias(miaLibs.plugins.mia.nms)
+    alias(miaLibs.plugins.mia.docs)
 }
-
-paperweight.reobfArtifactConfiguration.set(ReobfArtifactConfiguration.MOJANG_PRODUCTION)
 
 allprojects {
     apply(plugin = "java")
@@ -37,11 +33,11 @@ repositories {
 
 dependencies {
     // MineInAbyss platform
-    compileOnly(idofrontLibs.bundles.idofront.core)
-    compileOnly(idofrontLibs.kotlinx.serialization.json)
-    compileOnly(idofrontLibs.kotlinx.serialization.kaml)
-    compileOnly(idofrontLibs.kotlinx.coroutines)
-    compileOnly(idofrontLibs.minecraft.mccoroutine)
+    compileOnly(miaLibs.bundles.idofront.core)
+    compileOnly(miaLibs.kotlinx.serialization.json)
+    compileOnly(miaLibs.kotlinx.serialization.kaml)
+    compileOnly(miaLibs.kotlinx.coroutines)
+    compileOnly(miaLibs.minecraft.mccoroutine)
 
     // Shaded
     paperweight.paperDevBundle("1.21.11-R0.1-SNAPSHOT") //NMS
@@ -71,9 +67,9 @@ tasks {
         filteringCharset = Charsets.UTF_8.name()
     }
 
-    runServer {
-        minecraftVersion("1.21")
-    }
+//    runServer {
+//        minecraftVersion("1.21")
+//    }
 
     shadowJar {
         archiveFileName.set("Emojy.jar")

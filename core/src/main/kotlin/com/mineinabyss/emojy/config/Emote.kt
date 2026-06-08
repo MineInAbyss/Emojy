@@ -1,16 +1,17 @@
+@file:UseSerializers(KeySerializer::class)
+
 package com.mineinabyss.emojy.config
 
+
 import com.mineinabyss.emojy.emojy
-import com.mineinabyss.emojy.emojyConfig
 import com.mineinabyss.emojy.spaceComponent
-import com.mineinabyss.emojy.templates
 import com.mineinabyss.idofront.serialization.KeySerializer
 import com.mineinabyss.idofront.textcomponents.miniMsg
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.EncodeDefault.Mode.NEVER
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlinx.serialization.UseSerializers
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
@@ -19,33 +20,36 @@ import net.kyori.adventure.text.event.HoverEvent.hoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.entity.Player
 import team.unnamed.creative.ResourcePack
-import team.unnamed.creative.atlas.Atlas.atlas
 import team.unnamed.creative.font.Font
 import team.unnamed.creative.font.FontProvider
 
 @Serializable
+data class EmoteConfig(
+    val id: String,
+    @EncodeDefault(NEVER) val template: String? = null,
+    @EncodeDefault(NEVER) val font: Key? = null,
+    @EncodeDefault(NEVER) val atlas: Key? = null,
+    @EncodeDefault(NEVER) val texture: Key? = null,
+    @EncodeDefault(NEVER) val height: Int? = null,
+    @EncodeDefault(NEVER) val ascent: Int? = null,
+    @EncodeDefault(NEVER) val bitmapWidth: Int? = null,
+    @EncodeDefault(NEVER) val bitmapHeight: Int? = null,
+)
+
 data class Emote(
     val id: String,
-    @SerialName("template") @EncodeDefault(NEVER) private val _template: String? = null,
-    @EncodeDefault(NEVER) @Transient val template: EmojyTemplate? = templates.find { it.id == _template },
-
-    @EncodeDefault(NEVER) val font: @Serializable(KeySerializer::class) Key = template?.font ?: emojyConfig.defaultFont,
-    @EncodeDefault(NEVER) val atlas: @Serializable(KeySerializer::class) Key? = template?.atlas ?: emojyConfig.defaultAtlas,
-    @SerialName("texture") @EncodeDefault(NEVER) private val _texture: @Serializable(KeySerializer::class) Key =
-        template?.texture ?: Key.key("${emojyConfig.defaultNamespace}:${emojyConfig.defaultFolder}/${id.lowercase()}.png"),
-    @EncodeDefault(NEVER) val height: Int = template?.height ?: emojyConfig.defaultHeight,
-    @EncodeDefault(NEVER) val ascent: Int = template?.ascent ?: emojyConfig.defaultAscent,
-    @EncodeDefault(NEVER) val bitmapWidth: Int = template?.bitmapWidth ?: 1,
-    @EncodeDefault(NEVER) val bitmapHeight: Int = template?.bitmapHeight ?: 1,
+    val template: EmojyTemplate?,
+    val font: Key,
+    val atlas: Key?,
+    val texture: Key,
+    val height: Int,
+    val ascent: Int,
+    val bitmapWidth: Int,
+    val bitmapHeight: Int,
 ) {
-    @Transient
     val isMultiBitmap = bitmapWidth > 1 || bitmapHeight > 1
-    @Transient
     val baseRegex = "(?<!\\\\):$id(\\|(c|colorable|\\d+(\\.\\.\\d+)?))*:".toRegex()
-    @Transient
     val escapedRegex = "\\\\:$id(\\|(c|colorable|\\d+))*:".toRegex()
-    @Transient
-    val texture = Key.key(_texture.asString().removeSuffix(".png").plus(".png"))
 
     // Beginning of Private Use Area \uE000 -> uF8FF
     // Option: (Character.toCodePoint('\uE000', '\uFF8F')/37 + getIndex())
@@ -83,17 +87,18 @@ data class Emote(
     }
 
     fun checkPermission(player: Player?) =
-        !emojyConfig.requirePermissions || player?.hasPermission(permission) != false || player.hasPermission(fontPermission)
+        !emojy.config.requirePermissions || player?.hasPermission(permission) != false || player.hasPermission(fontPermission)
 
     fun replacementConfig(
         appendSpace: Boolean = false,
         insert: Boolean = true,
         colorable: Boolean = false,
-        bitmapIndex: Int = -1
+        bitmapIndex: Int = -1,
     ): TextReplacementConfig {
         return if (!appendSpace && insert && !colorable && bitmapIndex == -1) defaultReplacementConfig
         else TextReplacementConfig.builder().match(baseRegex.pattern).once().replacement(formattedComponent(appendSpace, insert, colorable, bitmapIndex)).build()
     }
+
     private val defaultReplacementConfig by lazy {
         TextReplacementConfig.builder().match(baseRegex.pattern).once().replacement(defaultComponent).build()
     }
@@ -102,7 +107,7 @@ data class Emote(
         appendSpace: Boolean = false,
         insert: Boolean = true,
         colorable: Boolean = false,
-        bitmapIndex: Int = -1
+        bitmapIndex: Int = -1,
     ): Component {
         var bitmap = when {
             unicodes.map { it.map(Char::toString) }.flatten().size > 1 -> {
@@ -132,5 +137,24 @@ data class Emote(
         )
 
         return if (appendSpace) bitmap.append(spaceComponent(2)) else bitmap
+    }
+
+    companion object {
+        fun from(emote: EmoteConfig, templates: EmojyTemplates, config: EmojyConfig): Emote {
+            val template = templates.find { it.id == emote.template }
+            val _texture = template?.texture ?: Key.key("${config.defaultNamespace}:${config.defaultFolder}/${emote.id.lowercase()}.png")
+            val texture = Key.key(_texture.asString().removeSuffix(".png").plus(".png"))
+            return Emote(
+                id = emote.id,
+                template = template,
+                font = template?.font ?: config.defaultFont,
+                atlas = template?.atlas ?: config.defaultAtlas,
+                texture = texture,
+                height = template?.height ?: config.defaultHeight,
+                ascent = template?.ascent ?: config.defaultAscent,
+                bitmapWidth = template?.bitmapWidth ?: 1,
+                bitmapHeight = template?.bitmapHeight ?: 1,
+            )
+        }
     }
 }

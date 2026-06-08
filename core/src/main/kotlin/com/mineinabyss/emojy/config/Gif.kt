@@ -1,8 +1,8 @@
+@file:UseSerializers(KeySerializer::class)
+
 package com.mineinabyss.emojy.config
 
-import com.mineinabyss.emojy.EmojyGenerator.gifFolder
 import com.mineinabyss.emojy.emojy
-import com.mineinabyss.emojy.emojyConfig
 import com.mineinabyss.emojy.helpers.GifConverter
 import com.mineinabyss.emojy.spaceComponent
 import com.mineinabyss.idofront.serialization.KeySerializer
@@ -11,9 +11,9 @@ import com.mineinabyss.idofront.textcomponents.serialize
 import com.mineinabyss.idofront.util.appendSuffix
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.EncodeDefault.Mode.NEVER
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlinx.serialization.UseSerializers
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
@@ -32,26 +32,42 @@ import javax.imageio.ImageIO
 import kotlin.math.roundToInt
 
 @Serializable
+data class GifConfig(
+    val id: String,
+    @EncodeDefault(NEVER) val frameCount: Int = 0,
+    @EncodeDefault(NEVER) val framePath: Key? = null,
+    @EncodeDefault(NEVER) val ascent: Int? = null,
+    @EncodeDefault(NEVER) val height: Int? = null,
+    @EncodeDefault(NEVER) val offset: Int? = null,
+    @EncodeDefault(NEVER) val type: Gif.GifType? = null,
+)
+
 data class Gif(
     val id: String,
-    @EncodeDefault(NEVER) var frameCount: Int = 0,
-    @EncodeDefault(NEVER) @SerialName("framePath") val _framePath: @Serializable(KeySerializer::class) Key = Key.key(
-        "${emojyConfig.defaultNamespace}:${emojyConfig.defaultFolder}/$id"
-    ),
-    @EncodeDefault(NEVER) val ascent: Int = 8,
-    @EncodeDefault(NEVER) val height: Int = 8,
-    @EncodeDefault(NEVER) var offset: Int? = null,
-    @EncodeDefault(NEVER) val type: GifType = emojyConfig.defaultGifType
+    var frameCount: Int = 0,
+    val framePath: Key,
+    val ascent: Int = 8,
+    val height: Int = 8,
+    var offset: Int? = null,
+    val type: GifType = emojy.config.defaultGifType,
 ) {
-    @Transient val framePath = Key.key(_framePath.asString().removeSuffix("/"))
-    @Transient val font = Key.key(framePath.namespace(), id)
-    @Transient val permission = "emojy.gif.$id"
-    @Transient val baseRegex = "(?<!\\\\):$id:".toRegex()
-    @Transient val escapedRegex = "\\\\:$id:".toRegex()
-    @Transient private var aspectRatio = 0f
+    @Transient
+    val font = Key.key(framePath.namespace(), id)
 
-    val gifFile by lazy { emojy.plugin.dataFolder.resolve("gifs/${id}.gif").apply { parentFile.mkdirs() } }
-    val gifSpriteSheet by lazy { emojy.plugin.dataFolder.resolve("gifs/${id}.png").apply { parentFile.mkdirs() } }
+    @Transient
+    val permission = "emojy.gif.$id"
+
+    @Transient
+    val baseRegex = "(?<!\\\\):$id:".toRegex()
+
+    @Transient
+    val escapedRegex = "\\\\:$id:".toRegex()
+
+    @Transient
+    private var aspectRatio = 0f
+
+    val gifFile by lazy { emojy.dataFolder.resolve("gifs/${id}.gif").apply { parentFile.mkdirs() } }
+    val gifSpriteSheet by lazy { emojy.dataFolder.resolve("gifs/${id}.png").apply { parentFile.mkdirs() } }
 
     enum class GifType {
         SHADER, OBFUSCATION, SPRITE
@@ -99,7 +115,7 @@ data class Gif(
     }
 
     fun checkPermission(player: Player?): Boolean {
-        return !emojyConfig.requirePermissions || player == null || player.hasPermission(permission)
+        return !emojy.config.requirePermissions || player == null || player.hasPermission(permission)
     }
 
     fun formattedUnicode(appendSpace: Boolean = false, insert: Boolean = true): Component {
@@ -116,12 +132,28 @@ data class Gif(
 
     fun generateSplitGif(resourcePack: ResourcePack) {
         runCatching {
-            val gifFolder = gifFolder.resolve(id)
+            val gifFolder = emojy.generator.gifFolder.resolve(id)
 
             GifConverter(this, resourcePack).splitGif(calculateFramecount())
             gifFolder.deleteRecursively()
         }.onFailure {
             emojy.logger.d("Could not generate split gif for ${id}.gif: ${it.message}")
+        }
+    }
+
+    companion object {
+        fun from(gif: GifConfig, config: EmojyConfig): Gif {
+            val _framePath = gif.framePath ?: Key.key("${config.defaultNamespace}:${config.defaultFolder}/${gif.id}")
+            val framePath = Key.key(_framePath.asString().removeSuffix("/"))
+            return Gif(
+                id = gif.id,
+                frameCount = gif.frameCount,
+                framePath = framePath,
+                ascent = gif.ascent ?: 8,
+                height = gif.height ?: 8,
+                offset = gif.offset,
+                type = gif.type ?: config.defaultGifType,
+            )
         }
     }
 }

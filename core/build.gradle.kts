@@ -3,7 +3,7 @@ plugins {
     id("com.mineinabyss.conventions.kotlin.jvm")
     id("com.mineinabyss.conventions.papermc")
     id("com.mineinabyss.conventions.autoversion")
-    alias(idofrontLibs.plugins.kotlinx.serialization)
+    alias(miaLibs.plugins.kotlinx.serialization)
 }
 
 repositories {
@@ -17,14 +17,14 @@ repositories {
 
 dependencies {
     // MineInAbyss platform
-    compileOnly(idofrontLibs.bundles.idofront.core)
-    compileOnly(idofrontLibs.kotlinx.serialization.json)
-    compileOnly(idofrontLibs.kotlinx.serialization.kaml)
-    compileOnly(idofrontLibs.kotlinx.coroutines)
-    compileOnly(idofrontLibs.minecraft.mccoroutine)
+    compileOnly(miaLibs.bundles.idofront.core)
+    compileOnly(miaLibs.kotlinx.serialization.json)
+    compileOnly(miaLibs.kotlinx.serialization.kaml)
+    compileOnly(miaLibs.kotlinx.coroutines)
+    compileOnly(miaLibs.minecraft.mccoroutine)
 
-    compileOnly(idofrontLibs.creative.api)
-    compileOnly(idofrontLibs.creative.serializer.minecraft)
+    compileOnly(miaLibs.creative.api)
+    compileOnly(miaLibs.creative.serializer.minecraft)
 }
 
 publishing {

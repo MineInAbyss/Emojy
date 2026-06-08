@@ -2,10 +2,11 @@ package com.mineinabyss.emojy.nms
 
 import com.mineinabyss.emojy.EmojyPlugin
 import org.bukkit.Bukkit
+import org.bukkit.plugin.Plugin
 
 object EmojyNMSHandlers {
 
-    fun setup(emojy: EmojyPlugin): IEmojyNMSHandler {
+    fun setup(emojy: Plugin): IEmojyNMSHandler {
         val nmsPackage = when (Bukkit.getMinecraftVersion()) {
             "1.21", "1.21.1" -> "v1_21_R1"
             "1.21.2", "1.21.3" -> "v1_21_R2"

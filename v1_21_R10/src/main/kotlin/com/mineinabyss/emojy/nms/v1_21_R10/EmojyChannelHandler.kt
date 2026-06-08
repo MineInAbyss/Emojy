@@ -263,7 +263,7 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
         }
         registerReader<ServerboundContainerClickPacket> { packet ->
             if (packet.carriedItem == HashedStack.EMPTY) return@registerReader
-            emojy.plugin.launch {
+            emojy.launch {
                 delay(1.ticks)
                 player.updateInventory()
             }

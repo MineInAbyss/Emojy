@@ -1,66 +1,57 @@
 package com.mineinabyss.emojy
 
+import com.mineinabyss.dependencies.*
 import com.mineinabyss.emojy.config.*
 import com.mineinabyss.emojy.nms.EmojyNMSHandlers
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
 import com.mineinabyss.emojy.translator.EmojyLanguage
-import com.mineinabyss.emojy.translator.EmojyTranslator
-import com.mineinabyss.idofront.config.config
-import com.mineinabyss.idofront.di.DI
+import com.mineinabyss.idofront.features.*
 import com.mineinabyss.idofront.messaging.ComponentLogger
-import com.mineinabyss.idofront.messaging.injectLogger
-import com.mineinabyss.idofront.messaging.observeLogger
 import com.mineinabyss.idofront.textcomponents.IdofrontTextComponents
-import net.kyori.adventure.translation.GlobalTranslator
+import org.bukkit.plugin.Plugin
 import org.bukkit.plugin.java.JavaPlugin
-import java.util.*
-import kotlin.io.path.div
 
-class EmojyPlugin : JavaPlugin() {
+class EmojyPlugin : JavaPlugin(), EmojyContext, DI {
+    override val di: DIContext = DI {
+        singlePluginLogger(this@EmojyPlugin)
+        single<Plugin> { this@EmojyPlugin }
+        single {
+            MainCommand(
+                names = listOf("emojy"),
+                description = "Main command for emojy",
+                reloadCommandName = "reload",
+            )
+        }
+    }
+
+    override val logger: ComponentLogger by di.getLazy()
+    override val emotes: Array<Emote> get() = scope[EmojyMainModule].get()
+    override val gifs: Array<Gif> get() = scope[EmojyMainModule].get()
+    override val languages: Array<EmojyLanguage> get() = scope[EmojyMainModule].get()
+    override val handler: IEmojyNMSHandler get() = scope[EmojyMainModule].get()
+    override val config: EmojyConfig get() = scope[EmojyMainModule].get()
+    override val templates: EmojyTemplates get() = scope[EmojyMainModule].get()
+    override val generator: EmojyGenerator get() = scope[EmojyMainModule].get()
 
     override fun onLoad() {
+        EmojyContext.instance = this
         IdofrontTextComponents.addResolver(EmojyTags.RESOLVER)
     }
 
     override fun onEnable() {
-        createEmojyContext()
-
+        scope.loadAllCatching(EmojyMainModule)
         // NMS version check
-        if (!emojy.handler.supported) {
-            logger.severe("This version is not supported! Consider switching versions?")
+        if (!handler.supported) {
+            logger.e { "This version is not supported! Consider switching versions?" }
             server.pluginManager.disablePlugin(this)
             return
         }
 
-        EmojyGenerator.generateResourcePack()
-
-        EmojyCommands.registerCommands()
+        scope.load(MainCommandFeature)
     }
 
-    fun createEmojyContext() {
-        DI.remove<EmojyConfig>()
-        DI.add(config<EmojyConfig>("config", dataPath, EmojyConfig(), onLoad = {
-            this@EmojyPlugin.injectLogger(ComponentLogger.forPlugin(this@EmojyPlugin, it.logLevel))
-        }).getOrLoad())
-
-        DI.remove<EmojyTemplates>()
-        DI.add(config<EmojyTemplates>("templates", dataPath, EmojyTemplates()).getOrLoad())
-
-        DI.remove<EmojyContext>()
-        DI.add<EmojyContext>(object : EmojyContext {
-            override val plugin: EmojyPlugin = this@EmojyPlugin
-            override val emotes: Array<Emote> = config("emotes", dataPath, Emotes()).getOrLoad().emotes.toTypedArray()
-            override val gifs: Array<Gif> = config("gifs", dataPath, Gifs()).getOrLoad().gifs.toTypedArray()
-            override val languages: Array<EmojyLanguage> = emojyConfig.supportedLanguages.map { langKey ->
-                EmojyLanguage(Locale.forLanguageTag(langKey.replace("_", "-").replaceFirstChar { it.uppercase() }),
-                    config<Map<String, String>>(langKey, dataPath / "languages", mapOf()).getOrLoad())
-            }.toTypedArray()
-            override val logger by plugin.observeLogger()
-            override val handler: IEmojyNMSHandler = EmojyNMSHandlers.setup(this@EmojyPlugin)
-        })
-
-        GlobalTranslator.translator().sources().filter { it.name() == EmojyTranslator.key }.forEach(GlobalTranslator.translator()::removeSource)
-        GlobalTranslator.translator().addSource(EmojyTranslator())
+    override fun onDisable() {
+        di.close()
     }
 }
 

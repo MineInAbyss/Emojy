@@ -1,9 +1,8 @@
 import io.papermc.paperweight.userdev.ReobfArtifactConfiguration
 
 plugins {
-    id("com.mineinabyss.conventions.kotlin.jvm")
-    id("com.mineinabyss.conventions.autoversion")
-    id("io.papermc.paperweight.userdev") version "2.0.0-beta.19"
+    alias(miaLibs.plugins.mia.kotlin.jvm)
+    alias(miaLibs.plugins.mia.nms)
 }
 
 repositories {
@@ -18,15 +17,18 @@ paperweight.reobfArtifactConfiguration.set(ReobfArtifactConfiguration.MOJANG_PRO
 
 dependencies {
     // MineInAbyss platform
-    compileOnly(idofrontLibs.kotlinx.serialization.json)
-    compileOnly(idofrontLibs.kotlinx.serialization.kaml)
-    compileOnly(idofrontLibs.kotlinx.coroutines)
-    compileOnly(idofrontLibs.minecraft.mccoroutine)
+    compileOnly(miaLibs.kotlinx.serialization.json)
+    compileOnly(miaLibs.kotlinx.serialization.kaml)
+    compileOnly(miaLibs.kotlinx.coroutines)
+    compileOnly(miaLibs.minecraft.mccoroutine)
 
     // Shaded
-    implementation(idofrontLibs.bundles.idofront.core)
+    implementation(miaLibs.bundles.idofront.core)
     implementation(project(":core"))
-    paperweight.paperDevBundle("1.21.4-R0.1-SNAPSHOT") //NMS
+}
+
+idofront {
+    minecraftVersion = "1.21.4-R0.1-SNAPSHOT"
 }
 
 tasks {

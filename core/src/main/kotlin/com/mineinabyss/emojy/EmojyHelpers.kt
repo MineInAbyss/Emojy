@@ -39,8 +39,8 @@ val ORIGINAL_SIGN_FRONT_LINES = NamespacedKey.fromString("emojy:original_front_l
 val ORIGINAL_SIGN_BACK_LINES = NamespacedKey.fromString("emojy:original_back_lines")!!
 val ORIGINAL_ITEM_RENAME_TEXT = NamespacedKey.fromString("emojy:original_item_rename")!!
 
-fun spaceString(space: Int) = "<font:${emojyConfig.spaceFont.asMinimalString()}>${Space.of(space)}</font>"
-fun spaceComponent(space: Int) = Component.textOfChildren(Component.text(Space.of(space)).font(emojyConfig.spaceFont))
+fun spaceString(space: Int) = "<font:${emojy.config.spaceFont.asMinimalString()}>${Space.of(space)}</font>"
+fun spaceComponent(space: Int) = Component.textOfChildren(Component.text(Space.of(space)).font(emojy.config.spaceFont))
 
 val SPACE_REPLACEMENT_CONFIG = TextReplacementConfig.builder()
     .match(spaceRegex.pattern)
