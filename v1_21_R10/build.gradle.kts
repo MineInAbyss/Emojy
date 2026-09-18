@@ -29,7 +29,7 @@ dependencies {
 
 
 idofront {
-    minecraftVersion = "26.2.build.123-stable"
+    minecraftVersion = "26.3.build.18-alpha"
 }
 
 tasks {

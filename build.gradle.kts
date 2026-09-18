@@ -40,7 +40,7 @@ dependencies {
     compileOnly(miaLibs.minecraft.mccoroutine)
 
     // Shaded
-    paperweight.paperDevBundle("26.2.build.123-stable") //NMS
+    paperweight.paperDevBundle("26.3.build.18-alpha") //NMS
     implementation(project(path = ":core"))
     implementation(project(path = ":v1_21_R10"))
 }

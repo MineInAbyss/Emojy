@@ -179,7 +179,10 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
                     )
                 )
 
-                if (shouldHavePlayerList) buf.writeCollection(packet.players, FriendlyByteBuf::writeUtf)
+                if (shouldHavePlayerList) {
+                    buf.writeVarInt(packet.players.size)
+                    packet.players.forEach { buf.writeUtf(it) }
+                }
 
                 // Return the modified packet
                 ClientboundSetPlayerTeamPacket.STREAM_CODEC.decode(buf)
@@ -196,7 +199,10 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
         registerTransformer<ClientboundPlayerChatPacket> {
             ClientboundPlayerChatPacket(
                 it.globalIndex, it.sender, it.index, it.signature, it.body,
-                (it.unsignedContent ?: PaperAdventure.asVanilla(it.body.content.miniMsg()))?.transformEmotes(insert = true)?.unescapeEmoteIds(),
+                Optional.of(
+                    (it.unsignedContent.getOrNull() ?: PaperAdventure.asVanilla(it.body.content.miniMsg()))
+                        .transformEmotes(insert = true).unescapeEmoteIds()
+                ),
                 it.filterMask, ChatType.bind(it.chatType.chatType.unwrapKey().get(), registryAccess, it.chatType.name.transformEmotes(insert = true))
             )
         }
