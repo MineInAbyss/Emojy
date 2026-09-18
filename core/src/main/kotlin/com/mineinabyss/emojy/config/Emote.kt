@@ -142,18 +142,20 @@ data class Emote(
     companion object {
         fun from(emote: EmoteConfig, templates: EmojyTemplates, config: EmojyConfig): Emote {
             val template = templates.find { it.id == emote.template }
-            val _texture = template?.texture ?: Key.key("${config.defaultNamespace}:${config.defaultFolder}/${emote.id.lowercase()}.png")
+            // An emote's own values win over the template it otherwise inherits from
+            val _texture = emote.texture ?: template?.texture
+                ?: Key.key("${config.defaultNamespace}:${config.defaultFolder}/${emote.id.lowercase()}.png")
             val texture = Key.key(_texture.asString().removeSuffix(".png").plus(".png"))
             return Emote(
                 id = emote.id,
                 template = template,
-                font = template?.font ?: config.defaultFont,
-                atlas = template?.atlas ?: config.defaultAtlas,
+                font = emote.font ?: template?.font ?: config.defaultFont,
+                atlas = emote.atlas ?: template?.atlas ?: config.defaultAtlas,
                 texture = texture,
-                height = template?.height ?: config.defaultHeight,
-                ascent = template?.ascent ?: config.defaultAscent,
-                bitmapWidth = template?.bitmapWidth ?: 1,
-                bitmapHeight = template?.bitmapHeight ?: 1,
+                height = emote.height ?: template?.height ?: config.defaultHeight,
+                ascent = emote.ascent ?: template?.ascent ?: config.defaultAscent,
+                bitmapWidth = emote.bitmapWidth ?: template?.bitmapWidth ?: 1,
+                bitmapHeight = emote.bitmapHeight ?: template?.bitmapHeight ?: 1,
             )
         }
     }
