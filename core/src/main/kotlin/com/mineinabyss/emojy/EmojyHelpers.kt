@@ -128,11 +128,14 @@ fun Component.transformEmotes(locale: Locale? = null, insert: Boolean = false): 
         val startIndex = bitmapMatch?.groupValues?.get(1)?.toIntOrNull() ?: -1
         val endIndex = bitmapMatch?.groupValues?.get(2)?.toIntOrNull()?.coerceAtLeast(startIndex) ?: startIndex
 
-        if (startIndex != -1) component = component.replaceText {
-            it.matchLiteral(match.value).replacement((startIndex..endIndex).joinToString(":space_-1:") { index ->
-                ":${emote.id}|$index${if (colorable) "|c" else ""}:"
-            })
-        }
+        if (startIndex != -1) component = component.replaceText(
+            TextReplacementConfig.builder()
+                .matchLiteral(match.value)
+                .replacement((startIndex..endIndex).joinToString(":space_-1:") { index ->
+                    ":${emote.id}|$index${if (colorable) "|c" else ""}:"
+                })
+                .build()
+        )
 
         for (bitmapIndex in startIndex..endIndex) {
             component = component.replaceText(emote.replacementConfig(false, insert, colorable, bitmapIndex))

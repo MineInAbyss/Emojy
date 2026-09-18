@@ -51,6 +51,7 @@ import net.minecraft.server.dialog.input.BooleanInput
 import net.minecraft.server.dialog.input.NumberRangeInput
 import net.minecraft.server.dialog.input.SingleOptionInput
 import net.minecraft.server.dialog.input.TextInput
+import net.minecraft.world.item.ItemStackTemplate
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.component.ItemLore
 import net.minecraft.world.item.trading.ItemCost
@@ -165,15 +166,18 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
                 buf.writeUtf(packet.name)
                 buf.writeByte(method)
 
-                if (shouldHaveParameters) {
-                    ComponentSerialization.TRUSTED_STREAM_CODEC.encode(buf, parameters.displayName.transformEmotes())
-                    buf.writeByte(parameters.options)
-                    Team.Visibility.STREAM_CODEC.encode(buf, parameters.nametagVisibility ?: Team.Visibility.ALWAYS)
-                    Team.CollisionRule.STREAM_CODEC.encode(buf, parameters.collisionRule ?: Team.CollisionRule.ALWAYS)
-                    buf.writeEnum(parameters.color)
-                    ComponentSerialization.TRUSTED_STREAM_CODEC.encode(buf, parameters.playerPrefix.transformEmotes())
-                    ComponentSerialization.TRUSTED_STREAM_CODEC.encode(buf, parameters.playerSuffix.transformEmotes())
-                }
+                if (shouldHaveParameters) ClientboundSetPlayerTeamPacket.Parameters.STREAM_CODEC.encode(
+                    buf,
+                    ClientboundSetPlayerTeamPacket.Parameters(
+                        parameters.displayName.transformEmotes(),
+                        parameters.playerPrefix.transformEmotes(),
+                        parameters.playerSuffix.transformEmotes(),
+                        parameters.nameTagVisibility,
+                        parameters.collisionRule,
+                        parameters.color,
+                        parameters.options
+                    )
+                )
 
                 if (shouldHavePlayerList) buf.writeCollection(packet.players, FriendlyByteBuf::writeUtf)
 
@@ -306,6 +310,21 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
         set(DataComponents.CUSTOM_NAME, customName)
 
         return this
+    }
+
+    private fun ItemStackTemplate.transformItemNameLore(): ItemStackTemplate {
+        val map = PatchedDataComponentMap.fromPatch(DataComponentMap.EMPTY, components)
+
+        map.set(DataComponents.ITEM_NAME, map.get(DataComponents.ITEM_NAME)?.transformEmotes())
+        map.set(DataComponents.LORE, map.get(DataComponents.LORE)?.let { itemLore ->
+            ItemLore(
+                itemLore.lines.map { l -> l.transformEmotes().copy().withStyle { it.withItalic(false) } },
+                itemLore.styledLines.map { NMSComponent.empty().setStyle(Style.EMPTY).append(it.transformEmotes()) }
+            )
+        })
+        map.set(DataComponents.CUSTOM_NAME, map.get(DataComponents.CUSTOM_NAME)?.transformEmotes())
+
+        return ItemStackTemplate(item, count, map.asPatch())
     }
 
     private fun DataComponentExactPredicate.transformItemNameLore(player: Player): DataComponentExactPredicate {

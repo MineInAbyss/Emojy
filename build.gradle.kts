@@ -40,14 +40,8 @@ dependencies {
     compileOnly(miaLibs.minecraft.mccoroutine)
 
     // Shaded
-    paperweight.paperDevBundle("1.21.11-R0.1-SNAPSHOT") //NMS
+    paperweight.paperDevBundle("26.2.build.123-stable") //NMS
     implementation(project(path = ":core"))
-    implementation(project(path = ":v1_21_R1"))
-    implementation(project(path = ":v1_21_R2"))
-    implementation(project(path = ":v1_21_R3"))
-    implementation(project(path = ":v1_21_R4"))
-    implementation(project(path = ":v1_21_R6"))
-    implementation(project(path = ":v1_21_R8"))
     implementation(project(path = ":v1_21_R10"))
 }
 
@@ -55,7 +49,7 @@ tasks {
 
     compileJava {
         options.encoding = Charsets.UTF_8.name()
-        options.release.set(21)
+        options.release.set(25)
     }
 
     javadoc {

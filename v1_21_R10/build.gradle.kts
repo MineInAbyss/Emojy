@@ -29,14 +29,14 @@ dependencies {
 
 
 idofront {
-    minecraftVersion = "1.21.10-R0.1-SNAPSHOT"
+    minecraftVersion = "26.2.build.123-stable"
 }
 
 tasks {
 
     compileJava {
         options.encoding = Charsets.UTF_8.name()
-        options.release.set(21)
+        options.release.set(25)
     }
     javadoc {
         options.encoding = Charsets.UTF_8.name()

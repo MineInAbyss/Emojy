@@ -24,8 +24,13 @@ dependencyResolutionManagement {
     versionCatalogs {
         create("miaLibs"){
             from("com.mineinabyss:catalog:$miaLibs")
+            version("minecraft-server", "26.2.build.123-stable")
+            version("java", "25")
+            version("creative", "1.14.3")
+            version("idofront", "2.0")
         }
     }
 }
 
-include("core", "v1_21_R1", "v1_21_R2", "v1_21_R3", "v1_21_R4", "v1_21_R6", "v1_21_R8", "v1_21_R10")
+// legacy nms modules cannot build against a java 25 core, and 26.2 only needs v1_21_R10
+include("core", "v1_21_R10")
