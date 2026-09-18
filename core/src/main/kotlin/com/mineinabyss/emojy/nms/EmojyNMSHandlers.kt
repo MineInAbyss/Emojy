@@ -7,13 +7,8 @@ import org.bukkit.plugin.Plugin
 object EmojyNMSHandlers {
 
     fun setup(emojy: Plugin): IEmojyNMSHandler {
+        // Only the versions whose module is still built belong here, anything else must fail as unsupported
         val nmsPackage = when (Bukkit.getMinecraftVersion()) {
-            "1.21", "1.21.1" -> "v1_21_R1"
-            "1.21.2", "1.21.3" -> "v1_21_R2"
-            "1.21.4" -> "v1_21_R3"
-            "1.21.5" -> "v1_21_R4"
-            "1.21.6", "1.21.7", "1.21.8" -> "v1_21_R6"
-            "1.21.9", "1.21.10" -> "v1_21_R8"
             "1.21.11", "26.1", "26.1.1", "26.1.2", "26.2", "26.3" -> "v1_21_R10"
             else -> throw IllegalStateException("Unsupported server version")
         }
