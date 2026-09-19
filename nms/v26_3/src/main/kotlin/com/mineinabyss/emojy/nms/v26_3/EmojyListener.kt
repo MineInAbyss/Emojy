@@ -1,4 +1,4 @@
-package com.mineinabyss.emojy.nms.v1_21_R10
+package com.mineinabyss.emojy.nms.v26_3
 
 import com.jeff_media.morepersistentdatatypes.DataType
 import com.mineinabyss.emojy.ORIGINAL_ITEM_RENAME_TEXT

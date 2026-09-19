@@ -15,6 +15,7 @@ allprojects {
     version = rootProject.version
 
     repositories {
+        mavenCentral()
         maven("https://repo.mineinabyss.com/releases")
         maven("https://repo.mineinabyss.com/snapshots")
         maven("https://repo.nexomc.com/releases")
@@ -42,7 +43,10 @@ dependencies {
     // Shaded
     paperweight.paperDevBundle("26.3.build.18-alpha") //NMS
     implementation(project(path = ":core"))
-    implementation(project(path = ":v1_21_R10"))
+    implementation(project(path = ":nms:v1_21_11"))
+    implementation(project(path = ":nms:v26_1_2"))
+    implementation(project(path = ":nms:v26_2"))
+    implementation(project(path = ":nms:v26_3"))
 }
 
 tasks {

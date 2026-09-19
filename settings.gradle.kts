@@ -28,5 +28,11 @@ dependencyResolutionManagement {
     }
 }
 
-// legacy nms modules cannot build against a java 25 core, and 26.3 only needs v1_21_R10
-include("core", "v1_21_R10")
+include("core")
+
+// Modules are named for the Minecraft version they are compiled against
+listOf("v1_21_11", "v26_1_2", "v26_2", "v26_3").forEach(::registerNms)
+fun registerNms(version: String) {
+    include(":nms:$version")
+    project(":nms:$version").projectDir = file("nms/$version")
+}

@@ -1,6 +1,6 @@
 @file:Suppress("unused")
 
-package com.mineinabyss.emojy.nms.v1_21_R10
+package com.mineinabyss.emojy.nms.v26_1_2
 
 import com.mineinabyss.emojy.EmojyPlugin
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler

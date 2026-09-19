@@ -1,4 +1,4 @@
-package com.mineinabyss.emojy.nms.v1_21_R10
+package com.mineinabyss.emojy.nms.v26_3
 
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.ticks
