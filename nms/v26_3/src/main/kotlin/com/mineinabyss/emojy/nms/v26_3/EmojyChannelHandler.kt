@@ -15,6 +15,9 @@ import io.papermc.paper.adventure.AdventureComponent
 import io.papermc.paper.adventure.PaperAdventure
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import kotlinx.coroutines.delay
+import net.minecraft.advancements.Advancement
+import net.minecraft.advancements.AdvancementHolder
+import net.minecraft.advancements.DisplayInfo
 import net.minecraft.core.Holder
 import net.minecraft.core.HolderSet
 import net.minecraft.core.NonNullList
@@ -224,6 +227,13 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
         registerTransformer<ClientboundShowDialogPacket> { packet ->
             ClientboundShowDialogPacket(packet.dialog.transform())
         }
+        registerTransformer<ClientboundUpdateAdvancementsPacket> { packet ->
+            ClientboundUpdateAdvancementsPacket(
+                packet.shouldReset(),
+                packet.added().map { ClientboundUpdateAdvancementsPacket.PositionedAdvancement(it.advancement().transform(), it.x(), it.y()) },
+                packet.removed(), packet.progress(), packet.showAdvancements()
+            )
+        }
         registerTransformer<ClientboundTabListPacket> {
             ClientboundTabListPacket(it.header.transformEmotes(), it.footer.transformEmotes())
         }
@@ -369,6 +379,21 @@ class EmojyChannelHandler(val player: Player) : ChannelDuplexHandler() {
             }
             else -> data
         } as SynchedEntityData.DataValue<T>
+
+    private fun AdvancementHolder.transform(): AdvancementHolder {
+        val advancement = value()
+        val display = advancement.display().map {
+            DisplayInfo(
+                it.icon().transformItemNameLore(), it.title().transformEmotes(), it.description().transformEmotes(),
+                it.background(), it.type(), it.showToast(), it.announceToChat(), it.hidden()
+            )
+        }
+        // the cached name is rebuilt from the transformed display by the shorter constructor
+        return AdvancementHolder(id(), Advancement(
+            advancement.parent(), display, advancement.rewards(), advancement.criteria(),
+            advancement.requirements(), advancement.sendsTelemetryEvent()
+        ))
+    }
 
     private fun Holder<Dialog>.transform(): Holder<Dialog> {
         return Holder.direct(value().transform())
