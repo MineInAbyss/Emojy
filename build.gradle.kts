@@ -32,6 +32,10 @@ repositories {
     mavenLocal()
 }
 
+copyJar {
+    jarName = "emojy-paper-${project.version}.jar"
+}
+
 dependencies {
     // MineInAbyss platform
     compileOnly(miaLibs.bundles.idofront.core)

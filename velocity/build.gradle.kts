@@ -1,6 +1,14 @@
 plugins {
     alias(miaLibs.plugins.mia.kotlin.jvm)
     id("com.gradleup.shadow")
+    id(miaLibs.plugins.mia.copyjar.get().pluginId)
+}
+
+copyJar {
+    destPath = project.findProperty("velocity_plugin_path") as String? ?: "./build/publish"
+    jarName = "emojy-velocity-${project.version}.jar"
+    generatePluginYml = false
+    excludePlatformDependencies = false
 }
 
 repositories {
