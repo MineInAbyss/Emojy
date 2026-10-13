@@ -23,8 +23,8 @@ val EmojyMainModule = module("emojy") {
     singleConfig<EmojyTemplates>("templates.yml") { default = EmojyTemplates() }
     singleConfig<Emotes>("emotes.yml") { default = Emotes() }
     singleConfig<Gifs>("gifs.yml") { default = Gifs() }
-    single<Array<Emote>> { get<Emotes>().emotes.map { Emote.from(it, get(), get()) }.toTypedArray() }
-    single<Array<Gif>> { get<Gifs>().gifs.map { Gif.from(it, get()) }.toTypedArray() }
+    single<Array<Emote>> { get<Emotes>().resolve(get(), get()) }
+    single<Array<Gif>> { get<Gifs>().gifs.map { it.resolve(get()) }.toTypedArray() }
     val plugin = plugin
     single<IEmojyNMSHandler> { EmojyNMSHandlers.setup(plugin) }
     single<Array<EmojyLanguage>> {
@@ -45,8 +45,12 @@ val EmojyMainModule = module("emojy") {
         translator.removeSource(source)
     }
 
+    val proxyBridge = EmojyProxyBridge(plugin, emojy)
+    proxyBridge.register()
+    addCloseable { proxyBridge.unregister() }
+
     task(plugin.launch {
-        delay(1.ticks) // Let emojy context register since it's used in Emote class
+        delay(1.ticks) // Let emojy context register since gif generation uses it
         generator.generateResourcePack()
     })
 }.mainCommand {

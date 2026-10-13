@@ -16,6 +16,8 @@ repositories {
 }
 
 dependencies {
+    api(project(":common"))
+
     // MineInAbyss platform
     compileOnly(miaLibs.bundles.idofront.core)
     compileOnly(miaLibs.kotlinx.serialization.json)

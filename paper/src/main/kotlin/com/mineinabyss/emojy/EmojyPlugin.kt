@@ -8,6 +8,8 @@ import com.mineinabyss.emojy.translator.EmojyLanguage
 import com.mineinabyss.idofront.features.*
 import com.mineinabyss.idofront.messaging.ComponentLogger
 import com.mineinabyss.idofront.textcomponents.IdofrontTextComponents
+import net.kyori.adventure.audience.Audience
+import org.bukkit.permissions.Permissible
 import org.bukkit.plugin.Plugin
 import org.bukkit.plugin.java.JavaPlugin
 
@@ -32,9 +34,15 @@ class EmojyPlugin : JavaPlugin(), EmojyContext, DI {
     override val config: EmojyConfig get() = scope[EmojyMainModule].get()
     override val templates: EmojyTemplates get() = scope[EmojyMainModule].get()
     override val generator: EmojyGenerator get() = scope[EmojyMainModule].get()
+    override val spaceFont get() = config.spaceFont
+    override val requirePermissions get() = config.requirePermissions
+
+    override fun hasPermission(audience: Audience, permission: String) =
+        (audience as? Permissible)?.hasPermission(permission) ?: super.hasPermission(audience, permission)
 
     override fun onLoad() {
         EmojyContext.instance = this
+        EmoteRegistry.instance = this
         IdofrontTextComponents.addResolver(EmojyTags.RESOLVER)
     }
 

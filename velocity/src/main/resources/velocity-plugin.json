@@ -1,0 +1,10 @@
+{
+  "id": "emojy",
+  "name": "Emojy",
+  "version": "${version}",
+  "authors": ["boy0000"],
+  "dependencies": [
+    { "id": "velocitab", "optional": true }
+  ],
+  "main": "com.mineinabyss.emojy.velocity.EmojyVelocity"
+}

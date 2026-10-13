@@ -23,7 +23,7 @@ allprojects {
         mavenLocal()
     }
 
-    dependencies {
+    if (path !in setOf(":common", ":velocity")) dependencies {
         implementation("com.jeff-media:MorePersistentDataTypes:2.4.0")
     }
 }
@@ -42,7 +42,7 @@ dependencies {
 
     // Shaded
     paperweight.paperDevBundle("26.3.build.18-alpha") //NMS
-    implementation(project(path = ":core"))
+    implementation(project(path = ":paper"))
     implementation(project(path = ":nms:v1_21_11"))
     implementation(project(path = ":nms:v26_1_2"))
     implementation(project(path = ":nms:v26_2"))

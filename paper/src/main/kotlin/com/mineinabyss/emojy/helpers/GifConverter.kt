@@ -1,6 +1,7 @@
 package com.mineinabyss.emojy.helpers
 
 import com.mineinabyss.emojy.config.Gif
+import com.mineinabyss.emojy.config.gifFile
 import com.mineinabyss.idofront.util.appendSuffix
 import team.unnamed.creative.ResourcePack
 import team.unnamed.creative.base.Writable

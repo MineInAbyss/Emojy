@@ -1,0 +1,16 @@
+[versions]
+adventure = "5.2.0"
+gson = "2.13.2"
+netty = "4.2.10.Final"
+velocity = "4.2.0"
+velocity-proxy = "3.6.0-SNAPSHOT"
+velocitab = "1.7.9"
+
+[libraries]
+adventure-api = { module = "net.kyori:adventure-api", version.ref = "adventure" }
+adventure-minimessage = { module = "net.kyori:adventure-text-minimessage", version.ref = "adventure" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+netty-transport = { module = "io.netty:netty-transport", version.ref = "netty" }
+velocity-api = { module = "com.velocitypowered:velocity-api", version.ref = "velocity" }
+velocity-proxy = { module = "com.velocitypowered:velocity-proxy", version.ref = "velocity-proxy" }
+velocitab = { module = "net.william278:velocitab", version.ref = "velocitab" }

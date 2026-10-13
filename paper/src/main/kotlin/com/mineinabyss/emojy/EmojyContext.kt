@@ -2,16 +2,12 @@ package com.mineinabyss.emojy
 
 import com.mineinabyss.emojy.config.EmojyConfig
 import com.mineinabyss.emojy.config.EmojyTemplates
-import com.mineinabyss.emojy.config.Emote
-import com.mineinabyss.emojy.config.Gif
 import com.mineinabyss.emojy.nms.IEmojyNMSHandler
 import com.mineinabyss.emojy.translator.EmojyLanguage
 import com.mineinabyss.idofront.messaging.ComponentLogger
 import org.bukkit.plugin.Plugin
 
-interface EmojyContext : Plugin {
-    val emotes: Array<Emote>
-    val gifs: Array<Gif>
+interface EmojyContext : Plugin, EmoteRegistry {
     val languages: Array<EmojyLanguage>
     val handler: IEmojyNMSHandler
     val logger: ComponentLogger

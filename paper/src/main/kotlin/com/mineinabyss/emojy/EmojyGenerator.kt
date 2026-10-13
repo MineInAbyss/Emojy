@@ -3,6 +3,9 @@ package com.mineinabyss.emojy
 import com.mineinabyss.emojy.config.EmojyConfig
 import com.mineinabyss.emojy.config.Emote
 import com.mineinabyss.emojy.config.Gif
+import com.mineinabyss.emojy.config.appendFont
+import com.mineinabyss.emojy.config.generateSplitGif
+import com.mineinabyss.emojy.config.toFont
 import com.mineinabyss.idofront.font.Space
 import com.mineinabyss.idofront.font.Space.Companion.toNumber
 import com.mineinabyss.idofront.messaging.ComponentLogger
@@ -76,7 +79,7 @@ class EmojyGenerator(
             if (it.type == Gif.GifType.SPRITE) {
                 spriteAtlas.addSource(AtlasSource.single(it.framePath))
             } else {
-                it.font().addTo(resourcePack)
+                it.toFont().addTo(resourcePack)
             }
         }
         if (!spriteAtlas.sources().isNullOrEmpty()) resourcePack.atlas(spriteAtlas.build())

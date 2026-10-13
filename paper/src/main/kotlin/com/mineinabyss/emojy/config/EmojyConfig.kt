@@ -11,9 +11,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
 import net.kyori.adventure.key.Key
 
-const val PRIVATE_USE_FIRST = 57344
-const val SPACE_PERMISSION = "emojy.space"
-
 @Serializable
 data class EmojyConfig(
     val defaultPackFormat: Int = 75,

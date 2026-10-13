@@ -14,7 +14,7 @@ dependencies {
     compileOnly(miaLibs.minecraft.mccoroutine)
 
     implementation(miaLibs.bundles.idofront.core)
-    implementation(project(":core"))
+    implementation(project(":paper"))
 }
 
 idofront {

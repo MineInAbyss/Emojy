@@ -28,7 +28,7 @@ dependencyResolutionManagement {
     }
 }
 
-include("core")
+include("common", "paper", "velocity")
 
 // Modules are named for the Minecraft version they are compiled against
 listOf("v1_21_11", "v26_1_2", "v26_2", "v26_3").forEach(::registerNms)
