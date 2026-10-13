@@ -7,6 +7,7 @@ import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextComponent
 import net.kyori.adventure.text.TextReplacementConfig
+import net.kyori.adventure.text.TranslatableComponent
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.ShadowColor
@@ -74,18 +75,12 @@ internal fun String.toArgb(): Int = runCatching {
     }
 }.getOrNull() ?: 0xFFFFFFFF.toInt()
 
-private fun Component.asFlatTextContent(): String {
-    var flattened = ""
-    val flatText = (this@asFlatTextContent as? TextComponent) ?: return flattened
-    flattened += flatText.content()
-    flattened += flatText.children().joinToString("") { it.asFlatTextContent() }
-    (flatText.hoverEvent()?.value() as? Component)?.let { hover ->
-        val hoverText = hover as? TextComponent ?: return@let
-        flattened += hoverText.content()
-        flattened += hoverText.children().joinToString("") { it.asFlatTextContent() }
-    }
-
-    return flattened
+private fun Component.asFlatTextContent(): String = buildString {
+    val component = this@asFlatTextContent
+    if (component is TextComponent) append(component.content())
+    if (component is TranslatableComponent) component.arguments().forEach { append(it.asComponent().asFlatTextContent()) }
+    component.children().forEach { append(it.asFlatTextContent()) }
+    (component.hoverEvent()?.value() as? Component)?.let { append(it.asFlatTextContent()) }
 }
 
 fun String.transformEmotes(insert: Boolean = false): String {
