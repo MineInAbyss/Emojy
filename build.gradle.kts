@@ -45,7 +45,6 @@ dependencies {
     compileOnly(miaLibs.minecraft.mccoroutine)
 
     // Shaded
-    paperweight.paperDevBundle("26.3.build.18-alpha") //NMS
     implementation(project(path = ":paper"))
     implementation(project(path = ":nms:v1_21_11"))
     implementation(project(path = ":nms:v26_1_2"))
@@ -106,4 +105,8 @@ paper {
             joinClasspath = true
         }
     }
+}
+
+idofront {
+    minecraftVersion = "26.3.build.18-alpha"
 }
